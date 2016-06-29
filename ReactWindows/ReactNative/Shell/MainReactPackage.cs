@@ -25,6 +25,7 @@ using ReactNative.Views.View;
 using ReactNative.Views.Web;
 using System;
 using System.Collections.Generic;
+using Windows.Storage;
 
 namespace ReactNative.Shell
 {
@@ -40,7 +41,7 @@ namespace ReactNative.Shell
         /// Instantiates the <see cref="MainReactPackage"/>. 
         /// </summary>
         public MainReactPackage()
-            : this(new DefaultUriLoader())
+            : this(new LocalCacheUriLoader("ImageCache"))
         {
         }
 
