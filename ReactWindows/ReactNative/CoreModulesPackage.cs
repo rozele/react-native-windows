@@ -53,13 +53,15 @@ namespace ReactNative
                 //    _reactInstanceManager.DevSupportManager.DevSettings),
                 //new SystemInfoModule(),
                 new DeviceEventManagerModule(reactContext, _hardwareBackButtonHandler),
-                new ExceptionsManagerModule(_reactInstanceManager.DevSupportManager),
                 new Timing(reactContext),
+                uiManagerModule,
+#if DEVSUPPORT
+                new ExceptionsManagerModule(_reactInstanceManager.DevSupportManager),
                 new SourceCodeModule(
                     _reactInstanceManager.SourceUrl,
                     _reactInstanceManager.DevSupportManager.SourceMapUrl),
-                uiManagerModule,
                 //new DebugComponentOwnershipModule(reactContext),
+#endif
             };
         }
 
@@ -73,8 +75,10 @@ namespace ReactNative
                 typeof(RCTNativeAppEventEmitter),
                 typeof(AppRegistry),
                 // TODO: some tracing module
+#if DEVSUPPORT
                 typeof(HMRClient),
                 //typeof(RCTDebugComponentOwnership),
+#endif
             };
         }
 

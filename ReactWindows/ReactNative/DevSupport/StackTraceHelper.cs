@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿#if DEVSUPPORT
+using Newtonsoft.Json.Linq;
 using System;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
@@ -206,3 +207,4 @@ namespace ReactNative.DevSupport
         }
     }
 }
+#endif

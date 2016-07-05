@@ -1,4 +1,5 @@
-﻿using System;
+﻿#if DEVSUPPORT
+using System;
 using Windows.Devices.Sensors;
 
 namespace ReactNative.DevSupport
@@ -62,3 +63,4 @@ namespace ReactNative.DevSupport
         }
     }
 }
+#endif

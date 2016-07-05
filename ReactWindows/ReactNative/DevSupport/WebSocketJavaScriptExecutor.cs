@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿#if DEVSUPPORT
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using ReactNative.Bridge;
 using ReactNative.Collections;
@@ -250,3 +251,4 @@ namespace ReactNative.DevSupport
         }
     }
 }
+#endif

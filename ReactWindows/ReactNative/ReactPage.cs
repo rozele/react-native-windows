@@ -151,6 +151,7 @@ namespace ReactNative
         /// <param name="e"></param>
         private void OnAcceleratorKeyActivated(CoreDispatcher sender, AcceleratorKeyEventArgs e)
         {
+#if DEVSUPPORT
             if (_reactInstanceManager.DevSupportManager.IsEnabled)
             {
                 if (e.VirtualKey == VirtualKey.Shift)
@@ -171,6 +172,7 @@ namespace ReactNative
                     _reactInstanceManager.DevSupportManager.HandleReloadJavaScript();
                 }
             }
+#endif
         }
 
         private IReactInstanceManager CreateReactInstanceManager()
@@ -197,12 +199,14 @@ namespace ReactNative
                     throw new ArgumentException("Expected even number of arguments.", nameof(arguments));
                 }
 
+#if DEVSUPPORT
                 var index = Array.IndexOf(args, "remoteDebugging");
                 var isRemoteDebuggingEnabled = default(bool);
                 if (index % 2 == 0 && bool.TryParse(args[index + 1], out isRemoteDebuggingEnabled))
                 {
                     _reactInstanceManager.DevSupportManager.IsRemoteDebuggingEnabled = isRemoteDebuggingEnabled;
                 }
+#endif
             }
         }
     }

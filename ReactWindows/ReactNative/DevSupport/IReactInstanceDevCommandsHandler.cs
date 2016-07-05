@@ -1,4 +1,5 @@
-﻿using ReactNative.Bridge;
+﻿#if DEVSUPPORT
+using ReactNative.Bridge;
 using System;
 
 namespace ReactNative.DevSupport
@@ -37,3 +38,4 @@ namespace ReactNative.DevSupport
         void ToggleElementInspector();
     }
 }
+#endif

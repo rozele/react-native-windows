@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json;
+﻿#if DEVSUPPORT
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using ReactNative.Common;
 using ReactNative.Tracing;
@@ -70,3 +71,4 @@ namespace ReactNative.DevSupport
         }
     }
 }
+#endif

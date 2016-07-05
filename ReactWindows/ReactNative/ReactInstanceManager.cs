@@ -38,8 +38,6 @@ namespace ReactNative
         private readonly string _jsBundleFile;
         private readonly string _jsMainModuleName;
         private readonly IReadOnlyList<IReactPackage> _packages;
-        private readonly IDevSupportManager _devSupportManager;
-        private readonly bool _useDeveloperSupport;
         private readonly UIImplementationProvider _uiImplementationProvider;
         private readonly Action<Exception> _nativeModuleCallExceptionHandler;
 
@@ -52,6 +50,11 @@ namespace ReactNative
         private ReactContext _currentReactContext;
         private Action _defaultBackButtonHandler;
 
+        private readonly bool _useDeveloperSupport;
+#if DEVSUPPORT
+        private readonly IDevSupportManager _devSupportManager;
+#endif
+        
         /// <summary>
         /// Event triggered when a React context has been initialized.
         /// </summary>
@@ -76,18 +79,21 @@ namespace ReactNative
             _packages = packages;
 
             _useDeveloperSupport = useDeveloperSupport;
+#if DEVSUPPORT
             _devSupportManager = _useDeveloperSupport
                 ? (IDevSupportManager)new DevSupportManager(
                     new ReactInstanceDevCommandsHandler(this),
                     _jsBundleFile, 
                     _jsMainModuleName)
                 : new DisabledDevSupportManager();
+#endif
 
             _lifecycleState = initialLifecycleState;
             _uiImplementationProvider = uiImplementationProvider;
             _nativeModuleCallExceptionHandler = nativeModuleCallExceptionHandler;
         }
 
+#if DEVSUPPORT
         /// <summary>
         /// The developer support manager for the instance.
         /// </summary>
@@ -98,6 +104,7 @@ namespace ReactNative
                 return _devSupportManager;
             }
         }
+#endif
 
         /// <summary>
         /// Signals whether <see cref="CreateReactContextInBackground"/> has 
@@ -205,10 +212,12 @@ namespace ReactNative
             _lifecycleState = LifecycleState.BeforeResume;
             _defaultBackButtonHandler = null;
 
+#if DEVSUPPORT
             if (_useDeveloperSupport)
             {
                 _devSupportManager.IsEnabled = false;
             }
+#endif
 
             var currentReactContext = _currentReactContext;
             if (currentReactContext != null)
@@ -235,10 +244,12 @@ namespace ReactNative
 
             _defaultBackButtonHandler = onBackPressed;
 
+#if DEVSUPPORT
             if (_useDeveloperSupport)
             {
                 _devSupportManager.IsEnabled = true;
             }
+#endif
 
             var currentReactContext = _currentReactContext;
             if (currentReactContext != null)
@@ -255,10 +266,12 @@ namespace ReactNative
             DispatcherHelpers.AssertOnDispatcher();
 
             // TODO: memory pressure hooks
+#if DEVSUPPORT
             if (_useDeveloperSupport)
             {
                 _devSupportManager.IsEnabled = false;
             }
+#endif
 
             var currentReactContext = _currentReactContext;
             if (currentReactContext != null)
@@ -355,7 +368,11 @@ namespace ReactNative
 
             if (_useDeveloperSupport && _jsBundleFile == null && _jsMainModuleName != null)
             {
+#if DEVSUPPORT
                 _devSupportManager.HandleReloadJavaScript();
+#else
+                throw new InvalidOperationException("Developer support tools are not available.");
+#endif
             }
             else
             {
@@ -376,6 +393,7 @@ namespace ReactNative
             _defaultBackButtonHandler?.Invoke();
         }
 
+#if DEVSUPPORT
         private void OnReloadWithJavaScriptDebugger(Func<IJavaScriptExecutor> javaScriptExecutorFactory)
         {
             RecreateReactContextInBackground(
@@ -393,6 +411,7 @@ namespace ReactNative
                     _devSupportManager.SourceUrl,
                     _devSupportManager.DownloadedJavaScriptBundleFile));
         }
+#endif
 
         private void RecreateReactContextInBackground(
             Func<IJavaScriptExecutor> jsExecutorFactory,
@@ -425,10 +444,12 @@ namespace ReactNative
                 var reactContext = await CreateReactContextAsync(jsExecutorFactory, jsBundleLoader);
                 SetupReactContext(reactContext);
             }
+#if DEVSUPPORT
             catch (Exception ex)
             {
                 _devSupportManager.HandleException(ex);
             }
+#endif
             finally
             {
                 _contextInitializationTask = null;
@@ -459,8 +480,10 @@ namespace ReactNative
 
             _currentReactContext = reactContext;
             var reactInstance = reactContext.ReactInstance;
+#if DEVSUPPORT
             _devSupportManager.OnNewReactContextCreated(reactContext);
             // TODO: set up memory pressure hooks
+#endif
             MoveReactContextToCurrentLifecycleState(reactContext);
 
             foreach (var rootView in _attachedRootViews)
@@ -518,8 +541,10 @@ namespace ReactNative
             }
 
             reactContext.Dispose();
+#if DEVSUPPORT
             _devSupportManager.OnReactContextDestroyed(reactContext);
             // TODO: add memory pressure hooks
+#endif
         }
 
         private async Task<ReactContext> CreateReactContextAsync(
@@ -534,10 +559,12 @@ namespace ReactNative
             var jsModulesBuilder = new JavaScriptModuleRegistry.Builder();
 
             var reactContext = new ReactContext();
+#if DEVSUPPORT
             if (_useDeveloperSupport)
             {
                 reactContext.NativeModuleCallExceptionHandler = _devSupportManager.HandleException;
             }
+#endif
 
             using (Tracer.Trace(Tracer.TRACE_TAG_REACT_BRIDGE, "createAndProcessCoreModulesPackage"))
             {
@@ -561,7 +588,12 @@ namespace ReactNative
                 nativeModuleRegistry = nativeRegistryBuilder.Build();
             }
 
-            var exceptionHandler = _nativeModuleCallExceptionHandler ?? _devSupportManager.HandleException;
+            var exceptionHandler = _nativeModuleCallExceptionHandler
+#if DEVSUPPORT
+                ?? _devSupportManager.HandleException;
+#else
+                ?? new Action<Exception>(_ => { /* nop */ });
+#endif
             var reactInstanceBuilder = new ReactInstance.Builder
             {
                 QueueConfigurationSpec = ReactQueueConfigurationSpec.Default,
@@ -766,6 +798,7 @@ namespace ReactNative
             }
         }
 
+#if DEVSUPPORT
         class ReactInstanceDevCommandsHandler : IReactInstanceDevCommandsHandler
         {
             private readonly ReactInstanceManager _parent;
@@ -795,5 +828,6 @@ namespace ReactNative
                 _parent.ToggleElementInspector();
             }
         }
+#endif
     }
 }

@@ -1,4 +1,5 @@
-﻿using ReactNative.Modules.DevSupport;
+﻿#if DEVSUPPORT
+using ReactNative.Modules.DevSupport;
 using System.Collections.Generic;
 using Windows.Storage;
 
@@ -146,3 +147,4 @@ namespace ReactNative.DevSupport
         }
     }
 }
+#endif

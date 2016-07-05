@@ -48,7 +48,11 @@ namespace Playground
         {
             get
             {
+#if DEBUG
                 return true;
+#else
+                return false;
+#endif
             }
         }
     }

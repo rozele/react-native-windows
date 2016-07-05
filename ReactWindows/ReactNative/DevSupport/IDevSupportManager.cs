@@ -1,4 +1,5 @@
-﻿using Newtonsoft.Json.Linq;
+﻿#if DEVSUPPORT
+using Newtonsoft.Json.Linq;
 using ReactNative.Bridge;
 using ReactNative.Modules.DevSupport;
 using System;
@@ -118,3 +119,4 @@ namespace ReactNative.DevSupport
         void UpdateJavaScriptError(string title, JArray details, int exceptionId);
     }
 }
+#endif

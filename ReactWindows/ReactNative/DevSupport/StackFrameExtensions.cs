@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿#if DEVSUPPORT
+using System.Text;
 
 namespace ReactNative.DevSupport
 {
@@ -19,3 +20,4 @@ namespace ReactNative.DevSupport
         }
     }
 }
+#endif

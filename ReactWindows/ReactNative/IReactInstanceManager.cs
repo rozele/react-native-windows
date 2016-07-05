@@ -32,10 +32,12 @@ namespace ReactNative
         /// </summary>
         event EventHandler<ReactContextInitializedEventArgs> ReactContextInitialized;
 
+#if DEVSUPPORT
         /// <summary>
         /// The developer support manager for the instance.
         /// </summary>
         IDevSupportManager DevSupportManager { get; }
+#endif
 
         /// <summary>
         /// Signals whether <see cref="CreateReactContextInBackground"/> has 

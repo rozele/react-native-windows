@@ -1,4 +1,5 @@
-﻿using ReactNative.Bridge;
+﻿#if DEVSUPPORT
+using ReactNative.Bridge;
 using System;
 using System.Globalization;
 using System.IO;
@@ -275,3 +276,4 @@ namespace ReactNative.DevSupport
         }
     }
 }
+#endif

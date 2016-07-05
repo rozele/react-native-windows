@@ -1,4 +1,5 @@
-﻿using ReactNative.Bridge;
+﻿#if DEVSUPPORT
+using ReactNative.Bridge;
 
 namespace ReactNative.DevSupport
 {
@@ -34,3 +35,4 @@ namespace ReactNative.DevSupport
         }
     }
 }
+#endif
