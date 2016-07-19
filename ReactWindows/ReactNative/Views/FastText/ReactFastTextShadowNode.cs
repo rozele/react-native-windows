@@ -1,21 +1,25 @@
 ﻿using Facebook.CSSLayout;
-using ReactNative.Bridge;
+using Microsoft.Graphics.Canvas;
+using Microsoft.Graphics.Canvas.Text;
 using ReactNative.Reflection;
 using ReactNative.UIManager;
 using ReactNative.UIManager.Annotations;
+using System;
+using System.Linq;
 using Windows.Foundation;
 using Windows.UI.Text;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
-using Windows.UI.Xaml.Documents;
 using Windows.UI.Xaml.Media;
+using System.Numerics;
+using ReactNative.Views.Text;
 
-namespace ReactNative.Views.Text
+namespace ReactNative.Views.FastText
 {
     /// <summary>
     /// The shadow node implementation for text views.
     /// </summary>
-    public class ReactTextShadowNode : LayoutShadowNode
+    public class ReactFastTextShadowNode : LayoutShadowNode
     {
         private int _letterSpacing;
         private int _numberOfLines;
@@ -25,16 +29,30 @@ namespace ReactNative.Views.Text
 
         private FontStyle? _fontStyle;
         private FontWeight? _fontWeight;
-        private TextAlignment _textAlignment = TextAlignment.DetectFromContent;
+        private CanvasHorizontalAlignment _textAlignment = CanvasHorizontalAlignment.Left;
 
         private string _fontFamily;
 
         /// <summary>
-        /// Instantiates a <see cref="ReactTextShadowNode"/>.
+        /// Instantiates a <see cref="ReactFastTextShadowNode"/>.
         /// </summary>
-        public ReactTextShadowNode()
+        public ReactFastTextShadowNode()
         {
             MeasureFunction = MeasureText;
+        }
+
+        /// <summary>
+        /// Instantiates the <see cref="ReactFastTextShadowNode"/>.
+        /// </summary>
+        /// <param name="isRoot">
+        /// A flag signaling whether or not the node is the root node.
+        /// </param>
+        public ReactFastTextShadowNode(bool isRoot)
+        {
+            if (isRoot)
+            {
+                MeasureFunction = MeasureText;
+            }
         }
 
         /// <summary>
@@ -148,9 +166,9 @@ namespace ReactNative.Views.Text
         [ReactProp(ViewProps.TextAlign)]
         public void SetTextAlign(string textAlign)
         {
-            var textAlignment = textAlign == "auto" || textAlign == null ? 
-                TextAlignment.DetectFromContent :
-                EnumHelpers.Parse<TextAlignment>(textAlign);
+            var textAlignment = textAlign == "auto" || textAlign == null ?
+                CanvasHorizontalAlignment.Left :
+                EnumHelpers.Parse<CanvasHorizontalAlignment>(textAlign);
 
             if (_textAlignment != textAlignment)
             {
@@ -185,58 +203,51 @@ namespace ReactNative.Views.Text
 
         private static MeasureOutput MeasureText(CSSNode node, float width, CSSMeasureMode widthMode, float height, CSSMeasureMode heightMode)
         {
-            // This is not a terribly efficient way of projecting the height of
-            // the text elements. It requires that we have access to the
-            // dispatcher in order to do measurement, which, for obvious
-            // reasons, can cause perceived performance issues as it will block
-            // the UI thread from handling other work.
-            //
-            // TODO: determine another way to measure text elements.
-            var task = DispatcherHelpers.CallOnDispatcher(() =>
+            var reactNode = (ReactFastTextShadowNode)node;
+            var text = string.Join(" ", reactNode.Children.Cast<ReactInlineShadowNode>().Select(n => n.Text));
+            var normalizedWidth = CSSConstants.IsUndefined(width) ? float.PositiveInfinity : width;
+            var normalizedHeight = CSSConstants.IsUndefined(height) ? float.PositiveInfinity : height;
+            
+            var textLayout = new CanvasTextLayout(new DummyCanvasResourceCreator(), text, new CanvasTextFormat(), normalizedWidth, normalizedHeight);
+            //textLayout.LineSpacing = (float)reactNode._lineHeight;
+            //textLayout.HorizontalAlignment = reactNode._textAlignment;
+
+            if (reactNode._fontFamily != null)
             {
-                var textBlock = new RichTextBlock
-                {
-                    TextWrapping = TextWrapping.Wrap,
-                    TextAlignment = TextAlignment.DetectFromContent,
-                    TextTrimming = TextTrimming.CharacterEllipsis,
-                };
+                textLayout.SetFontFamily(0, text.Length, reactNode._fontFamily);
+            }
 
-                var textNode = (ReactTextShadowNode)node;
-                textNode.UpdateTextBlockCore(textBlock, true);
+            textLayout.SetFontSize(0, text.Length, (float)(reactNode._fontSize ?? 15));
+            textLayout.SetFontWeight(0, text.Length, reactNode._fontWeight ?? FontWeights.Normal);
+            
+            var current = 0;
+            for (var i = 0; i < reactNode.ChildCount; ++i)
+            {
+                var child = (ReactInlineShadowNode)reactNode.GetChildAt(i);
+                current = child.UpdateTextLayout(textLayout, 0);
+            }
 
-                var block = new Paragraph();
-                foreach (var child in textNode.Children)
-                {
-                    block.Inlines.Add(ReactInlineShadowNodeVisitor.Apply(child));
-                }
-                textBlock.Blocks.Add(block);
-
-                var normalizedWidth = CSSConstants.IsUndefined(width) ? double.PositiveInfinity : width;
-                var normalizedHeight = CSSConstants.IsUndefined(height) ? double.PositiveInfinity : height;
-                textBlock.Measure(new Size(normalizedWidth, normalizedHeight));
-                return new MeasureOutput(
-                    (float)textBlock.DesiredSize.Width,
-                    (float)textBlock.DesiredSize.Height);
-            });
-
-            return task.Result;
+            var size = textLayout.LayoutBounds;
+            return new MeasureOutput(
+                (float)size.Width,
+                (float)size.Height);
         }
 
         /// <summary>
         /// Updates the properties of a <see cref="RichTextBlock"/> view.
         /// </summary>
         /// <param name="textBlock">The view.</param>
-        public void UpdateTextBlock(RichTextBlock textBlock)
+        public void UpdateTextBlock(TextBlock textBlock)
         {
             UpdateTextBlockCore(textBlock, false);
         }
 
-        private void UpdateTextBlockCore(RichTextBlock textBlock, bool measureOnly)
+        private void UpdateTextBlockCore(TextBlock textBlock, bool measureOnly)
         {
-            textBlock.CharacterSpacing = _letterSpacing;
-            textBlock.LineHeight = _lineHeight;
-            textBlock.MaxLines = _numberOfLines;
-            textBlock.TextAlignment = _textAlignment;
+            //textBlock.CharacterSpacing = _letterSpacing;
+            //textBlock.LineHeight = _lineHeight;
+            //textBlock.MaxLines = _numberOfLines;
+            //textBlock.TextAlignment = GetTextAlignment(_textAlignment);
             textBlock.FontFamily = _fontFamily != null ? new FontFamily(_fontFamily) : FontFamily.XamlAutoFontFamily;
             textBlock.FontSize = _fontSize ?? 15;
             textBlock.FontStyle = _fontStyle ?? FontStyle.Normal;
@@ -249,6 +260,36 @@ namespace ReactNative.Views.Text
                     this.GetPaddingSpace(CSSSpacingType.Top),
                     0,
                     0);
+            }
+        }
+
+        private TextAlignment GetTextAlignment(CanvasHorizontalAlignment alignment)
+        {
+            switch (alignment)
+            {
+                case CanvasHorizontalAlignment.Left:
+                    return TextAlignment.Left;
+                case CanvasHorizontalAlignment.Right:
+                    return TextAlignment.Right;
+                case CanvasHorizontalAlignment.Center:
+                    return TextAlignment.Center;
+                case CanvasHorizontalAlignment.Justified:
+                    return TextAlignment.Justify;
+                default:
+                    return TextAlignment.DetectFromContent;
+            }
+        }
+
+        class DummyCanvasResourceCreator : ICanvasResourceCreator
+        {
+            private static readonly CanvasDevice s_device = CanvasDevice.GetSharedDevice();
+
+            public CanvasDevice Device
+            {
+                get
+                {
+                    return s_device;
+                }
             }
         }
     }

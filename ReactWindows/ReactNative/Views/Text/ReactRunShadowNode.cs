@@ -1,4 +1,5 @@
-﻿using ReactNative.UIManager.Annotations;
+﻿using Microsoft.Graphics.Canvas.Text;
+using ReactNative.UIManager.Annotations;
 using System;
 using System.Collections.Generic;
 using Windows.UI.Xaml.Documents;
@@ -11,6 +12,17 @@ namespace ReactNative.Views.Text
     public class ReactRunShadowNode : ReactInlineShadowNode
     {
         private string _text;
+
+        /// <summary>
+        /// The text managed by the shadow node.
+        /// </summary>
+        public override string Text
+        {
+            get
+            {
+                return _text;
+            }
+        }
 
         /// <summary>
         /// Sets the raw text.
@@ -47,6 +59,17 @@ namespace ReactNative.Views.Text
         public override void UpdateInline(Inline inline)
         {
             ((Run)inline).Text = _text;
+        }
+
+        /// <summary>
+        /// Update the text layout.
+        /// </summary>
+        /// <param name="textLayout">The text layout.</param>
+        /// <param name="start">The start index.</param>
+        /// <returns>The last index of the text.</returns>
+        public override int UpdateTextLayout(CanvasTextLayout textLayout, int start)
+        {
+            return start + _text.Length;
         }
     }
 }

@@ -13,6 +13,7 @@ using ReactNative.Modules.Storage;
 using ReactNative.Modules.Vibration;
 using ReactNative.Modules.WebSocket;
 using ReactNative.UIManager;
+using ReactNative.Views.FastText;
 using ReactNative.Views.Flip;
 using ReactNative.Views.Image;
 using ReactNative.Views.Picker;
@@ -120,6 +121,7 @@ namespace ReactNative.Shell
                 new ReactSwitchManager(),
                 new ReactTextInputManager(),
                 new ReactTextViewManager(),
+                //new ReactFastTextManager(),
                 new ReactViewManager(),
                 new ReactSpanViewManager(),
                 //new SwipeRefreshLayoutManager(),

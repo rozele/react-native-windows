@@ -1,7 +1,9 @@
-﻿using ReactNative.Reflection;
+﻿using Microsoft.Graphics.Canvas.Text;
+using ReactNative.Reflection;
 using ReactNative.UIManager;
 using ReactNative.UIManager.Annotations;
 using System.Collections.Generic;
+using System.Linq;
 using Windows.UI.Text;
 using Windows.UI.Xaml.Documents;
 using Windows.UI.Xaml.Media;
@@ -20,6 +22,17 @@ namespace ReactNative.Views.Text
         private FontWeight? _fontWeight;
 
         private string _fontFamily;
+
+        /// <summary>
+        /// The text managed by the shadow node.
+        /// </summary>
+        public override string Text
+        {
+            get
+            {
+                return string.Join(" ", Children.Cast<ReactInlineShadowNode>().Select(n => n.Text));
+            }
+        }
 
         /// <summary>
         /// Sets the font size for the node.
@@ -126,6 +139,38 @@ namespace ReactNative.Views.Text
             inline.FontStyle = _fontStyle ?? FontStyle.Normal;
             inline.FontWeight = _fontWeight ?? FontWeights.Normal;
             inline.FontFamily = _fontFamily != null ? new FontFamily(_fontFamily) : FontFamily.XamlAutoFontFamily;
+        }
+
+        /// <summary>
+        /// Update the text layout.
+        /// </summary>
+        /// <param name="textLayout">The text layout.</param>
+        /// <param name="start">The start index.</param>
+        /// <returns>The last index of the text.</returns>
+        public override int UpdateTextLayout(CanvasTextLayout textLayout, int start)
+        {
+            var current = start;
+            for (var i = 0; i < ChildCount; ++i)
+            {
+                if (i > 0)
+                {
+                    current++;
+                }
+
+                var child = (ReactInlineShadowNode)GetChildAt(i);
+                current = child.UpdateTextLayout(textLayout, current);
+            }
+
+            var length = current - start;
+            textLayout.SetFontSize(start, length, (float)(_fontSize ?? 15));
+            textLayout.SetFontStyle(start, length, _fontStyle ?? FontStyle.Normal);
+            textLayout.SetFontWeight(start, length, _fontWeight ?? FontWeights.Normal);
+            if (_fontFamily != null)
+            {
+                textLayout.SetFontFamily(start, length, _fontFamily);
+            }
+
+            return current;
         }
     }
 }

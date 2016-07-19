@@ -300,6 +300,8 @@
     <Compile Include="UIManager\LayoutAnimation\LayoutUpdateAnimation.cs" />
     <Compile Include="UIManager\DependencyObjectViewManager.cs" />
     <Compile Include="UIManager\ThemedReactContext.cs" />
+    <Compile Include="Views\FastText\ReactFastTextManager.cs" />
+    <Compile Include="Views\FastText\ReactFastTextShadowNode.cs" />
     <Compile Include="Views\Flip\ReactFlipViewManager.cs" />
     <Compile Include="Views\Progress\ReactProgressBarViewManager.cs" />
     <Compile Include="Views\Progress\ProgressBarShadowNode.cs" />
