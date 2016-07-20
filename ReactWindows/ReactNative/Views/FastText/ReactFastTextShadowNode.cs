@@ -229,8 +229,8 @@ namespace ReactNative.Views.FastText
 
             var size = textLayout.LayoutBounds;
             return new MeasureOutput(
-                (float)size.Width,
-                (float)size.Height);
+                (float)Math.Ceiling(size.Width),
+                (float)Math.Ceiling(size.Height));
         }
 
         /// <summary>
