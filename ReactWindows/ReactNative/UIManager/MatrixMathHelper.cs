@@ -110,5 +110,10 @@ namespace ReactNative.UIManager
         {
             return value * Math.PI / 180;
         }
+
+        public static double RadiansToDegrees(double value)
+        {
+            return value * 180 / Math.PI;
+        }
     }
 }

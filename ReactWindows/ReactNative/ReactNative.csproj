@@ -316,6 +316,7 @@
     <Compile Include="UIManager\LayoutAnimation\LayoutUpdateAnimation.cs" />
     <Compile Include="UIManager\DependencyObjectViewManager.cs" />
     <Compile Include="UIManager\ThemedReactContext.cs" />
+    <Compile Include="UIManager\Transform3DHelper.cs" />
     <Compile Include="UIManager\TransformHelper.cs" />
     <Compile Include="UIManager\ViewParentManagerExtensions.cs" />
     <Compile Include="Views\Flip\ReactFlipViewManager.cs" />

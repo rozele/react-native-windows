@@ -31,11 +31,11 @@ namespace ReactNative.UIManager
         {
             if (transforms == null)
             {
-                ResetProjectionMatrix(view);
+                ResetTransform(view);
             }
             else
             {
-                SetProjectionMatrix(view, transforms);
+                SetTransforms(view, transforms);
             }
         }
 
@@ -112,56 +112,26 @@ namespace ReactNative.UIManager
             AutomationProperties.SetLiveSetting(view, liveSetting);
         }
 
-        private void SetProjectionMatrix(TFrameworkElement view, JArray transforms)
+        private void SetTransforms(TFrameworkElement view, JArray transforms)
         {
-            var projection = EnsureProjection(view);
-            var transformMatrix = TransformHelper.ProcessTransform(transforms);
+            var transform = Transform3DHelper.ProcessTransform(transforms);
 
-            var translateMatrix = Matrix3D.Identity;
-            var translateBackMatrix = Matrix3D.Identity;
             if (!double.IsNaN(view.Width))
             {
-                translateMatrix.OffsetX = -view.Width / 2;
-                translateBackMatrix.OffsetX = view.Width / 2;
+                transform.CenterX = view.Width / 2;
             }
-
+            
             if (!double.IsNaN(view.Height))
             {
-                translateMatrix.OffsetY = -view.Height / 2;
-                translateBackMatrix.OffsetY = view.Height / 2;
+                transform.CenterY = view.Height / 2;
             }
 
-            projection.ProjectionMatrix = translateMatrix * transformMatrix * translateBackMatrix;
+            view.Transform3D = transform;
         }
 
-        private void ResetProjectionMatrix(TFrameworkElement view)
+        private void ResetTransform(TFrameworkElement view)
         {
-            var projection = view.Projection;
-            var matrixProjection = projection as Matrix3DProjection;
-            if (projection != null && matrixProjection == null)
-            {
-                throw new InvalidOperationException("Unknown projection set on framework element.");
-            }
-
-            view.Projection = null;
-        }
-
-        private static Matrix3DProjection EnsureProjection(FrameworkElement view)
-        {
-            var projection = view.Projection;
-            var matrixProjection = projection as Matrix3DProjection;
-            if (projection != null && matrixProjection == null)
-            {
-                throw new InvalidOperationException("Unknown projection set on framework element.");
-            }
-
-            if (matrixProjection == null)
-            {
-                matrixProjection = new Matrix3DProjection();
-                view.Projection = matrixProjection;
-            }
-
-            return matrixProjection;
+            view.Transform3D = null;
         }
     }
 }
