@@ -1,0 +1,27 @@
+﻿<Page
+    x:Class="ReactNative.DevSupport.DevSettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:ReactNative.DevSupport"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <StackPanel Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+        <StackPanel.Resources>
+            <Style TargetType="Button">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="HorizontalAlignment" Value="Stretch" />
+                <Setter Property="HorizontalContentAlignment" Value="Left" />
+            </Style>
+        </StackPanel.Resources>
+        <TextBlock Margin="10"
+                   Foreground="CadetBlue"
+                   Text="Performance" />
+        <local:DevSettingsCheckbox HorizontalAlignment="Stretch"
+                                   Title="Hello"
+                                   Description="Foo">
+        </local:DevSettingsCheckbox>
+    </StackPanel>
+</Page>
