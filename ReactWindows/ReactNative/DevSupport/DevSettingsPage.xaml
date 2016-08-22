@@ -19,9 +19,62 @@
         <TextBlock Margin="10"
                    Foreground="CadetBlue"
                    Text="Performance" />
-        <local:DevSettingsCheckbox HorizontalAlignment="Stretch"
-                                   Title="Hello"
-                                   Description="Foo">
-        </local:DevSettingsCheckbox>
+
+        <Button Name="DevModeButton"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch"
+                Background="Transparent"
+                BorderThickness="0"
+                Click="DevModeButton_Click">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="4*" />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.ColumnSpan="2"
+                           Text="JS Dev Mode"/>
+                <TextBlock Grid.Row="1"
+                           Foreground="Gray"
+                           Text="Load JavaScript bundle with __DEV__ = true for easier debugging.  Disable for performance testing." />
+                <CheckBox Name="DevModeCheckBox"
+                          Grid.Row="1"
+                          Grid.Column="1"
+                          HorizontalAlignment="Center"
+                          MinWidth="30"
+                          IsChecked="{x:Bind Path=IsJavaScriptDevModeEnabled, Mode=TwoWay}" />
+            </Grid>
+        </Button>
+        <Button Name="MinifyButton"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Stretch"
+                Background="Transparent"
+                BorderThickness="0"
+                Click="MinifyButton_Click">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition />
+                </Grid.RowDefinitions>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="4*" />
+                    <ColumnDefinition />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.ColumnSpan="2"
+                           Text="JS Dev Mode"/>
+                <TextBlock Grid.Row="1"
+                           Foreground="Gray"
+                           Text="Load JavaScript bundle with __DEV__ = true for easier debugging.  Disable for performance testing." />
+                <CheckBox Name="MinifyCheckBox"
+                          Grid.Row="1"
+                          Grid.Column="1"
+                          HorizontalAlignment="Center"
+                          MinWidth="30"
+                          IsChecked="{x:Bind Path=IsJavaScriptMinifyEnabled, Mode=TwoWay}" />
+            </Grid>
+        </Button>
     </StackPanel>
 </Page>

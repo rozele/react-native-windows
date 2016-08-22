@@ -174,9 +174,6 @@
       <DependentUpon>DevOptionDialog.xaml</DependentUpon>
     </Compile>
     <Compile Include="DevSupport\DevServerHelper.cs" />
-    <Compile Include="DevSupport\DevSettingsCheckbox.xaml.cs">
-      <DependentUpon>DevSettingsCheckbox.xaml</DependentUpon>
-    </Compile>
     <Compile Include="DevSupport\DevSettingsPage.xaml.cs">
       <DependentUpon>DevSettingsPage.xaml</DependentUpon>
     </Compile>
@@ -419,10 +416,6 @@
   </ItemGroup>
   <ItemGroup>
     <Page Include="DevSupport\DevOptionDialog.xaml">
-      <SubType>Designer</SubType>
-      <Generator>MSBuild:Compile</Generator>
-    </Page>
-    <Page Include="DevSupport\DevSettingsCheckbox.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

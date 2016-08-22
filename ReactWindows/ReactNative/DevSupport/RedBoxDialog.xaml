@@ -25,7 +25,11 @@
             </StackPanel>
         </DataTemplate>
     </ContentDialog.Resources>
-    <StackPanel>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition />
+        </Grid.RowDefinitions>
         <TextBlock FontFamily="Monospace"
                    FontSize="14"
                    FontWeight="SemiBold"
@@ -35,7 +39,8 @@
                    TextWrapping="Wrap" />
         <ListView ItemsSource="{x:Bind Path=StackTrace, Mode=OneWay}"
                   ItemTemplate="{StaticResource StackFrameTemplate}"
-                  SelectionMode="None">
+                  SelectionMode="None"
+                  Grid.Row="1">
             <ListView.ItemContainerStyle>
                 <Style TargetType="ListViewItem">
                     <Setter Property="BorderBrush"
@@ -45,5 +50,5 @@
                 </Style>
             </ListView.ItemContainerStyle>
         </ListView>
-    </StackPanel>
+    </Grid>
 </ContentDialog>

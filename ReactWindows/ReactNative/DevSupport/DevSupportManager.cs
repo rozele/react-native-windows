@@ -12,6 +12,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using Windows.Foundation;
 using Windows.Storage;
+using Windows.UI.Xaml;
+using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Media.Animation;
 
 namespace ReactNative.DevSupport
 {
@@ -231,6 +234,13 @@ namespace ReactNative.DevSupport
                         {
                             _devSettings.IsElementInspectorEnabled = !_devSettings.IsElementInspectorEnabled;
                             _reactInstanceCommandsHandler.ToggleElementInspector();
+                        }),
+                    new DevOptionHandler(
+                        "Open developer settings",
+                        () =>
+                        {
+
+                            ((Frame)Window.Current.Content).Navigate(typeof(DevSettingsPage), _devSettings);
                         }),
                 };
 
