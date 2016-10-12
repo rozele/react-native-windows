@@ -50,6 +50,20 @@ namespace ReactNative.Views.View
         }
 
         /// <summary>
+        /// Sets whether right-click is enabled for the view.
+        /// </summary>
+        /// <param name="view">The view instance.</param>
+        /// <param name="enabled">
+        /// <code>true</code> if right-click events should be handled by this
+        /// view, <code>false</code> otherwise.
+        /// </param>
+        //[ReactProp("rightClickEnabled")]
+        //public void SetRightClickEnabled(Border view, bool enabled)
+        //{
+        //    view.SetRightClickEnabled(enabled);
+        //}
+
+        /// <summary>
         /// Creates a new view instance of type <see cref="Canvas"/>.
         /// </summary>
         /// <param name="reactContext">The React context.</param>

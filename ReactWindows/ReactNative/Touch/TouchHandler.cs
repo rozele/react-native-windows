@@ -4,6 +4,8 @@ using ReactNative.UIManager;
 using ReactNative.UIManager.Events;
 using System;
 using System.Collections.Generic;
+using Windows.Foundation;
+using Windows.UI.Input;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
@@ -23,6 +25,7 @@ namespace ReactNative.Touch
             _pointers = new List<ReactPointer>();
 
             _view.PointerPressed += OnPointerPressed;
+            _view.RightTapped += OnRightTapped;
             _view.PointerMoved += OnPointerMoved;
             _view.PointerReleased += OnPointerReleased;
             _view.PointerCanceled += OnPointerCanceled;
@@ -32,6 +35,7 @@ namespace ReactNative.Touch
         public void Dispose()
         {
             _view.PointerPressed -= OnPointerPressed;
+            _view.RightTapped -= OnRightTapped;
             _view.PointerMoved -= OnPointerMoved;
             _view.PointerReleased -= OnPointerReleased;
             _view.PointerCanceled -= OnPointerCanceled;
@@ -44,6 +48,13 @@ namespace ReactNative.Touch
             if (IndexOfPointerWithId(pointerId) != -1)
             {
                 throw new InvalidOperationException("A pointer with this ID already exists.");
+            }
+
+            var pointerPoint = e.GetCurrentPoint(_view);
+            if (IsRightClick(e))
+            {
+                // TODO: We could also do right-click stuff here if we want to support topRightClickStart, topRightClickEnd, etc.
+                return;
             }
 
             var reactView = GetReactViewTarget(e);
@@ -90,6 +101,37 @@ namespace ReactNative.Touch
             OnPointerConcluded(TouchEventType.Cancel, e);
         }
 
+        private void OnRightTapped(object sender, RightTappedRoutedEventArgs e)
+        {
+            // 
+            // TODO: Currently, we are ignoring PointerUpdateKind == RightButtonPressed 
+            // to ensure this is the only handler for right click events. We
+            // may not want to use this "special" event at all and just use the
+            // Pointer[Pressed|Moved|Released|Canceled] events
+            //
+
+            var originalSource = e.OriginalSource as DependencyObject;
+            var pointInRoot = e.GetPosition(_view);
+            var reactView = GetReactViewTargetForRightClick(originalSource, pointInRoot);
+            if (reactView != null)
+            {
+                var pointInView = e.GetPosition(reactView);
+                var reactTag = reactView.GetReactCompoundView().GetReactTagAtPoint(reactView, pointInView);
+                var pointer = new ReactPointerForRightClick();
+                pointer.Target = reactTag;
+                pointer.PageX = (float)pointInRoot.X;
+                pointer.PageY = (float)pointInRoot.Y;
+                pointer.LocationX = (float)pointInView.X;
+                pointer.LocationY = (float)pointInView.Y;
+
+                var rightClickEvent = new RightClickEvent(pointer);
+                _view.GetReactContext()
+                    .GetNativeModule<UIManagerModule>()
+                    .EventDispatcher
+                    .DispatchEvent(rightClickEvent);
+            }
+        }
+
         private void OnPointerConcluded(TouchEventType touchEventType, PointerRoutedEventArgs e)
         {
             var pointerIndex = IndexOfPointerWithId(e.Pointer.PointerId);
@@ -121,6 +163,49 @@ namespace ReactNative.Touch
             }
 
             return -1;
+        }
+
+        private UIElement GetReactViewTargetForRightClick(DependencyObject originalSource, Point point)
+        {
+            // If the target is not a child of the root view, then this pointer
+            // event does not belong to React.
+            if (!RootViewHelper.IsReactSubview(originalSource))
+            {
+                return null;
+            }
+
+            var sources = VisualTreeHelper.FindElementsInHostCoordinates(point, _view);
+
+            // Get the first React view that does not have pointer events set
+            // to 'none' or 'box-none', and is not a child of a view with 
+            // 'box-only' or 'none' settings for pointer events.
+
+            // TODO: use pooled data structure
+            var isBoxOnlyCache = new Dictionary<DependencyObject, bool>();
+            foreach (var source in sources)
+            {
+                if (!source.HasTag())
+                {
+                    continue;
+                }
+
+
+                var pointerEvents = source.GetPointerEvents();
+                if (pointerEvents == PointerEvents.None || pointerEvents == PointerEvents.BoxNone)
+                {
+                    continue;
+                }
+
+                var viewHierarchy = RootViewHelper.GetReactViewHierarchy(source);
+                var isBoxOnly = IsBoxOnlyWithCache(viewHierarchy, isBoxOnlyCache);
+                if (!isBoxOnly && source.GetRightClickEnabled())
+                {
+                    return source;
+                }
+            }
+
+            return null;
+
         }
 
         private UIElement GetReactViewTarget(PointerRoutedEventArgs e)
@@ -197,6 +282,12 @@ namespace ReactNative.Touch
                 .GetNativeModule<UIManagerModule>()
                 .EventDispatcher
                 .DispatchEvent(touchEvent);
+        }
+
+        private bool IsRightClick(PointerRoutedEventArgs e)
+        {
+            var pointerPoint = e.GetCurrentPoint(_view);
+            return pointerPoint.Properties.PointerUpdateKind == PointerUpdateKind.RightButtonPressed;
         }
 
         private static bool IsBoxOnlyWithCache(IEnumerable<DependencyObject> hierarchy, IDictionary<DependencyObject, bool> cache)
@@ -284,22 +375,33 @@ namespace ReactNative.Touch
             }
         }
 
-        class ReactPointer
+        class RightClickEvent : Event
+        {
+            private readonly ReactPointerForRightClick _pointer;
+            public RightClickEvent(ReactPointerForRightClick pointer)
+                : base(pointer.Target, TimeSpan.FromTicks(Environment.TickCount))
+            {
+                _pointer = pointer;
+            }
+
+            public override string EventName
+            {
+                get
+                {
+                    return "topRightClick";
+                }
+            }
+
+            public override void Dispatch(RCTEventEmitter eventEmitter)
+            {
+                eventEmitter.receiveEvent(ViewTag, EventName, JObject.FromObject(_pointer));
+            }
+        }
+
+        class ReactPointerBase
         {
             [JsonProperty(PropertyName = "target")]
             public int Target { get; set; }
-
-            [JsonIgnore]
-            public uint PointerId { get; set; }
-
-            [JsonProperty(PropertyName = "identifier")]
-            public uint Identifier { get; set; }
-
-            [JsonIgnore]
-            public UIElement ReactView { get; set; }
-
-            [JsonProperty(PropertyName = "timestamp")]
-            public ulong Timestamp { get; set; }
 
             [JsonProperty(PropertyName = "locationX")]
             public float LocationX { get; set; }
@@ -312,6 +414,25 @@ namespace ReactNative.Touch
 
             [JsonProperty(PropertyName = "pageY")]
             public float PageY { get; set; }
+        }
+
+        class ReactPointer : ReactPointerBase
+        {
+            [JsonIgnore]
+            public uint PointerId { get; set; }
+
+            [JsonIgnore]
+            public UIElement ReactView { get; set; }
+
+            [JsonProperty(PropertyName = "identifier")]
+            public uint Identifier { get; set; }
+
+            [JsonProperty(PropertyName = "timestamp")]
+            public ulong Timestamp { get; set; }
+        }
+
+        class ReactPointerForRightClick : ReactPointerBase
+        {
         }
     }
 }

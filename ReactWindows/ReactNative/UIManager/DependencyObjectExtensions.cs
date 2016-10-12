@@ -47,6 +47,39 @@ namespace ReactNative.UIManager
         }
 
         /// <summary>
+        /// Sets whether right-click is enabled on the view.
+        /// </summary>
+        /// <param name="view">The view.</param>
+        /// <param name="value">The right-click enabled setting.</param>
+        public static void SetRightClickEnabled(this DependencyObject view, bool value)
+        {
+            if (view == null)
+                throw new ArgumentNullException(nameof(view));
+
+            s_properties.GetOrCreateValue(view).IsRightClickEnabled = value;
+
+        }
+
+        /// <summary>
+        /// Gets whether right-click is enabled on the view.
+        /// </summary>
+        /// <param name="view">The view.</param>
+        /// <returns>
+        /// <code>true</code> if right-click is enabled for the view, otherwise
+        /// <code>false</code>.
+        /// </returns>
+        public static bool GetRightClickEnabled(this DependencyObject view)
+        {
+            if (view == null)
+                throw new ArgumentNullException(nameof(view));
+
+            var elementData = default(DependencyObjectData);
+            return s_properties.TryGetValue(view, out elementData)
+                && elementData.IsRightClickEnabled.HasValue
+                && elementData.IsRightClickEnabled.Value;
+        }
+
+        /// <summary>
         /// Associates an implementation of IReactCompoundView with the view.
         /// </summary>
         /// <param name="view">The view.</param>
@@ -183,6 +216,8 @@ namespace ReactNative.UIManager
             public int? Tag { get; set; }
 
             public IReactCompoundView CompoundView { get; set; }
+
+            public bool? IsRightClickEnabled { get; set; }
         }
     }
 }
