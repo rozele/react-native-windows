@@ -1,4 +1,8 @@
-﻿using Microsoft.VisualStudio.TestPlatform.UnitTestFramework;
+﻿#if WINDOWS_UWP
+using Microsoft.VisualStudio.TestPlatform.UnitTestFramework;
+#else
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+#endif
 using System;
 using System.Threading.Tasks;
 

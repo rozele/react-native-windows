@@ -1,61 +1,57 @@
-﻿using Newtonsoft.Json.Linq;
-using NUnit.Framework;
+﻿#if WINDOWS_UWP
+using Microsoft.VisualStudio.TestPlatform.UnitTestFramework;
+#else
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+#endif
+using Newtonsoft.Json.Linq;
+using System;
 using System.Threading.Tasks;
 
 namespace ReactNative.Tests.Chakra.Executor
 {
-    [TestFixture]
+    [TestClass]
     public class ChakraJavaScriptExecutorTests
     {
-        [Test]
-        public async Task ThrowsWithCorrectParameterNameWhenGivenNull()
+        [TestMethod]
+        public async Task ChakraJavaScriptExecutor_ArgumentChecks()
         {
             await JavaScriptHelpers.Run((executor, jsQueueThread) =>
             {
-                Assert.That(
+                AssertEx.Throws<ArgumentNullException>(
                     () => executor.CallFunctionReturnFlushedQueue(null, "foo", new JArray()),
-                    Throws.ArgumentNullException.With.Property("ParamName").EqualTo("moduleName")
-                );
+                    ex => Assert.AreEqual("moduleName", ex.ParamName));
 
-                Assert.That(
+                AssertEx.Throws<ArgumentNullException>(
                     () => executor.CallFunctionReturnFlushedQueue("foo", null, new JArray()),
-                    Throws.ArgumentNullException.With.Property("ParamName").EqualTo("methodName")
-                );
+                    ex => Assert.AreEqual("methodName", ex.ParamName));
 
-                Assert.That(
+                AssertEx.Throws<ArgumentNullException>(
                     () => executor.CallFunctionReturnFlushedQueue("foo", "bar", null),
-                    Throws.ArgumentNullException.With.Property("ParamName").EqualTo("arguments")
-                );
+                    ex => Assert.AreEqual("arguments", ex.ParamName));
 
-                Assert.That(
+                AssertEx.Throws<ArgumentNullException>(
                     () => executor.InvokeCallbackAndReturnFlushedQueue(0, null),
-                    Throws.ArgumentNullException.With.Property("ParamName").EqualTo("arguments")
-                );
+                    ex => Assert.AreEqual("arguments", ex.ParamName));
 
-                Assert.That(
+                AssertEx.Throws<ArgumentNullException>(
                     () => executor.RunScript(null, "foo"),
-                    Throws.ArgumentNullException.With.Property("ParamName").EqualTo("script")
-                );
+                    ex => Assert.AreEqual("script", ex.ParamName));
 
-                Assert.That(
+                AssertEx.Throws<ArgumentNullException>(
                     () => executor.RunScript("", null),
-                    Throws.ArgumentNullException.With.Property("ParamName").EqualTo("sourceUrl")
-                );
+                    ex => Assert.AreEqual("sourceUrl", ex.ParamName));
 
-                Assert.That(
+                AssertEx.Throws<ArgumentNullException>(
                     () => executor.SetGlobalVariable(null, new JArray()),
-                    Throws.ArgumentNullException.With.Property("ParamName").EqualTo("propertyName")
-                );
+                    ex => Assert.AreEqual("propertyName", ex.ParamName));
 
-                Assert.That(
+                AssertEx.Throws<ArgumentNullException>(
                     () => executor.SetGlobalVariable("foo", null),
-                    Throws.ArgumentNullException.With.Property("ParamName").EqualTo("value")
-                );
+                    ex => Assert.AreEqual("value", ex.ParamName));
 
-                Assert.That(
+                AssertEx.Throws<ArgumentNullException>(
                     () => executor.GetGlobalVariable(null),
-                    Throws.ArgumentNullException.With.Property("ParamName").EqualTo("propertyName")
-                );
+                    ex => Assert.AreEqual("propertyName", ex.ParamName));
             });
         }
     }

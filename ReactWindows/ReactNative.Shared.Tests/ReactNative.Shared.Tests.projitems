@@ -14,7 +14,11 @@
     <Compile Include="$(MSBuildThisFileDirectory)Bridge\ReactBridgeTests.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Bridge\ReactContextNativeModuleBaseTests.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Chakra\Executor\ChakraJavaScriptExecutorTests.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Internal\AssertEx.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Internal\JavaScriptHelpers.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Internal\JavaScriptModuleRegistryExtensions.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Internal\MockInvocationHandler.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Internal\MockJavaScriptExecutor.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Internal\MockReactInstance.cs" />
   </ItemGroup>
 </Project>

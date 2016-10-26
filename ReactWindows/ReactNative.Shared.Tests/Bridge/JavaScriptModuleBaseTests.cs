@@ -1,120 +1,68 @@
-﻿using NMock;
-using NUnit.Framework;
+﻿#if WINDOWS_UWP
+using Microsoft.VisualStudio.TestPlatform.UnitTestFramework;
+#else
+using Microsoft.VisualStudio.TestTools.UnitTesting;
+#endif
 using ReactNative.Bridge;
+using System;
+using System.Linq;
 
 namespace ReactNative.Tests.Bridge
 {
-    [TestFixture]
+    [TestClass]
     public class JavaScriptModuleBaseTests
     {
-        private MockFactory _mockFactory;
-        private Mock<IInvocationHandler> _mockInvocationHandler;
-        private TestJavaScriptModule _module;
-
-        [SetUp]
-        public void SetUp()
+        [TestMethod]
+        public void JavaScriptModuleBase_InvokeHandlerNotSet()
         {
-            _mockFactory = new MockFactory();
-            _mockInvocationHandler = _mockFactory.CreateMock<IInvocationHandler>();
-            _module = new TestJavaScriptModule();
+            var module = new TestJavaScriptModule();
+            AssertEx.Throws<InvalidOperationException>(() => module.Foo());
         }
 
-        [TearDown]
-        public void TearDown()
+        [TestMethod]
+        public void JavaScriptModuleBase_InvokeHandler_SetMultiple()
         {
-            _mockFactory.VerifyAllExpectationsHaveBeenMet();
+            var module = new TestJavaScriptModule();
+            module.InvocationHandler = new MockInvocationHandler();
+            AssertEx.Throws<InvalidOperationException>(() => module.InvocationHandler = new MockInvocationHandler());
         }
 
-        [Test]
-        public void ThrowsWhenInvokeHandlerNotSet()
+        [TestMethod]
+        public void JavaScriptModuleBase_Invoke()
         {
-            Assert.That(
-                () => _module.Foo(),
-                Throws.InvalidOperationException);
-        }
+            var name = default(string);
+            var args = default(object[]);
+            var module = new TestJavaScriptModule();
+            module.InvocationHandler = new MockInvocationHandler((n, a) =>
+            {
+                name = n;
+                args = a;
+            });
 
-        [Test]
-        public void ThrowsWhenInvokeHandlerSetMoreThanOnce()
-        {
-            var otherMockInvocationHandler = _mockFactory.CreateMock<IInvocationHandler>();
+            module.Foo();
+            Assert.AreEqual(nameof(TestJavaScriptModule.Foo), name);
+            Assert.IsNull(args);
 
-            _module.InvocationHandler = _mockInvocationHandler.MockObject;
-            Assert.That(
-                () => _module.InvocationHandler = otherMockInvocationHandler.MockObject,
-                Throws.InvalidOperationException);
-        }
+            module.Foo1(1);
+            Assert.AreEqual(nameof(TestJavaScriptModule.Foo1), name);
+            Assert.IsTrue(args.SequenceEqual(new object[] { 1 }));
 
-        [Test]
-        public void InvokesSuppliedHandlerWithNoArguments()
-        {
-            _module.InvocationHandler = _mockInvocationHandler.MockObject;
+            module.Foo2(1, 2);
+            Assert.AreEqual(nameof(TestJavaScriptModule.Foo2), name);
+            Assert.IsTrue(args.SequenceEqual(new object[] { 1, 2 }));
 
-            _mockInvocationHandler.Expects.One.Method(
-                _ => _.Invoke(null, null))
-                .With(nameof(TestJavaScriptModule.Foo), null);
+            module.Foo3(1, 2, 3);
+            Assert.AreEqual(nameof(TestJavaScriptModule.Foo3), name);
+            Assert.IsTrue(args.SequenceEqual(new object[] { 1, 2, 3 }));
 
-            _module.Foo();
-
-        }
-
-        [Test]
-        public void InvokesSuppliedHandlerWithOneArgument()
-        {
-            _module.InvocationHandler = _mockInvocationHandler.MockObject;
-
-            _mockInvocationHandler.Expects.One.Method(
-                _ => _.Invoke(null, null))
-                .With(nameof(TestJavaScriptModule.Foo1), new object[] { 1 });
-
-            _module.Foo1(1);
-        }
-
-        [Test]
-        public void InvokesSuppliedHandlerWithTwoArguments()
-        {
-            _module.InvocationHandler = _mockInvocationHandler.MockObject;
-
-            _mockInvocationHandler.Expects.One.Method
-                (_ => _.Invoke(null, null))
-                .With(nameof(TestJavaScriptModule.Foo2), new object[] { 1, 2 });
-
-            _module.Foo2(1, 2);
-        }
-
-        [Test]
-        public void InvokesSuppliedHandlerWithThreeArguments()
-        {
-            _module.InvocationHandler = _mockInvocationHandler.MockObject;
-
-            _mockInvocationHandler.Expects.One.Method(
-                _ => _.Invoke(null, null))
-                .With(nameof(TestJavaScriptModule.Foo3), new object[] { 1, 2, 3 });
-
-            _module.Foo3(1, 2, 3);
-        }
-
-        [Test]
-        public void InvokesSuppliedHandlerWithFourArguments()
-        {
-            _module.InvocationHandler = _mockInvocationHandler.MockObject;
-
-            _mockInvocationHandler.Expects.One.Method(
-                _ => _.Invoke(null, null))
-                .With(nameof(TestJavaScriptModule.Foo4), new object[] { 1, 2, 3, 4 });
-
-            _module.Foo4(1, 2, 3, 4);
-        }
-
-        [Test]
-        public void InvokesSuppliedHandlerWithArrayArgument()
-        {
-            _module.InvocationHandler = _mockInvocationHandler.MockObject;
+            module.Foo4(1, 2, 3, 4);
+            Assert.AreEqual(nameof(TestJavaScriptModule.Foo4), name);
+            Assert.IsTrue(args.SequenceEqual(new object[] { 1, 2, 3, 4 }));
 
             var expectedArgs = new object[] { null, "foo", 42 };
-            _mockInvocationHandler.Expects.One.Method(
-                _ => _.Invoke(null, null)).With(nameof(TestJavaScriptModule.FooN), expectedArgs);
-
-            _module.FooN(expectedArgs);
+            module.FooN(expectedArgs);
+            Assert.AreEqual(nameof(TestJavaScriptModule.FooN), name);
+            Assert.IsTrue(args.SequenceEqual(expectedArgs));
         }
 
         class TestJavaScriptModule : JavaScriptModuleBase

@@ -1,12 +1,13 @@
-﻿using NUnit.Framework;
-using ReactNative.Bridge.Queue;
+﻿using ReactNative.Bridge.Queue;
 using ReactNative.Chakra.Executor;
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 #if WINDOWS_UWP
+using Microsoft.VisualStudio.TestPlatform.UnitTestFramework;
 using Windows.Storage;
 #else
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.IO;
 using System.Reflection;
 #endif
