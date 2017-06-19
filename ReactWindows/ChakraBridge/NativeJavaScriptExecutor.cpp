@@ -162,3 +162,8 @@ ChakraStringResult NativeJavaScriptExecutor::FlushedQueue()
     ChakraStringResult finalResult = { JsNoError, ref new String(szBuf, bufLen) };
     return finalResult;
 }
+
+int NativeJavaScriptExecutor::Idle()
+{
+	return host.Idle();
+}

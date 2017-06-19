@@ -18,10 +18,12 @@ namespace ReactNative.Chakra.Executor
         private const string FBBatchedBridgeVariableName = "__fbBatchedBridge";
 
         private readonly JavaScriptRuntime _runtime;
+        private readonly bool _enableIdleProcessing;
 
         private JavaScriptSourceContext _context;
 
         private JavaScriptNativeFunction _nativeLoggingHook;
+        private JavaScriptBeforeCollectCallback _beforeCollectCallback;
 
         private JavaScriptValue _globalObject;
 
@@ -38,8 +40,23 @@ namespace ReactNative.Chakra.Executor
         /// Instantiates the <see cref="ChakraJavaScriptExecutor"/>.
         /// </summary>
         public ChakraJavaScriptExecutor()
+            : this(false)
         {
-            _runtime = JavaScriptRuntime.Create();
+        }
+
+        /// <summary>
+        /// Instantiates the <see cref="ChakraJavaScriptExecutor"/>. 
+        /// </summary>
+        /// <param name="enableIdleProcessing">
+        /// <code>true</code> if idle processing should be used, otherwise <code>false</code>.
+        /// </param>
+        public ChakraJavaScriptExecutor(bool enableIdleProcessing)
+        {
+            var attributes = enableIdleProcessing ? 
+                JavaScriptRuntimeAttributes.EnableIdleProcessing : 
+                JavaScriptRuntimeAttributes.None;
+            _enableIdleProcessing = enableIdleProcessing;
+            _runtime = JavaScriptRuntime.Create(attributes);
             _context = JavaScriptSourceContext.FromIntPtr(IntPtr.Zero);
             InitializeChakra();
         }
@@ -194,6 +211,17 @@ namespace ReactNative.Chakra.Executor
 
             var propertyId = JavaScriptPropertyId.FromString(propertyName);
             return ConvertJson(EnsureGlobalObject().GetProperty(propertyId));
+        }
+
+        /// <summary>
+        /// Notifies the executor that idle work can be processed.
+        /// </summary>
+        public void Idle()
+        {
+            if (_enableIdleProcessing)
+            {
+                JavaScriptContext.Idle();
+            }
         }
 
         /// <summary>

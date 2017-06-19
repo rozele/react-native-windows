@@ -241,6 +241,11 @@ JsErrorCode ChakraHost::SetGlobalVariable(const wchar_t* szPropertyName, JsValue
     return JsNoError;
 }
 
+JsErrorCode ChakraHost::Idle()
+{
+	return JsIdle(nullptr);
+}
+
 JsErrorCode ChakraHost::InitJson()
 {
     JsPropertyIdRef jsonPropertyId;

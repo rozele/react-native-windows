@@ -13,6 +13,7 @@ namespace ReactNative.Tests
         public Action<string, string> OnRunScript { get; set; } = EmptyRunScript;
         public Action<string, JToken> OnSetGlobalVariable { get; set; } = EmptySetGlobalVariable;
         public Action OnDispose { get; set; } = EmptyAction;
+        public Action OnIdle { get; set; } = EmptyAction;
 
         private static readonly Action EmptyAction = () => { };
         private static readonly Action<string, string> EmptyRunScript = (_, __) => { };
@@ -31,6 +32,11 @@ namespace ReactNative.Tests
         public void SetGlobalVariable(string propertyName, JToken value)
         {
             OnSetGlobalVariable(propertyName, value);
+        }
+
+        public void Idle()
+        {
+            OnIdle();
         }
 
         public void Dispose()

@@ -50,6 +50,7 @@ namespace ReactNative.Bridge
         /// <param name="arguments">The arguments.</param>
         public void CallFunction(string moduleName, string method, JArray arguments)
         {
+            _reactCallback.IncrementPendingJavaScriptCalls();
             var response = _jsExecutor.CallFunctionReturnFlushedQueue(moduleName, method, arguments);
             ProcessResponse(response);
         }
@@ -61,6 +62,7 @@ namespace ReactNative.Bridge
         /// <param name="arguments">The arguments.</param>
         public void InvokeCallback(int callbackId, JArray arguments)
         {
+            _reactCallback.IncrementPendingJavaScriptCalls();
             var response = _jsExecutor.InvokeCallbackAndReturnFlushedQueue(callbackId, arguments);
             ProcessResponse(response);
         }
@@ -90,6 +92,7 @@ namespace ReactNative.Bridge
             if (sourceUrl == null)
                 throw new ArgumentNullException(nameof(sourceUrl));
 
+            _reactCallback.IncrementPendingJavaScriptCalls();
             _jsExecutor.RunScript(script, sourceUrl);
             var response = _jsExecutor.FlushedQueue();
             ProcessResponse(response);
@@ -105,6 +108,8 @@ namespace ReactNative.Bridge
 
         private void ProcessResponse(JToken response)
         {
+            _reactCallback.DecrementPendingJavaScriptCalls();
+
             if (response == null || response.Type == JTokenType.Null || response.Type == JTokenType.Undefined)
             {
                 return;

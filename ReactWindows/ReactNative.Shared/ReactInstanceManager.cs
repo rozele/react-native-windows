@@ -799,7 +799,7 @@ namespace ReactNative
 
                 if (_javaScriptExecutorFactory == null)
                 {
-                    _javaScriptExecutorFactory = () => new ChakraJavaScriptExecutor();
+                    _javaScriptExecutorFactory = () => new ChakraJavaScriptExecutor(true);
                 }
 
                 return new ReactInstanceManager(

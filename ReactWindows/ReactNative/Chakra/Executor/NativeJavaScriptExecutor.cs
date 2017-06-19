@@ -139,5 +139,13 @@ namespace ReactNative.Chakra.Executor
             Native.ThrowIfError(
                 (JavaScriptErrorCode)_executor.SetGlobalVariable(propertyName, value.ToString(Formatting.None)));
         }
+
+        /// <summary>
+        /// Notifies the executor that idle work can be processed.
+        /// </summary>
+        public void Idle()
+        {
+            Native.ThrowIfError((JavaScriptErrorCode)_executor.Idle());
+        }
     }
 }

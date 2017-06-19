@@ -98,6 +98,11 @@ public:
 	/// A compount result with the JSON stringified value and an error code if any occurred.
 	/// </returns>
 	ChakraStringResult FlushedQueue();
+
+	/// <summary>
+	/// Notifies the executor that idle work can be processed.
+	/// </summary>
+	int Idle();
 private:
     ChakraHost host;
 };

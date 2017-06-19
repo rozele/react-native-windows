@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using static System.FormattableString;
 
@@ -25,6 +26,7 @@ namespace ReactNative.Bridge
         private readonly Action<Exception> _nativeModuleCallExceptionHandler;
 
         private IReactBridge _bridge;
+        private Action _onIdle;
 
         private bool _initialized;
 
@@ -99,6 +101,7 @@ namespace ReactNative.Bridge
                     QueueConfiguration.JavaScriptQueueThread.AssertOnThread();
 
                     var jsExecutor = _jsExecutorFactory();
+                    _onIdle = jsExecutor.Idle;
 
                     var bridge = default(ReactBridge);
                     using (Tracer.Trace(Tracer.TRACE_TAG_REACT_BRIDGE, "ReactBridgeCtor").Start())
@@ -224,6 +227,21 @@ namespace ReactNative.Bridge
                 await DisposeAsync().ConfigureAwait(false));
         }
 
+        private int _pendingJavaScriptCalls;
+
+        private void IncrementPendingJavaScriptCalls()
+        {
+            Interlocked.Increment(ref _pendingJavaScriptCalls);
+        }
+
+        private void DecrementPendingJavaScriptCalls()
+        {
+            if (Interlocked.Decrement(ref _pendingJavaScriptCalls) == 0)
+            {
+                _onIdle();
+            }
+        }
+
         public sealed class Builder
         {
             private ReactQueueConfigurationSpec _reactQueueConfigurationSpec;
@@ -324,6 +342,16 @@ namespace ReactNative.Bridge
                 }
 
                 _parent._registry.Invoke(_parent, moduleId, methodId, parameters);
+            }
+
+            public void IncrementPendingJavaScriptCalls()
+            {
+                _parent.IncrementPendingJavaScriptCalls();
+            }
+
+            public void DecrementPendingJavaScriptCalls()
+            {
+                _parent.DecrementPendingJavaScriptCalls();
             }
 
             public void OnBatchComplete()

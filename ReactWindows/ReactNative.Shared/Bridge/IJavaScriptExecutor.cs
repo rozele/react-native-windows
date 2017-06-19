@@ -44,5 +44,10 @@ namespace ReactNative.Bridge
         /// <param name="script">The script.</param>
         /// <param name="sourceUrl">The source URL.</param>
         void RunScript(string script, string sourceUrl);
+
+        /// <summary>
+        /// Notify the executor that idle work can be processed.
+        /// </summary>
+        void Idle();
     }
 }

@@ -126,6 +126,11 @@ namespace ReactNative.DevSupport
             _injectedObjects.Add(propertyName, value.ToString(Formatting.None));
         }
 
+        public void Idle()
+        {
+            /* no-op */
+        }
+
         public void Dispose()
         {
             _isDisposed = true;

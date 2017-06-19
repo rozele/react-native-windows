@@ -274,6 +274,16 @@ namespace ReactNative.Tests.Bridge
                 _invoke(moduleId, methodId, parameters);
             }
 
+            public void IncrementPendingJavaScriptCalls()
+            {
+                // TODO: unit tests
+            }
+
+            public void DecrementPendingJavaScriptCalls()
+            {
+                // TODO: unit tests
+            }
+
             public void OnBatchComplete()
             {
                 _onBatchComplete();

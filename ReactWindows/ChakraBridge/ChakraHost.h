@@ -93,6 +93,11 @@ public:
 	JsErrorCode SetGlobalVariable(const wchar_t* szPropertyName, JsValueRef value);
 
 	/// <summary>
+	/// Notifies the executor that idle work can be processed.
+    /// </summary>
+	JsErrorCode Idle();
+
+	/// <summary>
 	/// The JSRT global object for the session.
 	/// </summary>
 	JsValueRef globalObject;

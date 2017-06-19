@@ -17,6 +17,16 @@ namespace ReactNative.Bridge
         void Invoke(int moduleId, int methodId, JArray parameters);
 
         /// <summary>
+        /// Increments the number of pending JavaScript calls.
+        /// </summary>
+        void IncrementPendingJavaScriptCalls();
+
+        /// <summary>
+        /// Decrements the number of pending JavaScript calls.
+        /// </summary>
+        void DecrementPendingJavaScriptCalls();
+
+        /// <summary>
         /// Signals that a batch of operations is complete.
         /// </summary>
         void OnBatchComplete();
