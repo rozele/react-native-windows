@@ -1,6 +1,7 @@
 ﻿#if WINDOWS_UWP
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Data;
 #else
 using System.Windows;
 using System.Windows.Controls;
@@ -14,14 +15,52 @@ namespace ReactNative.UIManager
     public abstract class BorderedCanvasManager<TCanvas> : BorderedViewParentManager<TCanvas>
         where TCanvas : Canvas
     {
+        protected override bool HasBorder(TCanvas view)
+        {
+            return GetBorder(view) != null;
+        }
+
+        private Border GetBorder(TCanvas view)
+        {
+            return view.Children[0] as Border;
+        }
+
+        protected override Border GetOrCreateBorder(TCanvas view)
+        {
+            var border = GetBorder(view);
+
+            if (border == null) // check Tag here?
+            {
+                border = new Border { BorderBrush = s_defaultBorderBrush, Tag = 123 };
+                view.Children.Insert(0, border);
+
+                border.SetBinding(FrameworkElement.WidthProperty, new Binding
+                {
+                    Source = view,
+                    Path = new PropertyPath("Width")
+                });
+
+                border.SetBinding(FrameworkElement.HeightProperty, new Binding
+                {
+                    Source = view,
+                    Path = new PropertyPath("Height")
+                });
+            }
+
+            return border;
+        }
+
         /// <summary>
         /// Adds a child at the given index.
         /// </summary>
         /// <param name="parent">The parent view.</param>
         /// <param name="child">The child view.</param>
         /// <param name="index">The index.</param>
-        protected override void AddView(TCanvas parent, DependencyObject child, int index)
+        public override void AddView(TCanvas parent, DependencyObject child, int index)
         {
+            if (HasBorder(parent))
+                index++;
+
             var uiElementChild = child.As<UIElement>();
             parent.Children.Insert(index, uiElementChild);
         }
@@ -32,9 +71,12 @@ namespace ReactNative.UIManager
         /// <param name="parent">The parent view.</param>
         /// <param name="index">The index.</param>
         /// <returns>The child view.</returns>
-        protected override FrameworkElement GetChildAt(TCanvas parent, int index)
+        public override DependencyObject GetChildAt(TCanvas parent, int index)
         {
-            return (FrameworkElement)parent.Children[index];
+            if (HasBorder(parent))
+                index++;
+
+            return parent.Children[index];
         }
 
         /// <summary>
@@ -42,18 +84,24 @@ namespace ReactNative.UIManager
         /// </summary>
         /// <param name="parent">The view parent.</param>
         /// <returns>The number of children.</returns>
-        protected override int GetChildCount(TCanvas parent)
+        public override int GetChildCount(TCanvas parent)
         {
-            return parent.Children.Count;
+            var count = parent.Children.Count;
+
+            if (HasBorder(parent))
+                count--;
+
+            return count;
         }
 
         /// <summary>
         /// Removes all children from the view parent.
         /// </summary>
         /// <param name="parent">The view parent.</param>
-        protected override void RemoveAllChildren(TCanvas parent)
+        public override void RemoveAllChildren(TCanvas parent)
         {
-            parent.Children.Clear();
+            for (var i = GetChildCount(parent) - 1; i >= 0; i--)
+                RemoveChildAt(parent, i);
         }
 
         /// <summary>
@@ -61,8 +109,11 @@ namespace ReactNative.UIManager
         /// </summary>
         /// <param name="parent">The view parent.</param>
         /// <param name="index">The index.</param>
-        protected override void RemoveChildAt(TCanvas parent, int index)
+        public override void RemoveChildAt(TCanvas parent, int index)
         {
+            if (HasBorder(parent))
+                index++;
+
             parent.Children.RemoveAt(index);
         }
     }

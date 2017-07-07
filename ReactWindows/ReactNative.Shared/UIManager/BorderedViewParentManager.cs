@@ -1,4 +1,5 @@
-﻿using ReactNative.UIManager.Annotations;
+﻿using ReactNative.Reflection;
+using ReactNative.UIManager.Annotations;
 using System;
 #if WINDOWS_UWP
 using Windows.UI;
@@ -16,7 +17,7 @@ namespace ReactNative.UIManager
     /// <summary>
     /// Class providing border management API for  view managers.
     /// </summary>
-    public abstract class BorderedViewParentManager<TFrameworkElement> : ViewParentManager<Border>
+    public abstract class BorderedViewParentManager<TFrameworkElement> : ViewParentManager<TFrameworkElement>
         where TFrameworkElement : FrameworkElement
     {
         private enum Radius
@@ -28,7 +29,11 @@ namespace ReactNative.UIManager
             BottomRight,
         }
 
-        private static readonly Brush s_defaultBorderBrush = new SolidColorBrush(Colors.Black);
+        protected static readonly Brush s_defaultBorderBrush = new SolidColorBrush(Colors.Black);
+
+        protected abstract bool HasBorder(TFrameworkElement view);
+        protected abstract Border GetOrCreateBorder(TFrameworkElement view);
+
 
         /// <summary>
         /// Sets the border radius of the view.
@@ -42,9 +47,13 @@ namespace ReactNative.UIManager
             ViewProps.BorderTopRightRadius,
             ViewProps.BorderBottomLeftRadius,
             ViewProps.BorderBottomRightRadius)]
-        public void SetBorderRadius(Border view, int index, double radius)
+        public void SetBorderRadius(TFrameworkElement view, int index, double radius)
         {
-            var cornerRadius = view.CornerRadius == null ? new CornerRadius() : view.CornerRadius;
+            if (!HasBorder(view) && radius < 1)
+                return;
+
+            var border = GetOrCreateBorder(view);
+            var cornerRadius = border.CornerRadius == null ? new CornerRadius() : border.CornerRadius;
 
             switch ((Radius)index)
             {
@@ -65,7 +74,7 @@ namespace ReactNative.UIManager
                     break;
             }
 
-            view.CornerRadius = cornerRadius;
+            border.CornerRadius = cornerRadius;
         }
 
         /// <summary>
@@ -77,9 +86,13 @@ namespace ReactNative.UIManager
             ViewProps.BackgroundColor,
             CustomType = "Color",
             DefaultUInt32 = ColorHelpers.Transparent)]
-        public void SetBackgroundColor(Border view, uint color)
+        public void SetBackgroundColor(TFrameworkElement view, uint color)
         {
-            view.Background = new SolidColorBrush(ColorHelpers.Parse(color));
+            if (!HasBorder(view) && ColorHelpers.IsTransparent(color))
+                return;
+
+            var border = GetOrCreateBorder(view);
+            border.Background = new SolidColorBrush(ColorHelpers.Parse(color));
         }
 
         /// <summary>
@@ -88,9 +101,13 @@ namespace ReactNative.UIManager
         /// <param name="view">The view panel.</param>
         /// <param name="color">The color hex code.</param>
         [ReactProp("borderColor", CustomType = "Color")]
-        public void SetBorderColor(Border view, uint? color)
+        public void SetBorderColor(TFrameworkElement view, uint? color)
         {
-            view.BorderBrush = color.HasValue
+            if (!HasBorder(view) && (!color.HasValue || ColorHelpers.IsTransparent(color.Value)))
+                return;
+
+            var border = GetOrCreateBorder(view);
+            border.BorderBrush = color.HasValue
                 ? new SolidColorBrush(ColorHelpers.Parse(color.Value))
                 : s_defaultBorderBrush;
         }
@@ -107,9 +124,13 @@ namespace ReactNative.UIManager
             ViewProps.BorderRightWidth,
             ViewProps.BorderTopWidth,
             ViewProps.BorderBottomWidth)]
-        public void SetBorderWidth(Border view, int index, double width)
+        public void SetBorderWidth(TFrameworkElement view, int index, double width)
         {
-            view.SetBorderWidth(ViewProps.BorderSpacingTypes[index], width);
+            if (!HasBorder(view) && width < 1)
+                return;
+
+            var border = GetOrCreateBorder(view);
+            border.SetBorderWidth(ViewProps.BorderSpacingTypes[index], width);
         }
 
         /// <summary>
@@ -118,137 +139,37 @@ namespace ReactNative.UIManager
         /// <param name="view">The view instance.</param>
         /// <param name="collapsible">The flag.</param>
         [ReactProp(ViewProps.Collapsible)]
-        public void SetCollapsible(Border view, bool collapsible)
+        public void SetCollapsible(TFrameworkElement view, bool collapsible)
         {
             // no-op: it's here only so that "collapsable" property is exported to JS. The value is actually
             // handled in NativeViewHierarchyOptimizer
         }
 
         /// <summary>
-        /// Adds a child at the given index.
+        /// Sets whether or not the view is an accessibility element.
         /// </summary>
-        /// <param name="parent">The parent view.</param>
-        /// <param name="child">The child view.</param>
-        /// <param name="index">The index.</param>
-        public sealed override void AddView(Border parent, DependencyObject child, int index)
+        /// <param name="view">The view.</param>
+        /// <param name="accessible">A flag indicating whether or not the view is an accessibility element.</param>
+        [ReactProp("accessible")]
+        public void SetAccessible(TFrameworkElement view, bool accessible)
         {
-            var inner = GetInnerElement(parent);
-            AddView(inner, child, index);
+            // TODO: #557 Provide implementation for View's accessible prop
+
+            // We need to have this stub for this prop so that Views which
+            // specify the accessible prop aren't considered to be layout-only.
+            // The proper implementation is still to be determined.
         }
 
         /// <summary>
-        /// Gets the number of children in the view parent.
+        /// Set the pointer events handling mode for the view.
         /// </summary>
-        /// <param name="parent">The view parent.</param>
-        /// <returns>The number of children.</returns>
-        public sealed override int GetChildCount(Border parent)
+        /// <param name="view">The view.</param>
+        /// <param name="pointerEventsValue">The pointerEvents mode.</param>
+        [ReactProp("pointerEvents")]
+        public void SetPointerEvents(TFrameworkElement view, string pointerEventsValue)
         {
-            var inner = GetInnerElement(parent);
-            return GetChildCount(inner);
-        }
-
-        /// <summary>
-        /// Gets the child at the given index.
-        /// </summary>
-        /// <param name="parent">The parent view.</param>
-        /// <param name="index">The index.</param>
-        /// <returns>The child view.</returns>
-        public override DependencyObject GetChildAt(Border parent, int index)
-        {
-            var inner = GetInnerElement(parent);
-            return GetChildAt(inner, index);
-        }
-
-        /// <summary>
-        /// Removes the child at the given index.
-        /// </summary>
-        /// <param name="parent">The view parent.</param>
-        /// <param name="index">The index.</param>
-        public override void RemoveChildAt(Border parent, int index)
-        {
-            var inner = GetInnerElement(parent);
-            RemoveChildAt(inner, index);
-        }
-
-        /// <summary>
-        /// Removes all children from the view parent.
-        /// </summary>
-        /// <param name="parent">The view parent.</param>
-        public override void RemoveAllChildren(Border parent)
-        {
-            var inner = GetInnerElement(parent);
-            RemoveAllChildren(inner);
-        }
-
-        /// <summary>
-        /// Creates a new view instance of type <see cref="Border"/>.
-        /// </summary>
-        /// <param name="reactContext">The React context.</param>
-        /// <returns>The view instance.</returns>
-        protected sealed override Border CreateViewInstance(ThemedReactContext reactContext)
-        {
-            var inner = CreateInnerElement(reactContext);
-            return new Border
-            {
-                BorderBrush = s_defaultBorderBrush,
-                Child = inner
-            };
-        }
-
-        /// <summary>
-        /// Creates a new view instance of type <typeparamref name="TFrameworkElement"/>.
-        /// </summary>
-        /// <param name="reactContext">The React context.</param>
-        /// <returns>The view instance.</returns>
-        protected abstract TFrameworkElement CreateInnerElement(ThemedReactContext reactContext);
-
-        /// <summary>
-        /// Adds a child at the given index.
-        /// </summary>
-        /// <param name="parent">The parent view.</param>
-        /// <param name="child">The child view.</param>
-        /// <param name="index">The index.</param>
-        protected abstract void AddView(TFrameworkElement parent, DependencyObject child, int index);
-
-        /// <summary>
-        /// Gets the number of children in the view parent.
-        /// </summary>
-        /// <param name="parent">The view parent.</param>
-        /// <returns>The number of children.</returns>
-        protected abstract int GetChildCount(TFrameworkElement parent);
-
-        /// <summary>
-        /// Gets the child at the given index.
-        /// </summary>
-        /// <param name="parent">The parent view.</param>
-        /// <param name="index">The index.</param>
-        /// <returns>The child view.</returns>
-        protected abstract FrameworkElement GetChildAt(TFrameworkElement parent, int index);
-
-        /// <summary>
-        /// Removes the child at the given index.
-        /// </summary>
-        /// <param name="parent">The view parent.</param>
-        /// <param name="index">The index.</param>
-        protected abstract void RemoveChildAt(TFrameworkElement parent, int index);
-
-        /// <summary>
-        /// Removes all children from the view parent.
-        /// </summary>
-        /// <param name="parent">The view parent.</param>
-        protected abstract void RemoveAllChildren(TFrameworkElement parent);
-
-        /// <summary>
-        /// Get the inner element of the border.
-        /// </summary>
-        /// <param name="parent">The parent view.</param>
-        /// <returns>The inner element.</returns>
-        protected TFrameworkElement GetInnerElement(Border parent)
-        {
-            if (parent == null)
-                throw new ArgumentNullException(nameof(parent));
-
-            return (TFrameworkElement)parent.Child;
+            var pointerEvents = EnumHelpers.ParseNullable<PointerEvents>(pointerEventsValue) ?? PointerEvents.Auto;
+            view.SetPointerEvents(pointerEvents);
         }
     }
 }
