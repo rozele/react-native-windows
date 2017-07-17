@@ -13,25 +13,14 @@ namespace ReactNative.UIManager
     /// View parent manager for bordered canvases.
     /// </summary>
     public abstract class BorderedCanvasManager<TCanvas> : BorderedViewParentManager<TCanvas>
-        where TCanvas : Canvas
+        where TCanvas : BorderedCanvas
     {
-        static object _tag = new object();
-
         /// <summary>
         /// Checks if the Canvas has a Border already.
         /// </summary>
         protected override bool HasBorder(TCanvas view)
         {
-            return GetBorder(view) != null;
-        }
-
-        /// <summary>
-        /// Gets a Border associated with this Canvas or null if it doesn't have a border.
-        /// </summary>
-        private Border GetBorder(TCanvas view)
-        {
-            var border = view.Children[0] as Border;
-            return border?.Tag == _tag ? border : null;
+            return view.Border != null;
         }
 
         /// <summary>
@@ -39,15 +28,12 @@ namespace ReactNative.UIManager
         /// </summary>
         protected override Border GetOrCreateBorder(TCanvas view)
         {
-            var border = GetBorder(view);
-
-            if (border == null)
+            if (view.Border == null)
             {
-                border = new Border { BorderBrush = s_defaultBorderBrush, Tag = _tag };
-                view.Children.Insert(0, border);
+                view.Border = new Border { BorderBrush = s_defaultBorderBrush };
             }
 
-            return border;
+            return view.Border;
         }
 
         /// <summary>
@@ -57,7 +43,7 @@ namespace ReactNative.UIManager
         {
             base.SetDimensions(view, dimensions);
 
-            var border = GetBorder(view);
+            var border = view.Border;
 
             if (border != null)
             {

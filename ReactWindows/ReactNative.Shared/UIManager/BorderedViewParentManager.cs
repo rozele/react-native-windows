@@ -15,7 +15,7 @@ using System.Windows.Media;
 namespace ReactNative.UIManager
 {
     /// <summary>
-    /// Class providing border management API for  view managers.
+    /// Class providing border management API for view managers.
     /// </summary>
     public abstract class BorderedViewParentManager<TFrameworkElement> : ViewParentManager<TFrameworkElement>
         where TFrameworkElement : FrameworkElement
@@ -29,9 +29,19 @@ namespace ReactNative.UIManager
             BottomRight,
         }
 
+        /// <summary>
+        /// Default brush for the view borders.
+        /// </summary>
         protected static readonly Brush s_defaultBorderBrush = new SolidColorBrush(Colors.Black);
 
+        /// <summary>
+        /// Tells if a Canvas has a Border.
+        /// </summary>
         protected abstract bool HasBorder(TFrameworkElement view);
+
+        /// <summary>
+        /// Adds a Border to a Canvas if it hasn't been added yet.
+        /// </summary>
         protected abstract Border GetOrCreateBorder(TFrameworkElement view);
 
 
