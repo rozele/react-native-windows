@@ -130,17 +130,5 @@ namespace ReactNative.UIManager
             var border = GetOrCreateBorder(view);
             border.SetBorderWidth(ViewProps.BorderSpacingTypes[index], width);
         }
-
-        /// <summary>
-        /// Sets whether the view is collapsible.
-        /// </summary>
-        /// <param name="view">The view instance.</param>
-        /// <param name="collapsible">The flag.</param>
-        [ReactProp(ViewProps.Collapsible)]
-        public void SetCollapsible(TFrameworkElement view, bool collapsible)
-        {
-            // no-op: it's here only so that "collapsable" property is exported to JS. The value is actually
-            // handled in NativeViewHierarchyOptimizer
-        }
     }
 }

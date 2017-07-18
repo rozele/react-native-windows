@@ -83,5 +83,17 @@ namespace ReactNative.Views.View
             var pointerEvents = EnumHelpers.ParseNullable<PointerEvents>(pointerEventsValue) ?? PointerEvents.Auto;
             view.SetPointerEvents(pointerEvents);
         }
+
+        /// <summary>
+        /// Sets whether the view is collapsible.
+        /// </summary>
+        /// <param name="view">The view instance.</param>
+        /// <param name="collapsible">The flag.</param>
+        [ReactProp(ViewProps.Collapsible)]
+        public void SetCollapsible(BorderedCanvas view, bool collapsible)
+        {
+            // no-op: it's here only so that "collapsable" property is exported to JS. The value is actually
+            // handled in NativeViewHierarchyOptimizer
+        }
     }
 }
