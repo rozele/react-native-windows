@@ -16,27 +16,6 @@ namespace ReactNative.UIManager
         where TCanvas : BorderedCanvas
     {
         /// <summary>
-        /// Checks if the Canvas has a Border already.
-        /// </summary>
-        protected override bool HasBorder(TCanvas view)
-        {
-            return view.Border != null;
-        }
-
-        /// <summary>
-        /// Adds a Border to a Canvas if it hasn't been added already.
-        /// </summary>
-        protected override Border GetOrCreateBorder(TCanvas view)
-        {
-            if (view.Border == null)
-            {
-                view.Border = new Border { BorderBrush = s_defaultBorderBrush };
-            }
-
-            return view.Border;
-        }
-
-        /// <summary>
         /// Keeps the Border's dimensions in sync with with parent Canvas.
         /// </summary>
         public override void SetDimensions(TCanvas view, Dimensions dimensions)

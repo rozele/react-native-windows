@@ -13,6 +13,27 @@ namespace ReactNative.Views.View
     public class ReactViewManager : BorderedCanvasManager<BorderedCanvas>
     {
         /// <summary>
+        /// Checks if the Canvas has a Border already.
+        /// </summary>
+        protected override bool HasBorder(BorderedCanvas view)
+        {
+            return view.Border != null;
+        }
+
+        /// <summary>
+        /// Adds a Border to a Canvas if it hasn't been added already.
+        /// </summary>
+        protected override Border GetOrCreateBorder(BorderedCanvas view)
+        {
+            if (view.Border == null)
+            {
+                view.Border = new Border { BorderBrush = s_defaultBorderBrush };
+            }
+
+            return view.Border;
+        }
+
+        /// <summary>
         /// The name of this view manager. This will be the name used to 
         /// reference this view manager from JavaScript.
         /// </summary>
