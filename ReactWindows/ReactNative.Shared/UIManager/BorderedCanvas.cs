@@ -16,7 +16,7 @@ namespace ReactNative.UIManager
     /// </summary>
     public class BorderedCanvas : Canvas
     {
-        Border _border = null;
+        private Border _border = null;
 
         /// <summary>
         /// The Border associated with this Canvas or null if it doesn't have a border.

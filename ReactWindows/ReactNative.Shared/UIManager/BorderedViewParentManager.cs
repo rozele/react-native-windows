@@ -59,8 +59,10 @@ namespace ReactNative.UIManager
             ViewProps.BorderBottomRightRadius)]
         public void SetBorderRadius(TFrameworkElement view, int index, double radius)
         {
-            if (!HasBorder(view) && radius < 1)
+            if (!HasBorder(view) && radius == 0)
+            {
                 return;
+            }
 
             var border = GetOrCreateBorder(view);
             var cornerRadius = border.CornerRadius == null ? new CornerRadius() : border.CornerRadius;
@@ -99,7 +101,9 @@ namespace ReactNative.UIManager
         public void SetBackgroundColor(TFrameworkElement view, uint color)
         {
             if (!HasBorder(view) && ColorHelpers.IsTransparent(color))
+            {
                 return;
+            }
 
             var border = GetOrCreateBorder(view);
             border.Background = new SolidColorBrush(ColorHelpers.Parse(color));
@@ -114,7 +118,9 @@ namespace ReactNative.UIManager
         public void SetBorderColor(TFrameworkElement view, uint? color)
         {
             if (!HasBorder(view) && (!color.HasValue || ColorHelpers.IsTransparent(color.Value)))
+            {
                 return;
+            }
 
             var border = GetOrCreateBorder(view);
             border.BorderBrush = color.HasValue
@@ -136,8 +142,10 @@ namespace ReactNative.UIManager
             ViewProps.BorderBottomWidth)]
         public void SetBorderWidth(TFrameworkElement view, int index, double width)
         {
-            if (!HasBorder(view) && width < 1)
+            if (!HasBorder(view) && width == 0)
+            {
                 return;
+            }
 
             var border = GetOrCreateBorder(view);
             border.SetBorderWidth(ViewProps.BorderSpacingTypes[index], width);
