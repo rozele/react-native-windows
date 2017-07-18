@@ -61,7 +61,9 @@ namespace ReactNative.UIManager
         public override void AddView(TCanvas parent, DependencyObject child, int index)
         {
             if (HasBorder(parent))
+            {
                 index++;
+            }
 
             var uiElementChild = child.As<UIElement>();
             parent.Children.Insert(index, uiElementChild);
@@ -76,7 +78,9 @@ namespace ReactNative.UIManager
         public override DependencyObject GetChildAt(TCanvas parent, int index)
         {
             if (HasBorder(parent))
+            {
                 index++;
+            }
 
             return parent.Children[index];
         }
@@ -91,7 +95,9 @@ namespace ReactNative.UIManager
             var count = parent.Children.Count;
 
             if (HasBorder(parent))
+            {
                 count--;
+            }
 
             return count;
         }
@@ -103,7 +109,9 @@ namespace ReactNative.UIManager
         public override void RemoveAllChildren(TCanvas parent)
         {
             for (var i = GetChildCount(parent) - 1; i >= 0; i--)
+            {
                 RemoveChildAt(parent, i);
+            }
         }
 
         /// <summary>
@@ -114,7 +122,9 @@ namespace ReactNative.UIManager
         public override void RemoveChildAt(TCanvas parent, int index)
         {
             if (HasBorder(parent))
+            {
                 index++;
+            }
 
             parent.Children.RemoveAt(index);
         }
