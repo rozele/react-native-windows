@@ -142,32 +142,5 @@ namespace ReactNative.UIManager
             // no-op: it's here only so that "collapsable" property is exported to JS. The value is actually
             // handled in NativeViewHierarchyOptimizer
         }
-
-        /// <summary>
-        /// Sets whether or not the view is an accessibility element.
-        /// </summary>
-        /// <param name="view">The view.</param>
-        /// <param name="accessible">A flag indicating whether or not the view is an accessibility element.</param>
-        [ReactProp("accessible")]
-        public void SetAccessible(TFrameworkElement view, bool accessible)
-        {
-            // TODO: #557 Provide implementation for View's accessible prop
-
-            // We need to have this stub for this prop so that Views which
-            // specify the accessible prop aren't considered to be layout-only.
-            // The proper implementation is still to be determined.
-        }
-
-        /// <summary>
-        /// Set the pointer events handling mode for the view.
-        /// </summary>
-        /// <param name="view">The view.</param>
-        /// <param name="pointerEventsValue">The pointerEvents mode.</param>
-        [ReactProp("pointerEvents")]
-        public void SetPointerEvents(TFrameworkElement view, string pointerEventsValue)
-        {
-            var pointerEvents = EnumHelpers.ParseNullable<PointerEvents>(pointerEventsValue) ?? PointerEvents.Auto;
-            view.SetPointerEvents(pointerEvents);
-        }
     }
 }
