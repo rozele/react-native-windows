@@ -59,32 +59,29 @@ namespace ReactNative.UIManager
             ViewProps.BorderBottomRightRadius)]
         public void SetBorderRadius(TFrameworkElement view, int index, double radius)
         {
-            if (HasBorder(view) || radius > 0)
+            var border = GetOrCreateBorder(view);
+            var cornerRadius = border.CornerRadius == null ? new CornerRadius() : border.CornerRadius;
+
+            switch ((Radius)index)
             {
-                var border = GetOrCreateBorder(view);
-                var cornerRadius = border.CornerRadius == null ? new CornerRadius() : border.CornerRadius;
-
-                switch ((Radius)index)
-                {
-                    case Radius.All:
-                        cornerRadius = new CornerRadius(radius);
-                        break;
-                    case Radius.TopLeft:
-                        cornerRadius.TopLeft = radius;
-                        break;
-                    case Radius.TopRight:
-                        cornerRadius.TopRight = radius;
-                        break;
-                    case Radius.BottomLeft:
-                        cornerRadius.BottomLeft = radius;
-                        break;
-                    case Radius.BottomRight:
-                        cornerRadius.BottomRight = radius;
-                        break;
-                }
-
-                border.CornerRadius = cornerRadius;
+                case Radius.All:
+                    cornerRadius = new CornerRadius(radius);
+                    break;
+                case Radius.TopLeft:
+                    cornerRadius.TopLeft = radius;
+                    break;
+                case Radius.TopRight:
+                    cornerRadius.TopRight = radius;
+                    break;
+                case Radius.BottomLeft:
+                    cornerRadius.BottomLeft = radius;
+                    break;
+                case Radius.BottomRight:
+                    cornerRadius.BottomRight = radius;
+                    break;
             }
+
+            border.CornerRadius = cornerRadius;
         }
 
         /// <summary>
@@ -98,11 +95,8 @@ namespace ReactNative.UIManager
             DefaultUInt32 = ColorHelpers.Transparent)]
         public void SetBackgroundColor(TFrameworkElement view, uint color)
         {
-            if (HasBorder(view) || !ColorHelpers.IsTransparent(color))
-            {
-                var border = GetOrCreateBorder(view);
-                border.Background = new SolidColorBrush(ColorHelpers.Parse(color));
-            }
+            var border = GetOrCreateBorder(view);
+            border.Background = new SolidColorBrush(ColorHelpers.Parse(color));
         }
 
         /// <summary>
@@ -113,13 +107,10 @@ namespace ReactNative.UIManager
         [ReactProp("borderColor", CustomType = "Color")]
         public void SetBorderColor(TFrameworkElement view, uint? color)
         {
-            if (HasBorder(view) || color.HasValue && !ColorHelpers.IsTransparent(color.Value))
-            {
-                var border = GetOrCreateBorder(view);
-                border.BorderBrush = color.HasValue
-                    ? new SolidColorBrush(ColorHelpers.Parse(color.Value))
-                    : s_defaultBorderBrush;
-            }
+            var border = GetOrCreateBorder(view);
+            border.BorderBrush = color.HasValue
+                ? new SolidColorBrush(ColorHelpers.Parse(color.Value))
+                : s_defaultBorderBrush;
         }
 
         /// <summary>
@@ -136,11 +127,8 @@ namespace ReactNative.UIManager
             ViewProps.BorderBottomWidth)]
         public void SetBorderWidth(TFrameworkElement view, int index, double width)
         {
-            if (HasBorder(view) || width > 0)
-            {
-                var border = GetOrCreateBorder(view);
-                border.SetBorderWidth(ViewProps.BorderSpacingTypes[index], width);
-            }
+            var border = GetOrCreateBorder(view);
+            border.SetBorderWidth(ViewProps.BorderSpacingTypes[index], width);
         }
 
         /// <summary>
