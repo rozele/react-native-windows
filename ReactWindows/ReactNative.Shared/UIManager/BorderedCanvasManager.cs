@@ -71,9 +71,16 @@ namespace ReactNative.UIManager
         /// <param name="parent">The view parent.</param>
         public override void RemoveAllChildren(TCanvas parent)
         {
-            for (var i = GetChildCount(parent) - 1; i >= 0; i--)
+            if (HasBorder(parent))
             {
-                RemoveChildAt(parent, i);
+                for (var i = parent.Children.Count - 1; i > 0; i--)
+                {
+                    parent.Children.RemoveAt(i);
+                }
+            }
+            else
+            {
+                parent.Children.Clear();
             }
         }
 
