@@ -44,7 +44,6 @@ namespace ReactNative.UIManager
         /// </summary>
         protected abstract Border GetOrCreateBorder(TFrameworkElement view);
 
-
         /// <summary>
         /// Sets the border radius of the view.
         /// </summary>
