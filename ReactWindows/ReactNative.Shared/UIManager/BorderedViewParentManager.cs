@@ -1,6 +1,4 @@
-﻿using ReactNative.Reflection;
-using ReactNative.UIManager.Annotations;
-using System;
+﻿using ReactNative.UIManager.Annotations;
 #if WINDOWS_UWP
 using Windows.UI;
 using Windows.UI.Xaml;
