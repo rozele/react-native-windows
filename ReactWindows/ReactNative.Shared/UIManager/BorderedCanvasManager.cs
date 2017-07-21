@@ -16,6 +16,22 @@ namespace ReactNative.UIManager
         where TCanvas : Canvas
     {
         /// <summary>
+        /// Keeps the Border's dimensions in sync with with parent Canvas.
+        /// </summary>
+        public override void SetDimensions(TCanvas view, Dimensions dimensions)
+        {
+            base.SetDimensions(view, dimensions);
+
+            if (HasBorder(view))
+            {
+                var border = GetOrCreateBorder(view);
+
+                border.Width = dimensions.Width;
+                border.Height = dimensions.Height;
+            }
+        }
+
+        /// <summary>
         /// Adds a child at the given index.
         /// </summary>
         /// <param name="parent">The parent view.</param>

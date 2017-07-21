@@ -27,22 +27,6 @@ namespace ReactNative.Views.View
         }
 
         /// <summary>
-        /// Keeps the Border's dimensions in sync with with parent Canvas.
-        /// </summary>
-        public override void SetDimensions(BorderedCanvas view, Dimensions dimensions)
-        {
-            base.SetDimensions(view, dimensions);
-
-            var border = view.Border;
-
-            if (border != null)
-            {
-                border.Width = dimensions.Width;
-                border.Height = dimensions.Height;
-            }
-        }
-
-        /// <summary>
         /// Checks if the Canvas has a Border already.
         /// </summary>
         protected override bool HasBorder(BorderedCanvas view)
