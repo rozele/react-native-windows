@@ -1,8 +1,10 @@
 ﻿using ReactNative.Reflection;
 using ReactNative.UIManager;
 using ReactNative.UIManager.Annotations;
+using Windows.UI.Xaml;
 #if WINDOWS_UWP
 using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Data;
 #else
 using System.Windows.Controls;
 #endif
@@ -42,6 +44,20 @@ namespace ReactNative.Views.View
             if (view.Border == null)
             {
                 view.Border = new Border { BorderBrush = s_defaultBorderBrush };
+
+                // Layout animations bypass SetDimensions, hence using XAML bindings.
+
+                view.Border.SetBinding(FrameworkElement.WidthProperty, new Binding
+                {
+                    Source = view,
+                    Path = new PropertyPath("Width")
+                });
+
+                view.Border.SetBinding(FrameworkElement.HeightProperty, new Binding
+                {
+                    Source = view,
+                    Path = new PropertyPath("Height")
+                });
             }
 
             return view.Border;
