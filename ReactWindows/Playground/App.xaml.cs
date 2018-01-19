@@ -127,6 +127,8 @@ namespace Playground
 
         protected override async void OnBackgroundActivated(BackgroundActivatedEventArgs args)
         {
+            base.OnBackgroundActivated(args);
+            SynchronizationContext.SetSynchronizationContext(new CoreDispatcherSynchronizationContext(CoreApplication.MainView.Dispatcher));
             UnhandledException += App_UnhandledException;
             var deferral = args.TaskInstance.GetDeferral();
             var taskId = args.TaskInstance.Task.TaskId.ToString();
@@ -195,6 +197,21 @@ namespace Playground
         private void OnLeavingBackground(object sender, LeavingBackgroundEventArgs e)
         {
             _host.OnLeavingBackground();
+        }
+
+        class CoreDispatcherSynchronizationContext : SynchronizationContext
+        {
+            private readonly CoreDispatcher _coreDispatcher;
+
+            public CoreDispatcherSynchronizationContext(CoreDispatcher coreDispatcher)
+            {
+                _coreDispatcher = coreDispatcher;
+            }
+
+            public override void Post(SendOrPostCallback d, object state)
+            {
+                _coreDispatcher.RunAsync(CoreDispatcherPriority.Normal, () => d(state));
+            }
         }
     }
 }
