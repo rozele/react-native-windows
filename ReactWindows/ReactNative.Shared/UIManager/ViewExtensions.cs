@@ -25,7 +25,7 @@ namespace ReactNative.UIManager
             if (view == null)
                 throw new ArgumentNullException(nameof(view));
 
-            s_properties.GetOrAdd(view, (v) => new ViewData()).PointerEvents = pointerEvents;
+            s_properties.GetOrAdd(GetKey(view), (v) => new ViewData()).PointerEvents = pointerEvents;
         }
 
         /// <summary>
@@ -38,7 +38,7 @@ namespace ReactNative.UIManager
             if (view == null)
                 throw new ArgumentNullException(nameof(view));
 
-            if (!s_properties.TryGetValue(view, out var elementData) || !elementData.PointerEvents.HasValue)
+            if (!s_properties.TryGetValue(GetKey(view), out var elementData) || !elementData.PointerEvents.HasValue)
             {
                 return PointerEvents.Auto;
             }
@@ -56,7 +56,7 @@ namespace ReactNative.UIManager
             if (view == null)
                 throw new ArgumentNullException(nameof(view));
 
-            s_properties.GetOrAdd(view, (v) => new ViewData()).CompoundView = compoundView;
+            s_properties.GetOrAdd(GetKey(view), (v) => new ViewData()).CompoundView = compoundView;
         }
 
         /// <summary>
@@ -73,7 +73,7 @@ namespace ReactNative.UIManager
             if (view == null)
                 throw new ArgumentNullException(nameof(view));
 
-            if (s_properties.TryGetValue(view, out var elementData))
+            if (s_properties.TryGetValue(GetKey(view), out var elementData))
             {
                 var compoundView = elementData.CompoundView;
                 if (compoundView != null)
@@ -90,7 +90,7 @@ namespace ReactNative.UIManager
             if (view == null)
                 throw new ArgumentNullException(nameof(view));
 
-            s_properties.GetOrAdd(view, (v) => new ViewData()).Tag = tag;
+            s_properties.GetOrAdd(GetKey(view), (v) => new ViewData()).Tag = tag;
         }
 
         /// <summary>
@@ -106,7 +106,7 @@ namespace ReactNative.UIManager
             if (view == null)
                 throw new ArgumentNullException(nameof(view));
 
-            if (!s_properties.TryGetValue(view, out var elementData) || !elementData.Tag.HasValue)
+            if (!s_properties.TryGetValue(GetKey(view), out var elementData) || !elementData.Tag.HasValue)
             {
                 throw new InvalidOperationException("Could not get tag for view.");
             }
@@ -126,7 +126,7 @@ namespace ReactNative.UIManager
             if (view == null)
                 throw new ArgumentNullException(nameof(view));
 
-            return s_properties.TryGetValue(view, out var elementData) && elementData.Tag.HasValue;
+            return s_properties.TryGetValue(GetKey(view), out var elementData) && elementData.Tag.HasValue;
         }
 
         internal static void SetReactContext(this object view, ThemedReactContext context)
@@ -134,7 +134,7 @@ namespace ReactNative.UIManager
             if (view == null)
                 throw new ArgumentNullException(nameof(view));
 
-            s_properties.GetOrAdd(view, (v) => new ViewData()).Context = context;
+            s_properties.GetOrAdd(GetKey(view), (v) => new ViewData()).Context = context;
         }
 
         /// <summary>
@@ -151,7 +151,7 @@ namespace ReactNative.UIManager
             if (view == null)
                 throw new ArgumentNullException(nameof(view));
 
-            if (!s_properties.TryGetValue(view, out var elementData))
+            if (!s_properties.TryGetValue(GetKey(view), out var elementData))
             {
                 throw new InvalidOperationException("Could not get React context for view.");
             }
@@ -161,7 +161,19 @@ namespace ReactNative.UIManager
 
         internal static void ClearData(this object view)
         {
-            s_properties.TryRemove(view, out _);
+            s_properties.TryRemove(GetKey(view), out _);
+        }
+
+        private static object GetKey(object view)
+        {
+#if XAMLBASIC
+            if (view is Windows.UI.Xaml.DependencyObject dependencyObject)
+            {
+                return Windows.UI.Xaml.XamlBasic.GetXamlBasicObject(dependencyObject);
+            }
+
+#endif
+            return view;
         }
 
         class ViewData
