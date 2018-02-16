@@ -27,6 +27,12 @@ namespace ReactNative.UIManager
             {
                 return dependencyObject;
             }
+#if XAMLBASIC
+            else if (view is IXamlBasicObject xamlBasicObject)
+            {
+                return XamlBasic.GetDependencyObject(xamlBasicObject);
+            }
+#endif
 
             throw new InvalidOperationException("Cannot convert view to DependencyObject.");
         }
@@ -49,5 +55,21 @@ namespace ReactNative.UIManager
 
             throw new InvalidOperationException(Invariant($"Cannot convert view to '{typeof(T)}'."));
         }
+#if XAMLBASIC
+
+        public static IXamlBasicObject GetXamlBasicObject(object view)
+        {
+            if (view is IXamlBasicObject xamlBasicObject)
+            {
+                return xamlBasicObject;
+            }
+            else if (view is DependencyObject dependencyObject)
+            {
+                return XamlBasic.GetXamlBasicObject(dependencyObject);
+            }
+
+            throw new InvalidOperationException("Cannot convert view to DependencyObject.");
+        }
+#endif
     }
 }
