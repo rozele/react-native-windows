@@ -21,15 +21,15 @@ namespace ReactNative.Tests.UIManager
         public void ViewManagersPropertyCache_ArgumentChecks()
         {
             AssertEx.Throws<ArgumentNullException>(
-                () => ViewManagersPropertyCache.GetNativePropertiesForView(null, typeof(object)),
+                () => ViewManagersPropertyCache.GetNativePropertiesForView<object>(null, typeof(object)),
                 ex => Assert.AreEqual("viewManagerType", ex.ParamName));
 
             AssertEx.Throws<ArgumentNullException>(
-                () => ViewManagersPropertyCache.GetNativePropertiesForView(typeof(object), null),
+                () => ViewManagersPropertyCache.GetNativePropertiesForView<object>(typeof(object), null),
                 ex => Assert.AreEqual("shadowNodeType", ex.ParamName));
 
             AssertEx.Throws<ArgumentNullException>(
-                () => ViewManagersPropertyCache.GetNativePropertySettersForViewManagerType(null),
+                () => ViewManagersPropertyCache.GetNativePropertySettersForViewManagerType<object>(null),
                 ex => Assert.AreEqual("type", ex.ParamName));
 
             AssertEx.Throws<ArgumentNullException>(
@@ -57,7 +57,7 @@ namespace ReactNative.Tests.UIManager
         {
             var instance = new ViewManagerValueTest();
 
-            var setters = ViewManagersPropertyCache.GetNativePropertySettersForViewManagerType(typeof(ViewManagerValueTest));
+            var setters = ViewManagersPropertyCache.GetNativePropertySettersForViewManagerType<object>(typeof(ViewManagerValueTest));
             Assert.AreEqual(3, setters.Count);
 
             var props = new ReactStylesDiffMap(new JObject
@@ -119,7 +119,7 @@ namespace ReactNative.Tests.UIManager
         [Test]
         public void ViewManagersPropertyCache_GetNativePropertiesForView()
         {
-            var props = ViewManagersPropertyCache.GetNativePropertiesForView(typeof(ViewManagerValueTest), typeof(ShadowNodeValueTest));
+            var props = ViewManagersPropertyCache.GetNativePropertiesForView<object>(typeof(ViewManagerValueTest), typeof(ShadowNodeValueTest));
             Assert.AreEqual(5, props.Count);
             Assert.AreEqual("number", props["Foo"]);
             Assert.AreEqual("String", props["Bar1"]);
@@ -132,7 +132,7 @@ namespace ReactNative.Tests.UIManager
         public void ViewManagersPropertyCache_Defaults()
         {
             var instance = new DefaultsTest();
-            var setters = ViewManagersPropertyCache.GetNativePropertySettersForViewManagerType(typeof(DefaultsTest));
+            var setters = ViewManagersPropertyCache.GetNativePropertySettersForViewManagerType<object>(typeof(DefaultsTest));
 
             var props = new ReactStylesDiffMap(new JObject());
 
