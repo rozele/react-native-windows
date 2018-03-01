@@ -101,6 +101,7 @@
     <Compile Include="Bridge\Queue\LayoutActionQueue.cs" />
     <Compile Include="Chakra\Executor\NativeJavaScriptExecutor.cs" />
     <Compile Include="Accessibility\AccessibilityHelper.cs" />
+    <Compile Include="Accessibility\DynamicAutomationPeer.cs" />
     <Compile Include="Accessibility\ImportantForAccessibility.cs" />
     <Compile Include="DevSupport\DevOptionDialog.xaml.cs">
       <DependentUpon>DevOptionDialog.xaml</DependentUpon>
@@ -148,7 +149,7 @@
     <Compile Include="Tracing\Tracer.cs" />
     <Compile Include="UIManager\BaseViewManager.cs" />
     <Compile Include="UIManager\DisplayMetrics.cs" />
-    <Compile Include="Accessibility\DynamicAutomationPeer.cs" />
+    <Compile Include="UIManager\IXamlBasicViewManager.cs" />
     <Compile Include="UIManager\UIViewOperationQueue.cs" />
     <Compile Include="UIManager\XamlBasicBaseViewManager.cs" />
     <Compile Include="UIManager\XamlBasicViewManager.cs" />

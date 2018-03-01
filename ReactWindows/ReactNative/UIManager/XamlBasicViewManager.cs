@@ -9,7 +9,7 @@ namespace ReactNative.UIManager
     /// and size for the corresponding native view.
     /// </summary>
     /// <typeparam name="TReactShadowNode">The shadow node type.</typeparam>
-    public abstract class XamlBasicViewManager<TReactShadowNode> : ViewManagerBase<IXamlBasicObject, TReactShadowNode>
+    public abstract class XamlBasicViewManager<TReactShadowNode> : ViewManagerBase<IXamlBasicObject, TReactShadowNode>, IXamlBasicViewManager
         where TReactShadowNode : ReactShadowNode
     {
         /// <summary>

@@ -75,7 +75,14 @@ namespace ReactNative.Views.View
         public override int GetChildCount(IXamlBasicObject parent)
         {
             // TODO: how to get children count
-            return ((Panel)XamlBasic.GetDependencyObject(parent)).Children.Count;
+            try
+            {
+                return ((Panel)XamlBasic.GetDependencyObject(parent)).Children.Count;
+            }
+            catch (System.Exception ex)
+            {
+                return 0;
+            }
         }
 
         public override void RemoveAllChildren(IXamlBasicObject parent)
