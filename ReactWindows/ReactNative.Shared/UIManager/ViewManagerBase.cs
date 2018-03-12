@@ -216,12 +216,28 @@ namespace ReactNative.UIManager
 
         Dimensions IViewManager.GetDimensions(object view)
         {
-            return GetDimensions((TView)view);
+            object viewObject = view;
+#if XAMLBASIC
+            // TODO: remove this hack for LayoutAnimation
+            if (typeof(TView) == typeof(Windows.UI.Xaml.IXamlBasicObject))
+            {
+                viewObject = ViewConversion.GetXamlBasicObject(view);
+            }
+#endif
+            return GetDimensions((TView)viewObject);
         }
 
         void IViewManager.SetDimensions(object view, Dimensions dimensions)
         {
-            SetDimensions((TView)view, dimensions);
+            object viewObject = view;
+#if XAMLBASIC
+            // TODO: remove this hack for LayoutAnimation
+            if (typeof(TView) == typeof(Windows.UI.Xaml.IXamlBasicObject))
+            {
+                viewObject = ViewConversion.GetXamlBasicObject(view);
+            }
+#endif
+            SetDimensions((TView)viewObject, dimensions);
         }
 
         #endregion
