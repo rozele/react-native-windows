@@ -149,7 +149,7 @@ namespace ReactNative.Tests.UIManager
                 }
             }
 
-            public override IReadOnlyDictionary<string, string> NativeProperties
+            public override IReadOnlyDictionary<string, string> NativeProps
             {
                 get
                 {

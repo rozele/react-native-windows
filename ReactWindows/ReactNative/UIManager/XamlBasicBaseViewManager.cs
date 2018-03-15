@@ -1,21 +1,13 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Portions derived from React Native:
-// Copyright (c) 2015-present, Facebook, Inc.
-// Licensed under the MIT License.
-
 using Newtonsoft.Json.Linq;
-using ReactNative.Accessibility;
 using ReactNative.Reflection;
 using ReactNative.Touch;
 using ReactNative.UIManager.Annotations;
 using System;
-using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Diagnostics;
 using Windows.Foundation;
 using Windows.UI.Xaml;
-using Windows.UI.Xaml.Automation;
 using Windows.UI.Xaml.Automation.Peers;
-using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Input;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Media.Media3D;
@@ -24,27 +16,22 @@ namespace ReactNative.UIManager
 {
     /// <summary>
     /// Base class that should be suitable for the majority of subclasses of <see cref="IViewManager"/>.
-    /// It provides support for base view props such as opacity, etc.
+    /// It provides support for base view properties such as opacity, etc.
     /// </summary>
-    /// <typeparam name="TFrameworkElement">Type of framework element.</typeparam>
     /// <typeparam name="TLayoutShadowNode">Type of shadow node.</typeparam>
-    public abstract class BaseViewManager<TFrameworkElement, TLayoutShadowNode> :
-            ViewManager<TFrameworkElement, TLayoutShadowNode>
-        where TFrameworkElement : FrameworkElement
+    public abstract class XamlBasicBaseViewManager<TLayoutShadowNode> : XamlBasicViewManager<TLayoutShadowNode>
         where TLayoutShadowNode : LayoutShadowNode
     {
-        private readonly ConcurrentDictionary<TFrameworkElement, DimensionBoundProperties> _dimensionBoundProperties =
-            new ConcurrentDictionary<TFrameworkElement, DimensionBoundProperties>();
+        private readonly IDictionary<IXamlBasicObject, DimensionBoundProperties> _dimensionBoundProperties =
+            new Dictionary<IXamlBasicObject, DimensionBoundProperties>();
 
         /// <summary>
-        /// Sets the 3D tranform on the <typeparamref name="TFrameworkElement"/>.
+        /// Set's the view styling layout properties, based on the <see cref="JObject"/> map.
         /// </summary>
         /// <param name="view">The view instance.</param>
-        /// <param name="transforms">
-        /// The transform matrix or the list of transforms.
-        /// </param>
+        /// <param name="transforms">The list of transforms.</param>
         [ReactProp("transform")]
-        public void SetTransform(TFrameworkElement view, JArray transforms)
+        public void SetTransform(IXamlBasicObject view, JArray transforms)
         {
             if (transforms == null)
             {
@@ -66,35 +53,39 @@ namespace ReactNative.UIManager
         }
 
         /// <summary>
-        /// Sets the opacity of the <typeparamref name="TFrameworkElement"/>.
+        /// Sets the opacity of the view.
         /// </summary>
         /// <param name="view">The view instance.</param>
         /// <param name="opacity">The opacity value.</param>
         [ReactProp("opacity", DefaultDouble = 1.0)]
-        public void SetOpacity(TFrameworkElement view, double opacity)
+        public void SetOpacity(IXamlBasicObject view, double opacity)
         {
-            view.Opacity = opacity;
+            XamlBasic.SetValue(
+                view,
+                XamlPropertyIndex.UIElement_Opacity,
+                opacity);
         }
 
         /// <summary>
-        /// Sets the overflow prop for the <typeparamref name="TFrameworkElement"/>.
+        /// Sets the overflow property for the view.
         /// </summary>
         /// <param name="view">The view instance.</param>
         /// <param name="overflow">The overflow value.</param>
         [ReactProp("overflow")]
-        public void SetOverflow(TFrameworkElement view, string overflow)
+        public void SetOverflow(IXamlBasicObject view, string overflow)
         {
+            var element = ViewConversion.GetDependencyObject<FrameworkElement>(view);
             if (overflow == "hidden")
             {
                 var dimensionBoundProperties = GetOrCreateDimensionBoundProperties(view);
                 dimensionBoundProperties.OverflowHidden = true;
                 var dimensions = GetDimensions(view);
                 SetOverflowHidden(view, dimensions);
-                view.SizeChanged += OnSizeChanged;
+                element.SizeChanged += OnSizeChanged;
             }
             else
             {
-                view.SizeChanged -= OnSizeChanged;
+                element.SizeChanged -= OnSizeChanged;
                 var dimensionBoundProperties = GetDimensionBoundProperties(view);
                 if (dimensionBoundProperties != null && dimensionBoundProperties.OverflowHidden)
                 {
@@ -110,9 +101,12 @@ namespace ReactNative.UIManager
         /// <param name="view">The view instance.</param>
         /// <param name="zIndex">The z-index.</param>
         [ReactProp("zIndex")]
-        public void SetZIndex(TFrameworkElement view, int zIndex)
+        public void SetZIndex(IXamlBasicObject view, int zIndex)
         {
-            Canvas.SetZIndex(view, zIndex);
+            XamlBasic.SetValue(
+                view,
+                XamlPropertyIndex.Canvas_ZIndex,
+                zIndex);
         }
 
         /// <summary>
@@ -121,11 +115,15 @@ namespace ReactNative.UIManager
         /// <param name="view">The view instance.</param>
         /// <param name="manipulationModes">The manipulation modes.</param>
         [ReactProp("manipulationModes")]
-        public void SetManipulationModes(TFrameworkElement view, JArray manipulationModes)
+        public void SetManipulationModes(IXamlBasicObject view, JArray manipulationModes)
         {
             if (manipulationModes == null)
             {
-                view.ManipulationMode = ManipulationModes.System;
+                XamlBasic.SetValue(
+                    view,
+                    XamlPropertyIndex.UIElement_ManipulationMode,
+                    (int)ManipulationModes.System);
+
                 return;
             }
 
@@ -137,18 +135,24 @@ namespace ReactNative.UIManager
                 manipulationMode |= mode;
             }
 
-            view.ManipulationMode = manipulationMode;
+            XamlBasic.SetValue(
+                view,
+                XamlPropertyIndex.UIElement_ManipulationMode,
+                (int)manipulationMode);
         }
-        
+
         /// <summary>
         /// Sets the accessibility label of the element.
         /// </summary>
         /// <param name="view">The view instance.</param>
         /// <param name="label">The label.</param>
         [ReactProp("accessibilityLabel")]
-        public void SetAccessibilityLabel(TFrameworkElement view, string label)
+        public void SetAccessibilityLabel(IXamlBasicObject view, string label)
         {
-            AccessibilityHelper.SetAccessibilityLabel(view, label ?? "");
+            XamlBasic.SetValue(
+                view,
+                XamlPropertyIndex.AutomationProperties_Name,
+                label ?? "");
         }
 
         /// <summary>
@@ -157,7 +161,7 @@ namespace ReactNative.UIManager
         /// <param name="view">The view instance.</param>
         /// <param name="liveRegion">The live region.</param>
         [ReactProp("accessibilityLiveRegion")]
-        public void SetAccessibilityLiveRegion(TFrameworkElement view, string liveRegion)
+        public void SetAccessibilityLiveRegion(IXamlBasicObject view, string liveRegion)
         {
             var liveSetting = AutomationLiveSetting.Off;
             switch (liveRegion)
@@ -170,7 +174,10 @@ namespace ReactNative.UIManager
                     break;
             }
 
-            AutomationProperties.SetLiveSetting(view, liveSetting);
+            XamlBasic.SetValue(
+                view,
+                XamlPropertyIndex.AutomationProperties_LiveSetting,
+                liveSetting);
         }
 
         /// <summary>
@@ -179,9 +186,12 @@ namespace ReactNative.UIManager
         /// <param name="view">The view instance.</param>
         /// <param name="testId">The test ID.</param>
         [ReactProp("testID")]
-        public void SetTestId(TFrameworkElement view, string testId)
+        public void SetTestId(IXamlBasicObject view, string testId)
         {
-            AutomationProperties.SetAutomationId(view, testId ?? "");
+            XamlBasic.SetValue(
+                view,
+                XamlPropertyIndex.AutomationProperties_AutomationId,
+                testId ?? "");
         }
 
         /// <summary>
@@ -190,9 +200,12 @@ namespace ReactNative.UIManager
         /// <param name="view">The view instance.</param>
         /// <param name="tooltip">String to display in the tooltip.</param>
         [ReactProp("tooltip")]
-        public void SetTooltip(TFrameworkElement view, string tooltip)
+        public void SetTooltip(IXamlBasicObject view, string tooltip)
         {
-            ToolTipService.SetToolTip(view, tooltip);
+            XamlBasic.SetValue(
+                view,
+                XamlPropertyIndex.ToolTipService_ToolTip,
+                tooltip);
         }
 
         /// <summary>
@@ -205,11 +218,13 @@ namespace ReactNative.UIManager
         /// Be sure to call this base class method to register for pointer 
         /// entered and pointer exited events.
         /// </remarks>
-        public override void OnDropViewInstance(ThemedReactContext reactContext, TFrameworkElement view)
+        public override void OnDropViewInstance(ThemedReactContext reactContext, IXamlBasicObject view)
         {
-            view.PointerEntered -= OnPointerEntered;
-            view.PointerExited -= OnPointerExited;
-            _dimensionBoundProperties.TryRemove(view, out _);
+            // TODO: only subscribe to enter and exit events when needed.
+            var element = ViewConversion.GetDependencyObject<FrameworkElement>(view);
+            element.PointerEntered -= OnPointerEntered;
+            element.PointerExited -= OnPointerExited;
+            _dimensionBoundProperties.Remove(view);
         }
 
         /// <summary>
@@ -217,27 +232,30 @@ namespace ReactNative.UIManager
         /// </summary>
         /// <param name="view">The view.</param>
         /// <param name="dimensions">The dimensions.</param>
-        public override void SetDimensions(TFrameworkElement view, Dimensions dimensions)
+        public override void SetDimensions(IXamlBasicObject view, Dimensions dimensions)
         {
             var dimensionBoundProperties = GetDimensionBoundProperties(view);
             var matrixTransform = dimensionBoundProperties?.MatrixTransform;
             var overflowHidden = dimensionBoundProperties?.OverflowHidden ?? false;
+
             if (matrixTransform != null)
             {
                 SetProjectionMatrix(view, dimensions, matrixTransform);
             }
 
+            var element = default(FrameworkElement);
             if (overflowHidden)
             {
+                element = ViewConversion.GetDependencyObject<FrameworkElement>(view);
                 SetOverflowHidden(view, dimensions);
-                view.SizeChanged -= OnSizeChanged;
+                element.SizeChanged -= OnSizeChanged;
             }
 
             base.SetDimensions(view, dimensions);
 
             if (overflowHidden)
             {
-                view.SizeChanged += OnSizeChanged;
+                element.SizeChanged += OnSizeChanged;
             }
         }
 
@@ -254,15 +272,17 @@ namespace ReactNative.UIManager
         /// Make sure you call the base implementation to ensure base pointer
         /// event handlers are subscribed.
         /// </remarks>
-        protected override void AddEventEmitters(ThemedReactContext reactContext, TFrameworkElement view)
+        protected override void AddEventEmitters(ThemedReactContext reactContext, IXamlBasicObject view)
         {
-            view.PointerEntered += OnPointerEntered;
-            view.PointerExited += OnPointerExited;
+            // TODO: only subscribe to enter and exit events when needed.
+            var element = ViewConversion.GetDependencyObject<FrameworkElement>(view);
+            element.PointerEntered += OnPointerEntered;
+            element.PointerExited += OnPointerExited;
         }
 
         private void OnSizeChanged(object sender, SizeChangedEventArgs e)
         {
-            var view = (TFrameworkElement)sender;
+            var view = (FrameworkElement)sender;
             view.Clip = new RectangleGeometry
             {
                 Rect = new Rect(0, 0, e.NewSize.Width, e.NewSize.Height),
@@ -271,19 +291,20 @@ namespace ReactNative.UIManager
 
         private void OnPointerEntered(object sender, PointerRoutedEventArgs e)
         {
-            var view = (TFrameworkElement)sender;
+            var view = (DependencyObject)sender;
             TouchHandler.OnPointerEntered(view, e);
         }
 
         private void OnPointerExited(object sender, PointerRoutedEventArgs e)
         {
-            var view = (TFrameworkElement)sender;
+            var view = (DependencyObject)sender;
             TouchHandler.OnPointerExited(view, e);
         }
 
-        private DimensionBoundProperties GetDimensionBoundProperties(TFrameworkElement view)
+        private DimensionBoundProperties GetDimensionBoundProperties(IXamlBasicObject view)
         {
-            if (!_dimensionBoundProperties.TryGetValue(view, out var properties))
+            DimensionBoundProperties properties;
+            if (!_dimensionBoundProperties.TryGetValue(view, out properties))
             {
                 properties = null;
             }
@@ -291,18 +312,19 @@ namespace ReactNative.UIManager
             return properties;
         }
 
-        private DimensionBoundProperties GetOrCreateDimensionBoundProperties(TFrameworkElement view)
+        private DimensionBoundProperties GetOrCreateDimensionBoundProperties(IXamlBasicObject view)
         {
-            if (!_dimensionBoundProperties.TryGetValue(view, out var properties))
+            DimensionBoundProperties properties;
+            if (!_dimensionBoundProperties.TryGetValue(view, out properties))
             {
                 properties = new DimensionBoundProperties();
-                _dimensionBoundProperties.AddOrUpdate(view, properties, (k, v) => properties);
+                _dimensionBoundProperties.Add(view, properties);
             }
 
             return properties;
         }
 
-        private static void SetProjectionMatrix(TFrameworkElement view, Dimensions dimensions, JArray transforms)
+        private static void SetProjectionMatrix(IXamlBasicObject view, Dimensions dimensions, JArray transforms)
         {
             var transformMatrix = TransformHelper.ProcessTransform(transforms);
 
@@ -324,25 +346,27 @@ namespace ReactNative.UIManager
             ApplyProjection(view, projectionMatrix);
         }
 
-        private static void ApplyProjection(TFrameworkElement view, Matrix3D projectionMatrix)
+        private static void ApplyProjection(IXamlBasicObject view, Matrix3D projectionMatrix)
         {
             if (IsSimpleTranslationOnly(projectionMatrix))
             {
                 ResetProjectionMatrix(view);
                 // We need to use a new instance of MatrixTransform because matrix
                 // updates to an existing MatrixTransform don't seem to take effect.
-                var transform = new MatrixTransform();
-                var matrix = transform.Matrix;
+                var transform = XamlBasic.CreateInstance(XamlTypeIndex.MatrixTransform);
+                var matrix = Matrix3D.Identity;
                 matrix.OffsetX = projectionMatrix.OffsetX;
                 matrix.OffsetY = projectionMatrix.OffsetY;
-                transform.Matrix = matrix;
-                view.RenderTransform = transform;
+                // TODO: can we set a Matrix3D struct?
+                XamlBasic.SetValue(transform, XamlPropertyIndex.MatrixTransform_Matrix, matrix);
+                XamlBasic.SetValue(view, XamlPropertyIndex.UIElement_RenderTransform, transform);
             }
             else
             {
                 ResetRenderTransform(view);
                 var projection = EnsureProjection(view);
-                projection.ProjectionMatrix = projectionMatrix;
+                // TODO: can we set a Matrix3D struct?
+                XamlBasic.SetValue(projection, XamlPropertyIndex.Matrix3DProjection_ProjectionMatrix, projectionMatrix);
             }
         }
 
@@ -354,66 +378,69 @@ namespace ReactNative.UIManager
             return matrix.IsIdentity;
         }
 
-        private static void ResetProjectionMatrix(TFrameworkElement view)
+        private static void ResetProjectionMatrix(IXamlBasicObject view)
         {
-            var projection = view.Projection;
-            var matrixProjection = projection as Matrix3DProjection;
-            if (projection != null && matrixProjection == null)
+            var projection = XamlBasic.GetXamlBasicObjectValue(view, XamlPropertyIndex.UIElement_Projection);
+
+            // TODO: how to check type of IXamlBasicObject?
+            if (projection != null && !(XamlBasic.GetDependencyObject(projection) is Matrix3DProjection))
             {
                 throw new InvalidOperationException("Unknown projection set on framework element.");
             }
 
-            view.Projection = null;
+            XamlBasic.SetValue(view, XamlPropertyIndex.UIElement_Projection, default(IXamlBasicObject));
         }
 
-        private static void ResetRenderTransform(TFrameworkElement view)
+        private static void ResetRenderTransform(IXamlBasicObject view)
         {
-            var transform = view.RenderTransform;
-            var matrixTransform = transform as MatrixTransform;
-            if (transform != null && matrixTransform == null)
+            var transform = XamlBasic.GetXamlBasicObjectValue(view, XamlPropertyIndex.UIElement_RenderTransform);
+
+            // TODO: how to check type of IXamlBasicObject?
+            if (transform != null && !(XamlBasic.GetDependencyObject(transform) is MatrixTransform))
             {
                 throw new InvalidOperationException("Unknown transform set on framework element.");
             }
 
-            view.RenderTransform = null;
+            XamlBasic.SetValue(view, XamlPropertyIndex.UIElement_RenderTransform, default(IXamlBasicObject));
         }
 
-        private static Matrix3DProjection EnsureProjection(FrameworkElement view)
+        private static IXamlBasicObject EnsureProjection(IXamlBasicObject view)
         {
-            var projection = view.Projection;
-            var matrixProjection = projection as Matrix3DProjection;
-            if (projection != null && matrixProjection == null)
+            var projection = XamlBasic.GetXamlBasicObjectValue(view, XamlPropertyIndex.UIElement_Projection);
+
+            // TODO: how to check type of IXamlBasicObject?
+            if (projection != null && !(XamlBasic.GetDependencyObject(projection) is Matrix3DProjection))
             {
                 throw new InvalidOperationException("Unknown projection set on framework element.");
             }
 
-            if (matrixProjection == null)
+            if (projection == null)
             {
-                matrixProjection = new Matrix3DProjection();
-                view.Projection = matrixProjection;
+                projection = XamlBasic.CreateInstance(XamlTypeIndex.Matrix3DProjection);
+                XamlBasic.SetValue(view, XamlPropertyIndex.UIElement_Projection, projection);
             }
 
-            return matrixProjection;
+            return projection;
         }
 
-        private static void SetOverflowHidden(TFrameworkElement element, Dimensions dimensions)
+        private static void SetOverflowHidden(IXamlBasicObject view, Dimensions dimensions)
         {
             if (double.IsNaN(dimensions.Width) || double.IsNaN(dimensions.Height))
             {
-                element.Clip = null;
+                XamlBasic.SetValue(view, XamlPropertyIndex.UIElement_Clip, default(object));
             }
             else
             {
-                element.Clip = new RectangleGeometry
-                {
-                    Rect = new Rect(0, 0, dimensions.Width, dimensions.Height),
-                };
+                var rect = new Rect(0, 0, dimensions.Width, dimensions.Height);
+                var clip = XamlBasic.CreateInstance(XamlTypeIndex.RectangleGeometry);
+                XamlBasic.SetValue(clip, XamlPropertyIndex.RectangleGeometry_Rect, rect);
+                XamlBasic.SetValue(view, XamlPropertyIndex.UIElement_Clip, clip);
             }
         }
 
-        private static void SetOverflowVisible(TFrameworkElement element)
+        private static void SetOverflowVisible(IXamlBasicObject view)
         {
-            element.Clip = null;
+            XamlBasic.SetValue(view, XamlPropertyIndex.UIElement_Clip, default(object));
         }
 
         class DimensionBoundProperties
