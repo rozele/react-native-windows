@@ -26,7 +26,7 @@ namespace Playground
 
         protected override List<IReactPackage> Packages => new List<IReactPackage>
         {
-            new MainReactPackage(),
+            new GeneratedMainReactPackage(new MainReactPackage()),
         };
     }
 }

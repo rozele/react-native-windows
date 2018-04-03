@@ -657,11 +657,12 @@ namespace ReactNative
             var nativeRegistryBuilder = new NativeModuleRegistry.Builder(reactContext);
             using (Tracer.Trace(Tracer.TRACE_TAG_REACT_BRIDGE, "createAndProcessCoreModulesPackage").Start())
             {
-                var coreModulesPackage = new CoreModulesPackage(
-                    this,
-                    InvokeDefaultOnBackPressed,
-                    _uiImplementationProvider,
-                    _lazyViewManagersEnabled);
+                var coreModulesPackage = new GeneratedCoreModulesPackage(
+                    new CoreModulesPackage(                
+                        this,
+                        InvokeDefaultOnBackPressed,
+                        _uiImplementationProvider,
+                        _lazyViewManagersEnabled));
 
                 ProcessPackage(coreModulesPackage, reactContext, nativeRegistryBuilder);
             }

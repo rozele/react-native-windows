@@ -117,6 +117,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)DevSupport\IStackFrame.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DevSupport\StackFrameExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)DevSupport\StackTraceHelper.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)Generated\CoreModulesPackageWrapper.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)IReactPackage.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Json\JObjectExtensions.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Modules\AppState\AppStateModule.cs" />
