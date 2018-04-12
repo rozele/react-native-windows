@@ -69,18 +69,6 @@ namespace ReactNative.Views.View
             // The proper implementation is still to be determined.
         }
 
-        /// <summary>
-        /// Set the pointer events handling mode for the view.
-        /// </summary>
-        /// <param name="view">The view.</param>
-        /// <param name="pointerEventsValue">The pointerEvents mode.</param>
-        [ReactProp("pointerEvents")]
-        public void SetPointerEvents(BorderedCanvas view, string pointerEventsValue)
-        {
-            var pointerEvents = EnumHelpers.ParseNullable<PointerEvents>(pointerEventsValue) ?? PointerEvents.Auto;
-            view.SetPointerEvents(pointerEvents);
-        }
-
 #if WINDOWS_UWP
         /// <summary>
         /// Set accessibility traits for the view.
