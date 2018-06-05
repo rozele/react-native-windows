@@ -27,6 +27,16 @@ namespace ReactNative.UIManager
             {
                 return dependencyObject;
             }
+#if XAMLDIRECT
+            else if (view is Microsoft.UI.Xaml.Core.Direct.XamlDirectObject xamlDirectObject)
+            {
+                var convertedObject = Microsoft.UI.Xaml.Core.Direct.XamlDirect.GetDefault().GetObject(xamlDirectObject);
+                if (convertedObject is DependencyObject convertedDependencyObject)
+                {
+                    return convertedDependencyObject;
+                }
+            }
+#endif
 
             throw new InvalidOperationException("Cannot convert view to DependencyObject.");
         }
@@ -49,5 +59,26 @@ namespace ReactNative.UIManager
 
             throw new InvalidOperationException(Invariant($"Cannot convert view to '{typeof(T)}'."));
         }
+#if XAMLDIRECT
+
+        /// <summary>
+        /// Gets the <see cref="Microsoft.UI.Xaml.Core.Direct.XamlDirectObject"/> from the view.
+        /// </summary>
+        /// <param name="view">The view.</param>
+        /// <returns>The converted view.</returns>
+        public static Microsoft.UI.Xaml.Core.Direct.XamlDirectObject GetXamlDirectObject(object view)
+        {
+            if (view is Microsoft.UI.Xaml.Core.Direct.XamlDirectObject xamlDirectObject)
+            {
+                return xamlDirectObject;
+            }
+            else if (view is DependencyObject dependencyObject)
+            {
+                return Microsoft.UI.Xaml.Core.Direct.XamlDirect.GetDefault().GetXamlDirectObject(dependencyObject);
+            }
+
+            throw new InvalidOperationException("Cannot convert view to DependencyObject.");
+        }
+#endif
     }
 }
