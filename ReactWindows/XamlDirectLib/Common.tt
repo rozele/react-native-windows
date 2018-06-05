@@ -1,0 +1,70 @@
+﻿<#@ template debug="false" hostspecific="false" language="C#" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.IO" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.Reflection" #>
+<#
+    // Set this path to the Windows.winmd from the SDK of the target of this library
+    string winmdPath = @"C:\Program Files (x86)\Windows Kits\10\UnionMetadata\10.0.17686.0\Windows.winmd";
+    var assembly = Assembly.ReflectionOnlyLoadFrom(winmdPath);
+
+    string assemblyPath = @"C:\Windows\Microsoft.NET\Framework64\v4.0.30319\";
+
+    AppDomain.CurrentDomain.ReflectionOnlyAssemblyResolve += (sender, args) =>
+    {
+        string name = args.Name.Split(',')[0];
+
+        string dllPath = assemblyPath + name + ".dll";
+        if (File.Exists(dllPath))
+        {
+            return Assembly.ReflectionOnlyLoadFrom(dllPath);
+        }
+
+        throw new Exception(string.Format("Could not find {0}.dll", name));
+    };
+
+    Func<string, string[]> getIndexNames = (indexName) =>
+    {    
+        Type enumType = assembly.GetType("Windows.UI.Xaml.Core.Direct." + indexName);
+        return null != enumType ? Enum.GetNames(enumType) : null;
+    };
+
+    IEnumerable<string> namespaces = new string[]
+    {
+        "Windows.UI.Xaml",
+        "Windows.UI.Xaml.Automation",
+        "Windows.UI.Xaml.Automation.Peers",
+        "Windows.UI.Xaml.Controls",
+        "Windows.UI.Xaml.Controls.Primitives",
+        "Windows.UI.Xaml.Data",
+        "Windows.UI.Xaml.Documents",
+        "Windows.UI.Xaml.Input",
+        "Windows.UI.Xaml.Media",
+        "Windows.UI.Xaml.Media.Animation",
+        "Windows.UI.Xaml.Media.Imaging",
+        "Windows.UI.Xaml.Media.Media3D",
+        "Windows.UI.Xaml.Navigation",
+        "Windows.UI.Xaml.Printing",
+        "Windows.UI.Xaml.Shapes",
+    };
+
+    Func<string, Type> getType = (typeName) =>
+    {
+        foreach (string ns in namespaces)
+        {
+            try
+            {
+                Type t = assembly.GetType(ns + "." + typeName);
+                if (null != t)
+                {
+                    return t;
+                }
+            }
+            catch (Exception) { }
+        }
+
+        return null;
+    };
+#>

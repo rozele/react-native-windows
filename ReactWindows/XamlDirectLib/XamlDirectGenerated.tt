@@ -1,0 +1,435 @@
+﻿<#@ assembly name="System.Core" #>
+<#@ include file="Common.tt" once="true" #>
+<#@ import namespace="System.Linq" #>
+<#@ import namespace="System.Text" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.Reflection" #>
+<#@ output extension=".cs" #>
+<#
+    string[] typeIndexNames = getIndexNames("XamlTypeIndex");
+    string[] propertyIndexNames = getIndexNames("XamlPropertyIndex");
+    string[] eventIndexNames = getIndexNames("XamlEventIndex");
+
+    string[] propertySetLine = new string[propertyIndexNames.Length];
+    string[] propertyGetLine = new string[propertyIndexNames.Length];
+    string[] propertyClearLine = new string[propertyIndexNames.Length];
+
+    string[] eventAddLine = new string[eventIndexNames.Length];
+    string[] eventAddHandledLine = new string[eventIndexNames.Length];
+    string[] eventRemoveLine = new string[eventIndexNames.Length];
+
+    string[][] structTypes = new string[][]
+    {
+        new string[] { "Boolean", "bool" },
+        new string[] { "Double", "double" },
+        new string[] { "Int32", "int" },
+        new string[] { "String", "string" },
+        new string[] { "Point", "Point" },
+        new string[] { "Rect", "Rect" },
+        new string[] { "Size", "Size" },
+        new string[] { "TimeSpan", "TimeSpan" },
+        new string[] { "Color", "Color" },
+        new string[] { "CornerRadius", "CornerRadius" },
+        new string[] { "Duration", "Duration" },
+        new string[] { "GridLength", "GridLength" },
+        new string[] { "Thickness", "Thickness" },
+        new string[] { "Matrix", "Matrix" },
+        new string[] { "Matrix3D", "Matrix3D" },
+        new string[] { "Enum", "uint" },
+    };
+
+    Func<Type, string, bool> typeHasDP = (t, dp) =>
+    {
+        return t.GetTypeInfo().DeclaredProperties.Any(p => p.Name == dp + "Property");
+    };
+
+    Func<Type, string, bool> typeHasAttachedSet = (t, dp) =>
+    {
+        return t.GetTypeInfo().DeclaredMethods.Any(m => m.Name == "Set" + dp);
+    };
+
+    Func<Type, string, bool> typeHasAttachedGet = (t, dp) =>
+    {
+        return t.GetTypeInfo().DeclaredMethods.Any(m => m.Name == "Get" + dp);
+    };
+
+    Func<string, string, string> getPropertySetter = (className, propertyName) =>
+    {
+        Type t = getType(className);
+        if (null != t)
+        {
+            if (typeHasDP(t, propertyName))
+            {
+                return string.Format("((DependencyObject)obj).SetValue({0}.{1}Property, value);", className, propertyName);
+            }
+            else if (typeHasAttachedSet(t, propertyName))
+            {
+                return string.Format("{0}.Set{1}((FrameworkElement)obj, value);", className, propertyName);
+            }
+            else
+            {
+                try
+                {
+                    PropertyInfo pi = t.GetTypeInfo().DeclaredProperties.First(p => p.Name == propertyName);
+                    if (null != pi && pi.CanWrite)
+                    {
+                        return string.Format("(({0})obj).{1} = ({2})value;", className, propertyName, pi.PropertyType.Name == "Nullable`1" ? pi.PropertyType.GenericTypeArguments[0].Name + "?" : pi.PropertyType.Name);
+                    }
+                }
+                catch (Exception) { }
+            }
+        }
+        return "";
+    };
+
+    Func<string, string, string> getPropertyGetter = (className, propertyName) =>
+    {
+        Type t = getType(className);
+        if (null != t)
+        {
+            if (typeHasDP(t, propertyName))
+            {
+                return string.Format("return ((DependencyObject)obj).GetValue({0}.{1}Property);", className, propertyName);
+            }
+            else if (typeHasAttachedGet(t, propertyName))
+            {
+                return string.Format("return {0}.Get{1}((FrameworkElement)obj);", className, propertyName);
+            }
+            else
+            {
+                try
+                {
+                    PropertyInfo pi = t.GetTypeInfo().DeclaredProperties.First(p => p.Name == propertyName);
+                    if (null != pi && pi.CanRead)
+                    {
+                        return string.Format("return (({0})obj).{1};", className, propertyName);
+                    }
+                }
+                catch (Exception) { }
+            }
+        }
+        return "";
+    };
+
+    Func<string, string, string> getPropertyClearer = (className, propertyName) =>
+    {
+        Type t = getType(className);
+        if (null != t)
+        {
+            if (typeHasDP(t, propertyName))
+            {
+                return string.Format("((DependencyObject)obj).ClearValue({0}.{1}Property);", className, propertyName);
+            }
+        }
+        return "";
+    };
+
+    for (int i = 0; i < propertyIndexNames.Length; i++)
+    {
+        string className = propertyIndexNames[i].Split('_')[0];
+        string propertyName = propertyIndexNames[i].Split('_')[1];
+
+        propertySetLine[i] = getPropertySetter(className, propertyName);
+        propertyGetLine[i] = getPropertyGetter(className, propertyName);
+        propertyClearLine[i] = getPropertyClearer(className, propertyName);
+    }
+
+    Func<string, string, string> getEventAdd = (className, eventName) =>
+    {
+        Type t = getType(className);
+        if (null != t)
+        {
+            return string.Format("(({0})obj).{1} += (dynamic)handler;", className, eventName);
+        }
+        return "";
+    };
+
+    Func<string, string, string> getEventRemove = (className, eventName) =>
+    {
+        Type t = getType(className);
+        if (null != t)
+        {
+            return string.Format("(({0})obj).{1} -= (dynamic)handler;", className, eventName);
+        }
+        return "";
+    };
+
+    for (int i = 0; i < eventIndexNames.Length; i++)
+    {
+        string className = eventIndexNames[i].Split('_')[0];
+        string eventName = eventIndexNames[i].Split('_')[1];
+
+        eventAddLine[i] = getEventAdd(className, eventName);
+        eventRemoveLine[i] = getEventRemove(className, eventName);
+    }
+#>
+// This code was generated by a tool. Any changes made manually will be lost
+// the next time this code is regenerated.
+
+using System;
+
+using Windows.Foundation;
+using Windows.UI;
+<#
+    foreach (string ns in namespaces)
+    {#>
+using <#= ns #>;
+<#    } //foreach
+#>
+
+using WUXCD = Windows.UI.Xaml.Core.Direct;
+
+namespace Microsoft.UI.Xaml.Core.Direct
+{
+    public static partial class XamlDirect
+    {
+        partial class XamlDirectCompat : IXamlDirect
+        {
+            private object CreateInstanceGenerated(XamlTypeIndex typeIndex)
+            {
+                switch (typeIndex)
+                {
+<#
+    foreach (string type in typeIndexNames)
+    {#>
+                    case XamlTypeIndex.<#= type #>:
+                        return Create<#= type #>();
+<#    } //foreach
+#>
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(typeIndex));
+                }
+            }
+<#
+foreach (string type in typeIndexNames)
+{#>
+            private object Create<#= type #>()
+            {
+                return new <#= type #>();
+            }
+<#    } //foreach
+#>
+        }
+<#
+    foreach (string[] structType in structTypes)
+    {#>
+        public partial interface IXamlDirect
+        {
+            void Set<#= structType[0] #>Property(XamlDirectObject xamlDirectObject, XamlPropertyIndex propertyIndex, <#= structType[1] #> value);
+        }
+
+        partial class XamlDirectWrapper : IXamlDirect
+        {
+            public void Set<#= structType[0] #>Property(XamlDirectObject xamlDirectObject, XamlPropertyIndex propertyIndex, <#= structType[1] #> value)
+            {
+                XD.Set<#= structType[0] #>Property((WUXCD.IXamlDirectObject)(xamlDirectObject.obj), (WUXCD.XamlPropertyIndex)propertyIndex, value);
+            }
+        }
+
+        partial class XamlDirectCompat : IXamlDirect
+        {
+            public void Set<#= structType[0] #>Property(XamlDirectObject xamlDirectObject, XamlPropertyIndex propertyIndex, <#= structType[1] #> value)
+            {
+                SetPropertyGenerated(xamlDirectObject.obj, propertyIndex, value);
+            }
+        }
+<#    } //foreach
+#>
+
+        partial class XamlDirectCompat : IXamlDirect
+        {
+            private void SetPropertyGenerated(object obj, XamlPropertyIndex propertyIndex, object value)
+            {
+                switch (propertyIndex)
+                {
+<#
+    for (int i = 0; i < propertyIndexNames.Length; i++)
+    {
+        if (!string.IsNullOrWhiteSpace(propertySetLine[i])) { #>
+                    case XamlPropertyIndex.<#= propertyIndexNames[i] #>:
+                        Set<#= propertyIndexNames[i] #>(obj, value);
+                        break;
+<#        }
+    } //foreach
+#>
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(propertyIndex));
+                }
+            }
+<#
+    for (int i = 0; i < propertyIndexNames.Length; i++)
+    {
+        if (!string.IsNullOrWhiteSpace(propertySetLine[i])) { #>
+			private void Set<#= propertyIndexNames[i] #>(object obj, object value)
+			{
+				<#= propertySetLine[i] #>
+			}
+<#        }
+    } //foreach
+#>
+        }
+<#
+    foreach (string[] structType in structTypes)
+    {#>
+        public partial interface IXamlDirect
+        {
+            <#= structType[1] #> Get<#= structType[0] #>Property(XamlDirectObject xamlDirectObject, XamlPropertyIndex propertyIndex);
+        }
+
+        partial class XamlDirectWrapper : IXamlDirect
+        {
+            public <#= structType[1] #> Get<#= structType[0] #>Property(XamlDirectObject xamlDirectObject, XamlPropertyIndex propertyIndex)
+            {
+                return XD.Get<#= structType[0] #>Property((WUXCD.IXamlDirectObject)(xamlDirectObject.obj), (WUXCD.XamlPropertyIndex)propertyIndex);
+            }
+        }
+
+        partial class XamlDirectCompat : IXamlDirect
+        {
+            public <#= structType[1] #> Get<#= structType[0] #>Property(XamlDirectObject xamlDirectObject, XamlPropertyIndex propertyIndex)
+            {
+                return (<#= structType[1] #>)GetPropertyGenerated(xamlDirectObject.obj, propertyIndex);
+            }
+        }
+<#    } //foreach
+#>
+
+        partial class XamlDirectCompat : IXamlDirect
+        {
+            private object GetPropertyGenerated(object obj, XamlPropertyIndex propertyIndex)
+            {
+                switch (propertyIndex)
+                {
+<#
+    for (int i = 0; i < propertyIndexNames.Length; i++)
+    {
+        if (!string.IsNullOrWhiteSpace(propertyGetLine[i])) { #>
+                    case XamlPropertyIndex.<#= propertyIndexNames[i] #>:
+                        return Get<#= propertyIndexNames[i] #>(obj);
+<#        }
+    } //foreach
+#>
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(propertyIndex));
+                }
+            }
+<#
+    for (int i = 0; i < propertyIndexNames.Length; i++)
+    {
+        if (!string.IsNullOrWhiteSpace(propertyGetLine[i])) { #>
+            private object Get<#= propertyIndexNames[i] #>(object obj)
+			{
+				<#= propertyGetLine[i] #>
+			}
+<#        }
+    } //foreach
+#>
+            private void ClearPropertyGenerated(object obj, XamlPropertyIndex propertyIndex)
+            {
+                switch (propertyIndex)
+                {
+<#
+    for (int i = 0; i < propertyIndexNames.Length; i++)
+    {
+        if (!string.IsNullOrWhiteSpace(propertyClearLine[i])) { #>
+                    case XamlPropertyIndex.<#= propertyIndexNames[i] #>:
+                        Clear<#= propertyIndexNames[i] #>(obj);
+                        break;
+<#        }
+    } //foreach
+#>
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(propertyIndex));
+                }
+            }
+<#
+    for (int i = 0; i < propertyIndexNames.Length; i++)
+    {
+        if (!string.IsNullOrWhiteSpace(propertyClearLine[i])) { #>
+			private void Clear<#= propertyIndexNames[i] #>(object obj)
+			{
+				<#= propertyClearLine[i] #>
+			}
+<#        }
+    } //foreach
+#>      
+            private void AddEventHandlerGenerated(object obj, XamlEventIndex eventIndex, object handler, bool handledEventsToo)
+            {
+                switch (eventIndex)
+                {
+<#
+    for (int i = 0; i < eventIndexNames.Length; i++)
+    {
+        if (!string.IsNullOrWhiteSpace(eventAddHandledLine[i])) { #>
+                    case XamlEventIndex.<#= eventIndexNames[i] #>:
+                        <#= eventAddHandledLine[i] #>
+                        break;
+<#        }
+    } //foreach
+#>
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(eventIndex));
+                }
+            }
+        
+            private void AddEventHandlerGenerated(object obj, XamlEventIndex eventIndex, object handler)
+            {
+                switch (eventIndex)
+                {
+<#
+    for (int i = 0; i < eventIndexNames.Length; i++)
+    {
+        if (!string.IsNullOrWhiteSpace(eventAddLine[i])) { #>
+                    case XamlEventIndex.<#= eventIndexNames[i] #>:
+                        Add<#= eventIndexNames[i] #>(obj, handler);
+                        break;
+<#        }
+    } //foreach
+#>
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(eventIndex));
+                }
+            }
+<#
+    for (int i = 0; i < eventIndexNames.Length; i++)
+    {
+        if (!string.IsNullOrWhiteSpace(eventAddLine[i])) { #>
+			private void Add<#= eventIndexNames[i] #>(object obj, object handler)
+			{
+				<#= eventAddLine[i] #>
+			}
+<#        }
+    } //foreach
+#>
+
+            private void RemoveEventHandlerGenerated(object obj, XamlEventIndex eventIndex, object handler)
+            {
+                switch (eventIndex)
+                {
+<#
+    for (int i = 0; i < eventIndexNames.Length; i++)
+    {
+        if (!string.IsNullOrWhiteSpace(eventRemoveLine[i])) { #>
+                    case XamlEventIndex.<#= eventIndexNames[i] #>:
+                        Remove<#= eventIndexNames[i]#>(obj, handler);
+                        break;
+<#        }
+    } //foreach
+#>
+                    default:
+                        throw new ArgumentOutOfRangeException(nameof(eventIndex));
+                }
+            }
+<#
+    for (int i = 0; i < eventIndexNames.Length; i++)
+    {
+        if (!string.IsNullOrWhiteSpace(eventRemoveLine[i])) { #>
+			private void Remove<#= eventIndexNames[i]#>(object obj, object handler)
+			{
+				<#= eventRemoveLine[i] #>
+			}
+<#        }
+    } //foreach
+#>        }
+    }
+}
