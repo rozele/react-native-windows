@@ -6,13 +6,53 @@
 import React, { Component } from 'react';
 import {
   AppRegistry,
+  Button,
+  NativeModules,
   StyleSheet,
   Text,
   View,
+  requireNativeComponent,
 } from 'react-native';
 
-class Playground extends Component {
+var PropTypes = require('prop-types');
+
+class TestView extends Component {
+
+  componentWillUnmount() {
+    NativeModules.TestModule.sendEvent();
+  }
+
+  onTest() {
+    alert('Received event!');
+  }
+
   render() {
+    return <NativeTestView onTest={this.onTest} />
+  }
+}
+
+NativeTestView = requireNativeComponent(
+  'TestView',
+  TestView,
+  {
+    nativeOnly: {
+      onTest: true,
+    },
+  });
+
+class Playground extends Component {
+  state = {
+    toggled: false,
+  }
+
+  render() {
+    let test = null;
+    if (this.state.toggled) {
+      test = (
+        <TestView />
+      );
+    }
+
     return (
       <View style={styles.container}>
         <Text style={styles.welcome}>
@@ -24,6 +64,10 @@ class Playground extends Component {
         <Text style={styles.instructions}>
           Shake or press Shift+F10 for dev menu
         </Text>
+        <Button 
+          title="Toggle" 
+          onPress={() => this.setState({toggled: !this.state.toggled})} />
+        {test}
       </View>
     );
   }
