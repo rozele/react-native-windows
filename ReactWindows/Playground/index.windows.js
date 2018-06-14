@@ -6,10 +6,21 @@
 import React, { Component } from 'react';
 import {
   AppRegistry,
+  Button,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+
+class TitleBar extends Component {
+  render() {
+    return (
+      <View style={styles.container}>
+        <Button title="Test" onPress={() => alert('Hello!')} />
+      </View>
+    );
+  }
+}
 
 class Playground extends Component {
   render() {
@@ -49,3 +60,4 @@ const styles = StyleSheet.create({
 });
 
 AppRegistry.registerComponent('Playground', () => Playground);
+AppRegistry.registerComponent('TitleBar', () => TitleBar);

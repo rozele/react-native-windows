@@ -2,6 +2,11 @@
 // Licensed under the MIT License.
 
 using ReactNative;
+using Windows.ApplicationModel.Activation;
+using Windows.ApplicationModel.Core;
+using Windows.UI.Xaml;
+using Windows.UI.Xaml.Controls;
+using Windows.UI.Xaml.Media;
 
 namespace Playground
 {
@@ -25,5 +30,21 @@ namespace Playground
         /// The React Native host.
         /// </summary>
         public override ReactNativeHost Host => _host;
+
+        private ReactRootView AppTitleBar;
+
+        protected override void OnLaunched(LaunchActivatedEventArgs e)
+        {
+            base.OnLaunched(e);
+            AppTitleBar = _host.CreateRootView();
+            AppTitleBar.StartReactApplication(_host.ReactInstanceManager, "TitleBar");
+            Window.Current.SetTitleBar(AppTitleBar);
+            CoreApplication.GetCurrentView().TitleBar.LayoutMetricsChanged += OnLayoutMetricsChanged;
+        }
+
+        private void OnLayoutMetricsChanged(CoreApplicationViewTitleBar sender, object args)
+        {
+            AppTitleBar.Height = sender.Height;
+        }
     }
 }
