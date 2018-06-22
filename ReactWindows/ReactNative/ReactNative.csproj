@@ -21,7 +21,7 @@
     <PlatformTarget>x86</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <OutputPath>bin\x86\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
+    <DefineConstants>DEBUG;TRACE;NETFX_CORE;WINDOWS_UWP;XAMLDIRECT</DefineConstants>
     <NoWarn>;2008</NoWarn>
     <DebugType>full</DebugType>
     <PlatformTarget>x86</PlatformTarget>
@@ -32,7 +32,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x86'">
     <PlatformTarget>x86</PlatformTarget>
     <OutputPath>bin\x86\Release\</OutputPath>
-    <DefineConstants>TRACE;NETFX_CORE;WINDOWS_UWP;CREATE_LAYOUT_THREAD</DefineConstants>
+    <DefineConstants>TRACE;NETFX_CORE;WINDOWS_UWP;CREATE_LAYOUT_THREAD;XAMLDIRECT</DefineConstants>
     <Optimize>true</Optimize>
     <NoWarn>;2008</NoWarn>
     <DebugType>pdbonly</DebugType>
@@ -45,7 +45,7 @@
     <PlatformTarget>ARM</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <OutputPath>bin\ARM\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE;NETFX_CORE;WINDOWS_UWP;WINDOWS_UWP_ARM</DefineConstants>
+    <DefineConstants>DEBUG;TRACE;NETFX_CORE;WINDOWS_UWP;WINDOWS_UWP_ARM;XAMLDIRECT</DefineConstants>
     <NoWarn>;2008</NoWarn>
     <DebugType>full</DebugType>
     <PlatformTarget>ARM</PlatformTarget>
@@ -56,7 +56,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|ARM'">
     <PlatformTarget>ARM</PlatformTarget>
     <OutputPath>bin\ARM\Release\</OutputPath>
-    <DefineConstants>TRACE;NETFX_CORE;WINDOWS_UWP;CREATE_LAYOUT_THREAD;WINDOWS_UWP_ARM</DefineConstants>
+    <DefineConstants>TRACE;NETFX_CORE;WINDOWS_UWP;CREATE_LAYOUT_THREAD;WINDOWS_UWP_ARM;XAMLDIRECT</DefineConstants>
     <Optimize>true</Optimize>
     <NoWarn>;2008</NoWarn>
     <DebugType>pdbonly</DebugType>
@@ -69,7 +69,7 @@
     <PlatformTarget>x64</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <OutputPath>bin\x64\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE;NETFX_CORE;WINDOWS_UWP</DefineConstants>
+    <DefineConstants>DEBUG;TRACE;NETFX_CORE;WINDOWS_UWP;XAMLDIRECT</DefineConstants>
     <NoWarn>;2008</NoWarn>
     <DebugType>full</DebugType>
     <PlatformTarget>x64</PlatformTarget>
@@ -80,7 +80,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
     <PlatformTarget>x64</PlatformTarget>
     <OutputPath>bin\x64\Release\</OutputPath>
-    <DefineConstants>TRACE;NETFX_CORE;WINDOWS_UWP;CREATE_LAYOUT_THREAD</DefineConstants>
+    <DefineConstants>TRACE;NETFX_CORE;WINDOWS_UWP;CREATE_LAYOUT_THREAD;XAMLDIRECT</DefineConstants>
     <Optimize>true</Optimize>
     <NoWarn>;2008</NoWarn>
     <DebugType>pdbonly</DebugType>
@@ -155,6 +155,9 @@
     <Compile Include="UIManager\DisplayMetrics.cs" />
     <Compile Include="Accessibility\DynamicAutomationPeer.cs" />
     <Compile Include="UIManager\UIViewOperationQueue.cs" />
+    <Compile Include="UIManager\XamlDirectBaseViewManager.cs" />
+    <Compile Include="UIManager\XamlDirectViewManager.cs" />
+    <Compile Include="UIManager\XamlDirectViewParentManager.cs" />
     <Compile Include="Views\Flip\ReactFlipViewManager.cs" />
     <Compile Include="Views\Image\ReactImageManager.cs" />
     <Compile Include="Views\Progress\ReactProgressBarViewManager.cs" />
@@ -175,6 +178,8 @@
     <Compile Include="Views\Text\ReactTextCompoundView.cs" />
     <Compile Include="Views\Text\ReactTextShadowNode.cs" />
     <Compile Include="Views\Text\ReactTextViewManager.cs" />
+    <Compile Include="Views\View\ReactXamlDirectViewManager.cs" />
+    <Compile Include="Views\View\XamlDirectBorderedCanvas.cs" />
     <Compile Include="Views\Web\Events\MessageEvent.cs" />
     <Compile Include="Views\Web\Events\WebViewLoadingErrorEvent.cs" />
     <Compile Include="Views\Web\Events\WebViewLoadEvent.cs" />
@@ -212,6 +217,10 @@
     <ProjectReference Include="..\ReactNativeWebViewBridge\ReactNativeWebViewBridge.csproj">
       <Project>{7596216b-669c-41f8-86da-f3637f6545c0}</Project>
       <Name>ReactNativeWebViewBridge</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\XamlDirectLib\XamlDirectLib.csproj">
+      <Project>{89ae42ab-3672-4760-b268-3b3f4dedde71}</Project>
+      <Name>XamlDirectLib</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

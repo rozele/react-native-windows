@@ -293,7 +293,9 @@ namespace ReactNative.UIManager
                             Invariant($"Trying to remove an out of order index '{indexToRemove}' (last index was '{lastIndexToRemove}') for view tag '{tag}'."));
                     }
 
-                    if (viewParentManager.GetChildAt(viewToManage, indexToRemove) is FrameworkElement viewToRemove &&
+                    var viewToRemove = viewParentManager.GetChildAt(viewToManage, indexToRemove);
+                    var dependencyObjectToRemove = ViewConversion.GetDependencyObject(viewToRemove);
+                    if (dependencyObjectToRemove is FrameworkElement elementToRemove &&
                         _layoutAnimator.ShouldAnimateLayout(viewToRemove) &&
                         tagsToDelete.Contains(viewToRemove.GetTag()))
                     {

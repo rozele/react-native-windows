@@ -97,7 +97,11 @@ namespace ReactNative.Shell
                 new ReactPasswordBoxManager(),
                 new ReactTextInputManager(),
                 new ReactTextViewManager(),
+#if XAMLDIRECT
+                new ReactXamlDirectViewManager(),
+#else
                 new ReactViewManager(),
+#endif
                 new ReactControlManager(),
                 new ReactSpanViewManager(),
                 //new SwipeRefreshLayoutManager(),
