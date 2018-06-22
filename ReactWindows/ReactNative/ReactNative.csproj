@@ -178,6 +178,8 @@
     <Compile Include="Views\Text\ReactTextCompoundView.cs" />
     <Compile Include="Views\Text\ReactTextShadowNode.cs" />
     <Compile Include="Views\Text\ReactTextViewManager.cs" />
+    <Compile Include="Views\View\ReactXamlDirectViewManager.cs" />
+    <Compile Include="Views\View\XamlDirectBorderedCanvas.cs" />
     <Compile Include="Views\Web\Events\MessageEvent.cs" />
     <Compile Include="Views\Web\Events\WebViewLoadingErrorEvent.cs" />
     <Compile Include="Views\Web\Events\WebViewLoadEvent.cs" />
