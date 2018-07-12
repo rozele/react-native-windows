@@ -23,7 +23,7 @@ namespace ReactNative.Tracing
             if (builder != null)
             {
                 builder.Fields.AddBooleanArray(name, value);
-            }
+            }d
 
             return builder;
         }

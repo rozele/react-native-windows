@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ReactNative.Core.Threading\ReactNative.Core.Threading.csproj" />
+    <ProjectReference Include="..\ReactNative.Interfaces\ReactNative.Core.Interfaces.csproj" />
+  </ItemGroup>
+
+</Project>
