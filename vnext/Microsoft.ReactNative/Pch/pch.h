@@ -53,3 +53,6 @@
 
 #include <activeObject/activeObject.h>
 #include <future/future.h>
+
+// ARCHON_RNW_BUILD: MSVC Clang co_routine support
+#include "msvc_clang_co_routine.h"

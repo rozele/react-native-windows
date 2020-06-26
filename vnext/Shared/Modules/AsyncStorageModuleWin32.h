@@ -9,7 +9,8 @@
 #include <folly/dynamic.h>
 
 #include <winrt/Windows.Foundation.h>
-#include <winsqlite/winsqlite3.h>
+// ARCHON_RNW_BUILD: Use fbsource sqlite3
+#include <sqlite3.h>
 #include <memory>
 
 namespace facebook {

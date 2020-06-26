@@ -198,7 +198,8 @@ REACTWINDOWS_API_(bool) IsValidColorValue(const folly::dynamic &d) {
 
 REACTWINDOWS_API_(winrt::TimeSpan) TimeSpanFromMs(double ms) {
   std::chrono::milliseconds dur((int64_t)ms);
-  return winrt::TimeSpan::duration(dur);
+  // ARCHON_RNW_BUILD: Clang complains TimeSpan::duration(dur) calls constructor.
+  return winrt::TimeSpan(dur);
 }
 
 } // namespace react::uwp

@@ -1,7 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT license.
 
-#include <synchapi.h>
+// ARCHON_RNW_BUILD: synchapi.h not needed, does not build due to missing minwin defs.
+// #include <synchapi.h>
 #include <algorithm>
 #include "eventWaitHandleImpl.h"
 
