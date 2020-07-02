@@ -11,6 +11,8 @@
 #include "ReactNonAbiValue.h"
 #include "ReactPromise.h"
 
+#include <jsi/jsi.h>
+
 #include <functional>
 #include <type_traits>
 
@@ -146,6 +148,12 @@
 //
 
 namespace winrt::Microsoft::ReactNative {
+
+// For installing bindings directly via the C++ JSI API - not ABI-safe
+static auto JSIRuntimeInstallersProperty() {
+  static ReactPropertyId<ReactNonAbiValue<std::vector<std::function<void(facebook::jsi::Runtime &runtime)>>>> jsiRuntimeInstallersProperty{L"ReactNative.JSIRuntimeInstallers"};
+  return jsiRuntimeInstallersProperty;
+}
 
 // Often used to create a tuple with arguments or to create a method signature.
 template <class T>

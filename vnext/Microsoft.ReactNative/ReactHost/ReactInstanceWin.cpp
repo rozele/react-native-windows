@@ -27,6 +27,7 @@
 #include <Shared/DevServerHelper.h>
 #include <Shared/ViewManager.h>
 #include <dispatchQueue/dispatchQueue.h>
+#include <winrt/Microsoft.ReactNative.h>
 #include "DevMenu.h"
 #include "IReactContext.h"
 #include "IReactDispatcher.h"
@@ -324,6 +325,7 @@ void ReactInstanceWin::Initialize() noexcept {
           }
 
           try {
+            auto jsiRuntimeHolder = devSettings->jsiRuntimeHolder; // grab before `devSettings` is `std::move`d
             // We need to keep the instance wrapper alive as its destruction shuts down the native queue.
             m_options.TurboModuleProvider->SetReactContext(
                 winrt::make<implementation::ReactContext>(Mso::Copy(m_reactContext)));
@@ -338,6 +340,18 @@ void ReactInstanceWin::Initialize() noexcept {
 
             m_instance.Exchange(Mso::Copy(instanceWrapper->GetInstance()));
             m_instanceWrapper.Exchange(std::move(instanceWrapper));
+
+            if (jsiRuntimeHolder) {
+              auto properties = winrt::Microsoft::ReactNative::ReactPropertyBag{m_options.Properties};
+              if (auto jsiInstallers = properties.Get(winrt::Microsoft::ReactNative::JSIRuntimeInstallersProperty())) {
+                m_jsMessageThread.Load()->runOnQueue([=]{
+                  auto jsiRuntime = jsiRuntimeHolder->getRuntime();
+                  for (auto jsiInstaller : *jsiInstallers) {
+                    jsiInstaller(*jsiRuntime);
+                  }
+                });
+              }
+            }
 
             if (auto onCreated = m_options.OnInstanceCreated.Get()) {
               onCreated->Invoke(*this);
