@@ -38,6 +38,8 @@
 #include "Modules/DeviceInfoModule.h"
 #include "Modules/I18nManagerModule.h"
 #include "Modules/LogBoxModule.h"
+// ARCHON_RNW_PROPS: For configuring async storage path.
+#include <Shared/Modules/AsyncStorageModuleWin32Config.h>
 
 #include <Utils/UwpPreparedScriptStore.h>
 #include <Utils/UwpScriptStore.h>
@@ -220,6 +222,13 @@ void ReactInstanceWin::Initialize() noexcept {
         if (auto strongThis = weakThis.GetStrongPtr()) {
           // auto cxxModulesProviders = GetCxxModuleProviders();
 
+          // ARCHON_RNW_PROPS: For configuring async storage path
+          auto properties = winrt::Microsoft::ReactNative::ReactPropertyBag{m_options.Properties};
+          if (auto asyncStoragePath = properties.Get(winrt::Microsoft::ReactNative::AsyncStoragePathProperty())) {
+            auto path = Microsoft::Common::Unicode::Utf16ToUtf8(asyncStoragePath->c_str(), asyncStoragePath->size());
+            react::windows::SetAsyncStorageDBPath(std::move(path));
+          }
+
           auto devSettings = std::make_shared<facebook::react::DevSettings>();
           devSettings->useJITCompilation = m_options.EnableJITCompilation;
           devSettings->sourceBundleHost = m_options.DeveloperSettings.SourceBundleHost.empty()
@@ -341,8 +350,8 @@ void ReactInstanceWin::Initialize() noexcept {
             m_instance.Exchange(Mso::Copy(instanceWrapper->GetInstance()));
             m_instanceWrapper.Exchange(std::move(instanceWrapper));
 
+            // ARCHON_RNW_JSI: JSI installers, e.g. for QPL.
             if (jsiRuntimeHolder) {
-              auto properties = winrt::Microsoft::ReactNative::ReactPropertyBag{m_options.Properties};
               if (auto jsiInstallers = properties.Get(winrt::Microsoft::ReactNative::JSIRuntimeInstallersProperty())) {
                 m_jsMessageThread.Load()->runOnQueue([=]{
                   auto jsiRuntime = jsiRuntimeHolder->getRuntime();

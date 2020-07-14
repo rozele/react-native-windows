@@ -149,6 +149,12 @@
 
 namespace winrt::Microsoft::ReactNative {
 
+// ARCHON_RNW_PROPS: For configuring async storage across ABI.
+static auto AsyncStoragePathProperty() {
+  static ReactPropertyId<winrt::hstring> asyncStoragePathProperty{L"ReactNative.AsyncStoragePath"};
+  return asyncStoragePathProperty;
+}
+
 // For installing bindings directly via the C++ JSI API - not ABI-safe
 static auto JSIRuntimeInstallersProperty() {
   static ReactPropertyId<ReactNonAbiValue<std::vector<std::function<void(facebook::jsi::Runtime &runtime)>>>> jsiRuntimeInstallersProperty{L"ReactNative.JSIRuntimeInstallers"};
