@@ -225,8 +225,13 @@ void ReactInstanceWin::Initialize() noexcept {
           // ARCHON_RNW_PROPS: For configuring async storage path
           auto properties = winrt::Microsoft::ReactNative::ReactPropertyBag{m_options.Properties};
           if (auto asyncStoragePath = properties.Get(winrt::Microsoft::ReactNative::AsyncStoragePathProperty())) {
-            auto path = Microsoft::Common::Unicode::Utf16ToUtf8(asyncStoragePath->c_str(), asyncStoragePath->size());
-            react::windows::SetAsyncStorageDBPath(std::move(path));
+            // Do not try to configure the storage path again on reload. This can happen once per process.
+            static bool s_asyncStoragePathConfigured = false;
+            if (!s_asyncStoragePathConfigured) {
+              s_asyncStoragePathConfigured = true;
+              auto path = Microsoft::Common::Unicode::Utf16ToUtf8(asyncStoragePath->c_str(), asyncStoragePath->size());
+              react::windows::SetAsyncStorageDBPath(std::move(path));
+            }
           }
 
           auto devSettings = std::make_shared<facebook::react::DevSettings>();
