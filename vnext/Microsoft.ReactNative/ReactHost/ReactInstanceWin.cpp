@@ -361,7 +361,7 @@ void ReactInstanceWin::Initialize() noexcept {
                 m_jsMessageThread.Load()->runOnQueue([=]{
                   auto jsiRuntime = jsiRuntimeHolder->getRuntime();
                   for (auto jsiInstaller : *jsiInstallers) {
-                    jsiInstaller(*jsiRuntime);
+                    jsiInstaller(*jsiRuntime, m_instance.Load());
                   }
                 });
               }
