@@ -161,7 +161,7 @@ static auto AsyncStoragePathProperty() {
 
 // For installing bindings directly via the C++ JSI API - not ABI-safe
 static auto JSIRuntimeInstallersProperty() {
-  static ReactPropertyId<ReactNonAbiValue<std::vector<std::function<void(facebook::jsi::Runtime &runtime, std::shared_ptr<facebook::react::Instance>& instance)>>>> jsiRuntimeInstallersProperty{L"ReactNative.JSIRuntimeInstallers"};
+  static ReactPropertyId<ReactNonAbiValue<std::vector<std::function<void(facebook::jsi::Runtime &runtime, std::shared_ptr<facebook::react::Instance> instance)>>>> jsiRuntimeInstallersProperty{L"ReactNative.JSIRuntimeInstallers"};
   return jsiRuntimeInstallersProperty;
 }
 
