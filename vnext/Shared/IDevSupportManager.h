@@ -22,6 +22,8 @@ struct IDevSupportManager {
       std::function<void()> onChangeCallback) = 0;
   virtual void StopPollingLiveReload() = 0;
   virtual bool HasException() = 0;
+  virtual void StartInspectorConnection(const DevSettings &settings) = 0;
+  virtual void DisableInspectorDebugger() = 0;
 };
 
 std::shared_ptr<IDevSupportManager> CreateDevSupportManager();

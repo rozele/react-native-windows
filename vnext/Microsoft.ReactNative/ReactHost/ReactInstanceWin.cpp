@@ -306,15 +306,21 @@ void ReactInstanceWin::Initialize() noexcept {
             cxxModules.insert(std::end(cxxModules), std::begin(customCxxModules), std::end(customCxxModules));
           }
 
+          // ARCHON_HERMES: Set override to use hermes, pass runtime installers
+          devSettings->jsiEngineOverride = facebook::react::JSIEngineOverride::Hermes;
+          devSettings->runtimeInstallers = *properties.Get(winrt::Microsoft::ReactNative::JSIRuntimeInstallersProperty());
+          auto jsiEngine = react::uwp::JSIEngine::Hermes;
+
           if (m_options.UseJsi) {
             std::unique_ptr<facebook::jsi::ScriptStore> scriptStore = nullptr;
             std::unique_ptr<facebook::jsi::PreparedScriptStore> preparedScriptStore = nullptr;
 
-            switch (m_options.JsiEngine) {
+            switch (jsiEngine) { // ARCHON_HERMES: m_options.JsiEngine
               case react::uwp::JSIEngine::Hermes:
 #if defined(USE_HERMES)
-                devSettings->jsiRuntimeHolder = std::make_shared<facebook::react::HermesRuntimeHolder>();
-                devSettings->inlineSourceMap = false;
+                // We will create / use a hermes executor factory when creating the instance.
+                // devSettings->jsiRuntimeHolder = std::make_shared<facebook::react::HermesRuntimeHolder>();
+                // devSettings->inlineSourceMap = false;
                 break;
 #endif
               case react::uwp::JSIEngine::V8:
@@ -339,7 +345,6 @@ void ReactInstanceWin::Initialize() noexcept {
           }
 
           try {
-            auto jsiRuntimeHolder = devSettings->jsiRuntimeHolder; // grab before `devSettings` is `std::move`d
             // We need to keep the instance wrapper alive as its destruction shuts down the native queue.
             m_options.TurboModuleProvider->SetReactContext(
                 winrt::make<implementation::ReactContext>(Mso::Copy(m_reactContext)));
@@ -354,18 +359,6 @@ void ReactInstanceWin::Initialize() noexcept {
 
             m_instance.Exchange(Mso::Copy(instanceWrapper->GetInstance()));
             m_instanceWrapper.Exchange(std::move(instanceWrapper));
-
-            // ARCHON_RNW_JSI: JSI installers, e.g. for QPL.
-            if (jsiRuntimeHolder) {
-              if (auto jsiInstallers = properties.Get(winrt::Microsoft::ReactNative::JSIRuntimeInstallersProperty())) {
-                m_jsMessageThread.Load()->runOnQueue([=]{
-                  auto jsiRuntime = jsiRuntimeHolder->getRuntime();
-                  for (auto jsiInstaller : *jsiInstallers) {
-                    jsiInstaller(*jsiRuntime, m_instance.Load());
-                  }
-                });
-              }
-            }
 
             if (auto onCreated = m_options.OnInstanceCreated.Get()) {
               onCreated->Invoke(*this);

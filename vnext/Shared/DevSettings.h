@@ -18,11 +18,13 @@
 namespace facebook {
 namespace jsi {
 struct RuntimeHolderLazyInit;
+struct Runtime;
 }
 } // namespace facebook
 
 namespace facebook {
 namespace react {
+struct Instance;
 
 enum class JSIEngineOverride : int32_t {
   Default = 0, // No JSI, will use the legacy ExecutorFactory
@@ -99,6 +101,7 @@ struct DevSettings {
   // Until the ABI story is addressed we'll use this instead of the above for
   // the purposes of selecting a JSI Runtime to use.
   JSIEngineOverride jsiEngineOverride{JSIEngineOverride::Default};
+  std::vector<std::function<void(jsi::Runtime &runtime, std::shared_ptr<Instance> instance)>> runtimeInstallers;
 
   /// Optionally used by ChakraExecutor to allow bundle bytecode caching.
   /// Superseded by PreparedScriptStore on the JSI stack, and will be removed

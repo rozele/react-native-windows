@@ -248,6 +248,24 @@ std::pair<std::string, bool> GetJavaScriptFromServer(
   }
 }
 
+// ARCHON_HERMES: We could use DevServerHelper for this, but keeping it simple for now.
+void DevSupportManager::StartInspectorConnection(const facebook::react::DevSettings &settings) {
+  std::string url = "ws://";
+  url += settings.sourceBundleHost.empty() ? "localhost" : settings.sourceBundleHost;
+  url += ":" + std::to_string(settings.sourceBundlePort ? settings.sourceBundlePort : 8081);
+  url += "/inspector/device?name=DEV&app=APP_" + std::to_string(GetCurrentProcessId());
+  m_inspectorConnection = InspectorPackagerConnectionCreate(url);
+}
+
+void DevSupportManager::DisableInspectorDebugger() {
+  // We could issue a Debugger.disable command and reuse the connection on reload, but
+  // this works better for now continuing to debug the next instance from JS entry.
+  if (m_inspectorConnection) {
+    InspectorPackagerConnectionClose(m_inspectorConnection.get());
+    m_inspectorConnection = nullptr;
+  }
+}
+
 } // namespace Microsoft::ReactNative
 
 namespace facebook {

@@ -47,7 +47,9 @@
 
 #if defined(USE_HERMES)
 #include "HermesRuntimeHolder.h"
+#include <jsireact/HermesExecutorFactory.h>
 #endif
+
 #if defined(USE_V8)
 #include "BaseScriptStoreImpl.h"
 #include "V8JSIRuntimeHolder.h"
@@ -379,11 +381,20 @@ InstanceImpl::InstanceImpl(
           m_turboModuleRegistry,
           m_innerInstance->getJSCallInvoker());
     } else if (m_devSettings->jsiEngineOverride != JSIEngineOverride::Default) {
+      std::weak_ptr<Instance> weakInstance = m_innerInstance;
       switch (m_devSettings->jsiEngineOverride) {
         case JSIEngineOverride::Hermes:
 #if defined(USE_HERMES)
-          m_devSettings->jsiRuntimeHolder = std::make_shared<HermesRuntimeHolder>();
-          m_devSettings->inlineSourceMap = false;
+          // ARCHON_HERMES: We need to provide hermes executor factor to leverage the debugger support/checks.
+          // m_devSettings->jsiRuntimeHolder = std::make_shared<HermesRuntimeHolder>();
+          // m_devSettings->inlineSourceMap = false;
+          jsef = std::make_shared<facebook::react::HermesExecutorFactory>([weakInstance, installers = m_devSettings->runtimeInstallers](facebook::jsi::Runtime& runtime) {
+            if (auto instance = weakInstance.lock()) {
+              for (auto& installer : installers) {
+                installer(runtime, instance);
+              }
+            }
+          });
           break;
 #else
           assert(false); // Hermes is not available in this build, fallthrough
@@ -414,11 +425,13 @@ InstanceImpl::InstanceImpl(
               std::make_shared<Microsoft::JSI::ChakraRuntimeHolder>(m_devSettings, m_jsThread, nullptr, nullptr);
           break;
       }
-      jsef = std::make_shared<OJSIExecutorFactory>(
+      if (!jsef) {
+        jsef = std::make_shared<OJSIExecutorFactory>(
           m_devSettings->jsiRuntimeHolder,
           m_devSettings->loggingCallback,
           m_turboModuleRegistry,
           m_innerInstance->getJSCallInvoker());
+      }
     } else {
       // We use the older non-JSI ChakraExecutor pipeline as a fallback as of
       // now. This will go away once we completely move to JSI flow.
@@ -464,6 +477,12 @@ InstanceImpl::InstanceImpl(
       jsef,
       m_jsThread,
       m_moduleRegistry);
+
+  // ARCHON_HERMES: Create/reuse inspector connection only if on debug.
+  // We are not checking "Direct Debugging" option right now, since this will be the default for us.
+  if (m_devSettings->useFastRefresh) {
+    m_devManager->StartInspectorConnection(*m_devSettings);
+  }
 
   // All JSI runtimes do support host objects and hence the native modules
   // proxy.
@@ -558,6 +577,7 @@ void InstanceImpl::loadBundleInternal(std::string &&jsBundleRelativePath, bool s
 }
 
 InstanceImpl::~InstanceImpl() {
+  m_devManager->DisableInspectorDebugger();
   m_nativeQueue->quitSynchronous();
 }
 
