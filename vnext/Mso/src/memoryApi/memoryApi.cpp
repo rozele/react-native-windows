@@ -60,18 +60,18 @@ _Use_decl_annotations_ void Free(void *pv) noexcept {
 } // namespace Mso
 
 #ifdef DEBUG
-void MsoSetLazyLeakDetection(const void *) noexcept {}
+// void MsoSetLazyLeakDetection(const void *) noexcept {}
 
-void MsoSetShutdownLeakDetection(const void *) noexcept {}
+// void MsoSetShutdownLeakDetection(const void *) noexcept {}
 
-BOOL FMemHeapMsoSaveBeHost(
-    void * /*pinst*/,
-    LPARAM /*lParam*/,
-    const void * /*pvBlock*/,
-    LONG_PTR /*cb*/,
-    struct IMsoMemHeap * /*pmmh*/) noexcept {
-  return true;
-}
+// BOOL FMemHeapMsoSaveBeHost(
+//     void * /*pinst*/,
+//     LPARAM /*lParam*/,
+//     const void * /*pvBlock*/,
+//     LONG_PTR /*cb*/,
+//     struct IMsoMemHeap * /*pmmh*/) noexcept {
+//   return true;
+// }
 
 // MSOAPI_(VOID) MsoDebugRegisterLazyObject(IMsoDebugLazyObject* /*pidlo*/) noexcept {}
 // MSOAPI_(VOID) MsoDebugUnregisterLazyObjectThreaded(IMsoDebugLazyObject* /*pidlo*/, bool /*fMainThread*/) noexcept {}
