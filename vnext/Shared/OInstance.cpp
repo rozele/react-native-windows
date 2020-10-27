@@ -393,8 +393,6 @@ InstanceImpl::InstanceImpl(
               for (auto& installer : installers) {
                 installer(runtime, instance);
               }
-              // Binding an empty native logger is sufficient for messages to get routed to metro.
-              bindNativeLogger(runtime, [](const std::string & /*message*/, unsigned int /*logLevel*/) {});
             }
           });
           break;
