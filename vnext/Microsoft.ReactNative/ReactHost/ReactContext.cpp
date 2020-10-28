@@ -49,4 +49,13 @@ void ReactContext::DispatchEvent(int64_t viewTag, std::string &&eventName, folly
 #endif
 }
 
+std::string ReactContext::BundleRootPath() const noexcept {
+#ifndef CORE_ABI // requires instance
+  if (auto instance = m_reactInstance.GetStrongPtr()) {
+    return instance->GetBundleRootPath();
+  }
+  return {};
+#endif
+}
+
 } // namespace Mso::React

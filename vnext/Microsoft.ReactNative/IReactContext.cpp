@@ -68,6 +68,10 @@ void ReactContext::EmitJSEvent(
   m_context->CallJSFunction(to_string(eventEmitterName), "emit", std::move(params));
 }
 
+hstring ReactContext::BundleRootPath() const noexcept {
+  return winrt::to_hstring(m_context->BundleRootPath());
+}
+
 Mso::React::IReactContext &ReactContext::GetInner() const noexcept {
   return *m_context;
 }

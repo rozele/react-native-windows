@@ -75,6 +75,10 @@ struct ReactContext {
   // }
 #endif
 
+  winrt::hstring BundleRootPath() const noexcept {
+    return m_handle.BundleRootPath();
+  }
+
   friend bool operator==(ReactContext const &left, ReactContext const &right) noexcept {
     return left.m_handle == right.m_handle;
   }
