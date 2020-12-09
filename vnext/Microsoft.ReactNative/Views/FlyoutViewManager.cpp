@@ -459,7 +459,9 @@ void FlyoutShadowNode::SetTargetFrameworkElement() {
       m_targetElement = targetView.as<xaml::FrameworkElement>();
     }
   } else {
-    m_targetElement = xaml::Window::Current().Content().as<xaml::FrameworkElement>();
+    if (auto flyoutBase6 = m_flyout.try_as<winrt::IFlyoutBase6>()) {
+      m_targetElement = flyoutBase6.XamlRoot().Content().as<winrt::FrameworkElement>();
+    }
   }
 }
 
