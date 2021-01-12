@@ -23,6 +23,13 @@ void Alert::showAlert(ShowAlertArgs const &args, std::function<void(std::string)
       dialog.PrimaryButtonText(Microsoft::Common::Unicode::Utf8ToUtf16(args.buttonPositive));
       dialog.SecondaryButtonText(Microsoft::Common::Unicode::Utf8ToUtf16(args.buttonNegative));
       dialog.CloseButtonText(Microsoft::Common::Unicode::Utf8ToUtf16(args.buttonNeutral));
+      if (!args.buttonPositive.empty()) {
+        dialog.DefaultButton(winrt::Windows::UI::Xaml::Controls::ContentDialogButton::Primary);
+      } else if (!args.buttonNegative.empty()) {
+        dialog.DefaultButton(winrt::Windows::UI::Xaml::Controls::ContentDialogButton::Secondary);
+      } else {
+        dialog.DefaultButton(winrt::Windows::UI::Xaml::Controls::ContentDialogButton::Close);
+      }
 
       if (react::uwp::Is19H1OrHigher()) {
         // XamlRoot added in 19H1
