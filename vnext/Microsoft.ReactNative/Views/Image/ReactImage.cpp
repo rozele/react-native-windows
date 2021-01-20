@@ -65,7 +65,11 @@ void ReactImage::ResizeMode(react::uwp::ResizeMode value) {
 
     if (switchBrushes) {
       m_useCompositionBrush = shouldUseCompositionBrush;
-      SetBackground(false);
+      // ARCHON_RNW_CRASH: If blur radius is specified before source url we crash when SetBackground
+      // tries to create a WinRT uri off an empty string. This happens in the Participant Card test page.
+      if (m_imageSource.uri.length()) {
+        SetBackground(false);
+      }
     } else if (auto brush{Background().try_as<ReactImageBrush>()}) {
       brush->ResizeMode(value);
     } else if (auto bitmapBrush{Background().as<winrt::ImageBrush>()}) {
