@@ -111,11 +111,13 @@ std::vector<facebook::react::NativeModuleDescription> GetCoreModules(
   modules.emplace_back(
       "AsyncLocalStorage",
       []() -> std::unique_ptr<facebook::xplat::module::CxxModule> {
-        if (HasPackageIdentity()) {
-          return std::make_unique<facebook::react::AsyncStorageModule>(L"asyncStorage");
-        } else {
+        // ARCHON_RNW_ASYNCSTORAGE UWP/packaged implementation causes crashes in the field
+        // mid b62a61057bed77a72651e83d11219503. Run the same one we use in testing.
+        // if (HasPackageIdentity()) {
+        //  return std::make_unique<facebook::react::AsyncStorageModule>(L"asyncStorage");
+        // } else {
           return std::make_unique<facebook::react::AsyncStorageModuleWin32>();
-        }
+        // }
       },
       MakeSerialQueueThread());
 
