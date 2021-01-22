@@ -2,7 +2,9 @@
 // Licensed under the MIT License.
 
 #pragma once
-#include "winrt/Microsoft.ReactNative.h"
+// ARCHON_RNW_HEADERS We need winrt IInspectable so we use the version of this file that has winrt qualifier.
+#include <winrt/Microsoft.ReactNative.h>
+#include <winrt/Windows.Foundation.h>
 
 #include "JSValueReader.h"
 #include "JSValueWriter.h"
@@ -290,9 +292,10 @@ constexpr bool IsVoidResultCheck() noexcept {
 template <class TResult, class TArg>
 constexpr void ValidateCoroutineArg() noexcept {
   if constexpr (std::is_same_v<TResult, fire_and_forget>) {
+    // ARCHON_RNW_BUILD: Cannot append __FUNCSIG__ to static_assert message.
     static_assert(
         !std::is_reference_v<TArg> && !std::is_pointer_v<TArg>,
-        "Coroutine parameter must be passed by value for safe access: " __FUNCSIG__);
+        "Coroutine parameter must be passed by value for safe access: "); //  __FUNCSIG__);
   }
 }
 
@@ -1023,7 +1026,8 @@ template <class TModule, int I, class TMethodSpec>
 struct ReactMethodVerifier {
   static constexpr bool Verify() noexcept {
     ReactMethodVerifier verifier{};
-    ReactMemberInfoIterator<TModule>{}.GetMemberInfo<I>(verifier);
+    // ARCHON_RNW_CLANG clang requires explicit .template to call GetMemberInfo
+    ReactMemberInfoIterator<TModule>{}.template GetMemberInfo<I>(verifier);
     return verifier.m_result;
   }
 
@@ -1041,7 +1045,8 @@ template <class TModule, int I, class TMethodSpec>
 struct ReactSyncMethodVerifier {
   static constexpr bool Verify() noexcept {
     ReactSyncMethodVerifier verifier{};
-    ReactMemberInfoIterator<TModule>{}.GetMemberInfo<I>(verifier);
+    // ARCHON_RNW_CLANG clang requires explicit .template to call GetMemberInfo
+    ReactMemberInfoIterator<TModule>{}.template GetMemberInfo<I>(verifier);
     return verifier.m_result;
   }
 
@@ -1129,19 +1134,20 @@ struct TurboModuleSpec {
 // The default factory for the TModule.
 // It wraps up the TModule into a ReactNonAbiValue to be passed through the ABI boundary.
 template <class TModule>
-inline std::tuple<IInspectable, TModule *> MakeDefaultReactModuleWrapper() noexcept {
+inline std::tuple<winrt::Windows::Foundation::IInspectable, TModule *> MakeDefaultReactModuleWrapper() noexcept {
   ReactNonAbiValue<TModule> moduleWrapper{std::in_place};
   TModule *module = moduleWrapper.GetPtr();
-  return std::tuple<IInspectable, TModule *>{std::move(moduleWrapper), module};
+  return std::tuple<winrt::Windows::Foundation::IInspectable, TModule *>{std::move(moduleWrapper), module};
 }
 
 // The default factory for TModule inherited from enable_shared_from_this<T>.
 // It wraps up the TModule into an  std::shared_ptr before giving it to ReactNonAbiValue.
 template <class TModule>
-inline std::tuple<IInspectable, TModule *> MakeDefaultSharedPtrReactModuleWrapper() noexcept {
+inline std::tuple<winrt::Windows::Foundation::IInspectable, TModule *>
+MakeDefaultSharedPtrReactModuleWrapper() noexcept {
   ReactNonAbiValue<std::shared_ptr<TModule>> moduleWrapper{std::in_place, std::make_shared<TModule>()};
   TModule *module = moduleWrapper.GetPtr()->get();
-  return std::tuple<IInspectable, TModule *>{std::move(moduleWrapper), module};
+  return std::tuple<winrt::Windows::Foundation::IInspectable, TModule *>{std::move(moduleWrapper), module};
 }
 
 namespace Internal {
@@ -1175,7 +1181,7 @@ inline constexpr auto GetReactModuleFactory(TModule * /*moduleNullPtr*/, int * /
 // Type traits for TModule. It defines a factory to create the module and its ABI-safe wrapper.
 template <class TModule>
 struct ReactModuleTraits {
-  using FactoryType = std::tuple<IInspectable, TModule *>() noexcept;
+  using FactoryType = std::tuple<winrt::Windows::Foundation::IInspectable, TModule *>() noexcept;
   static constexpr FactoryType *Factory = GetReactModuleFactory((TModule *)nullptr, 0);
 };
 

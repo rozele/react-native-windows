@@ -14,12 +14,13 @@
 #include "Microsoft.ReactNative/IReactNotificationService.h"
 #include "Microsoft.ReactNative/Threading/MessageQueueThreadFactory.h"
 
-#include "../../codegen/NativeAppStateSpec.g.h"
-#include "../../codegen/NativeClipboardSpec.g.h"
-#include "../../codegen/NativeDevSettingsSpec.g.h"
-#include "../../codegen/NativeDeviceInfoSpec.g.h"
-#include "../../codegen/NativeI18nManagerSpec.g.h"
-#include "../../codegen/NativeLogBoxSpec.g.h"
+// ARCHON_RNW_HEADERS ../.. includes do not work well with our buck targets
+#include "codegen/NativeAppStateSpec.g.h"
+#include "codegen/NativeClipboardSpec.g.h"
+#include "codegen/NativeDevSettingsSpec.g.h"
+#include "codegen/NativeDeviceInfoSpec.g.h"
+#include "codegen/NativeI18nManagerSpec.g.h"
+#include "codegen/NativeLogBoxSpec.g.h"
 #include "NativeModules.h"
 #include "NativeModulesProvider.h"
 #include "Unicode.h"
@@ -39,7 +40,7 @@
 #include "Modules/I18nManagerModule.h"
 #include "Modules/LogBoxModule.h"
 // ARCHON_RNW_PROPS: For configuring async storage path.
-#include <Shared/Modules/AsyncStorageModuleWin32Config.h>
+#include <AsyncStorageModuleWin32Config.h>
 
 #include <Utils/UwpPreparedScriptStore.h>
 #include <Utils/UwpScriptStore.h>

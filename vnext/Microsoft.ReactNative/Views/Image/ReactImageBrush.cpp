@@ -12,6 +12,9 @@
 #include <winrt/Windows.Graphics.Effects.h>
 #include <sstream>
 
+// ARCHON_RNW_BUILD: Missing uuidof support in clang, will cause static_assert in MsoGetGuid
+MSO_STRUCT_GUID(IInspectable, "af86e2e0-b12d-4c6a-9c5a-d7aa65101e90")
+
 namespace winrt {
 using namespace winrt::Windows::Storage::Streams;
 using namespace comp;

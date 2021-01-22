@@ -216,7 +216,8 @@ winrt::fire_and_forget ReactImage::SetBackground(bool fireLoadEndEvent) {
       }
       co_return;
     }
-  } catch (winrt::hresult_error const &) {
+  // ARCHON_CLANG_BUG Coroutine catch https://reviews.llvm.org/D33733
+  } catch (...) {
     const auto strong_this{weak_this.get()};
     if (strong_this && fireLoadEndEvent) {
       strong_this->m_onLoadEndEvent(*strong_this, false);
@@ -405,8 +406,9 @@ winrt::IAsyncOperation<winrt::InMemoryRandomAccessStream> GetImageStreamAsync(Re
 
       co_return memoryStream;
     }
-  } catch (winrt::hresult_error const &e) {
-    DEBUG_HRESULT_ERROR(e);
+  // ARCHON_CLANG_BUG Coroutine catch https://reviews.llvm.org/D33733
+  } catch (...) {
+    // DEBUG_HRESULT_ERROR(e);
   }
 
   co_return nullptr;
@@ -429,7 +431,8 @@ winrt::IAsyncOperation<winrt::InMemoryRandomAccessStream> GetImageInlineDataAsyn
     memoryStream.Seek(0);
 
     co_return memoryStream;
-  } catch (winrt::hresult_error const &) {
+  // ARCHON_CLANG_BUG Coroutine catch https://reviews.llvm.org/D33733
+  } catch (...) {
     // Base64 decode failed
   }
 

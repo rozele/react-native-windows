@@ -5,8 +5,8 @@
 
 #include "pch.h"
 
-#include <ReactWindowsCore/DevServerHelper.h>
-#include <ReactWindowsCore/DevSettings.h>
+#include <Shared/DevServerHelper.h>
+#include <Shared/DevSettings.h>
 #include <winrt/Windows.Data.Json.h>
 #include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.Networking.Sockets.h>

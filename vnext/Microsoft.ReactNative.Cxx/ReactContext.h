@@ -5,7 +5,10 @@
 #ifndef MICROSOFT_REACTNATIVE_REACTCONTEXT
 #define MICROSOFT_REACTNATIVE_REACTCONTEXT
 
-#include <CppWinRTIncludes.h>
+// ARCHON_RNW_HEADERS Including this header for dispatch event below has significant impact on build times
+// since NativeModules.h gets included in a lot of our RSYS and other bridging code and we cannot use
+// precompiled headers on Windows due to buck issues with symbolic links.
+// #include <CppWinRTIncludes.h>
 #include <string_view>
 #include "JSValueWriter.h"
 #include "ReactNotificationService.h"
@@ -60,13 +63,16 @@ struct ReactContext {
     m_handle.EmitJSEvent(eventEmitterName, eventName, MakeJSValueArgWriter(std::forward<TArgs>(args)...));
   }
 
+// ARCHON_RNW_HEADERS Including xaml headers for dispatch event below has significant impact on build times
+// since NativeModules.h gets included in a lot of our RSYS and other bridging code and we cannot use
+// precompiled headers on Windows due to buck issues with symbolic links.
 #ifndef CORE_ABI
   // Dispatch eventName event to the view.
   // args are either function arguments or a single lambda with 'IJSValueWriter const&' argument.
-  template <class... TArgs>
-  void DispatchEvent(xaml::FrameworkElement const &view, std::wstring_view eventName, TArgs &&... args) const noexcept {
-    m_handle.DispatchEvent(view, eventName, MakeJSValueArgWriter(std::forward<TArgs>(args)...));
-  }
+  // template <class... TArgs>
+  // void DispatchEvent(xaml::FrameworkElement const &view, std::wstring_view eventName, TArgs &&... args) const noexcept {
+  //   m_handle.DispatchEvent(view, eventName, MakeJSValueArgWriter(std::forward<TArgs>(args)...));
+  // }
 #endif
 
   friend bool operator==(ReactContext const &left, ReactContext const &right) noexcept {

@@ -388,8 +388,18 @@ InstanceImpl::InstanceImpl(
           // ARCHON_HERMES: We need to provide hermes executor factor to leverage the debugger support/checks.
           // m_devSettings->jsiRuntimeHolder = std::make_shared<HermesRuntimeHolder>();
           // m_devSettings->inlineSourceMap = false;
-          jsef = std::make_shared<facebook::react::HermesExecutorFactory>([weakInstance, installers = m_devSettings->runtimeInstallers](facebook::jsi::Runtime& runtime) {
+          jsef = std::make_shared<facebook::react::HermesExecutorFactory>([weakInstance, installers = m_devSettings->runtimeInstallers, turboModuleRegistry = m_turboModuleRegistry](facebook::jsi::Runtime& runtime) {
             if (auto instance = weakInstance.lock()) {
+              // Install turbo modules binding.
+              auto turboModuleManager = std::make_shared<TurboModuleManager>(turboModuleRegistry, instance->getJSCallInvoker());
+              auto binding = [turboModuleManager](const std::string &name) -> std::shared_ptr<TurboModule> {
+                return turboModuleManager->getModule(name);
+              };
+              TurboModuleBinding::install(runtime, std::function(binding));
+              for (const auto &moduleName : turboModuleManager->getEagerInitModuleNames()) {
+                turboModuleManager->getModule(moduleName);
+              }
+              // Run the other JSI installers.
               for (auto& installer : installers) {
                 installer(runtime, instance);
               }
