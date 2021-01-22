@@ -6,6 +6,7 @@
 #include <UI.Xaml.Controls.Primitives.h>
 #include <UI.Xaml.Controls.h>
 #include <UI.Xaml.Input.h>
+#include <UI.Xaml.Media.h>
 #include <Utils/ValueUtils.h>
 #include <Views/ShadowNodeBase.h>
 #include "PickerViewManager.h"
@@ -65,7 +66,6 @@ PickerShadowNode::PickerShadowNode() : Super() {
 void PickerShadowNode::createView() {
   Super::createView();
   auto combobox = GetView().as<xaml::Controls::ComboBox>();
-  combobox.TabIndex(0);
   auto wkinstance = GetViewManager()->GetReactInstance();
 
   combobox.AllowFocusOnInteraction(true);
@@ -131,6 +131,12 @@ void PickerShadowNode::updateProperties(const folly::dynamic &&props) {
         m_items = propertyValue;
         RepopulateItems();
       }
+    } else if (propertyName == "placeholder") {
+      if (propertyValue.isString()) {
+        combobox.PlaceholderText(asHstring(propertyValue));
+      } else if (propertyValue.isNull()) {
+        combobox.ClearValue(xaml::Controls::ComboBox::PlaceholderTextProperty());
+      }
     }
   }
 
@@ -148,6 +154,7 @@ void PickerShadowNode::RepopulateItems() {
 
   auto comboBoxItems = combobox.Items();
   comboBoxItems.Clear();
+  auto didSetIslandsDarkModeFix = false;
   for (const auto &item : m_items) {
     if (item.count("label")) {
       std::string label = item["label"].asString();
@@ -157,6 +164,17 @@ void PickerShadowNode::RepopulateItems() {
 
       if (item.count("textColor") && IsValidColorValue(item["textColor"]))
         comboboxItem.Foreground(BrushFrom(item["textColor"]));
+
+      if (!didSetIslandsDarkModeFix) {
+        // Xaml Islands has a bug where a ComboBox that is dark mode won't set its dropdown to dark mode.
+        didSetIslandsDarkModeFix = true;
+        comboboxItem.Loaded([=](auto, auto) {
+          auto popups = xaml::Media::VisualTreeHelper::GetOpenPopupsForXamlRoot(combobox.XamlRoot());
+          for (auto const& popup : popups) {
+            popup.Child().as<xaml::FrameworkElement>().RequestedTheme(combobox.ActualTheme());
+          }
+        });
+      }
 
       comboBoxItems.Append(comboboxItem);
     }
@@ -190,7 +208,7 @@ folly::dynamic PickerViewManager::GetNativeProps() const {
   auto props = Super::GetNativeProps();
 
   props.update(folly::dynamic::object("editable", "boolean")("enabled", "boolean")("items", "array")(
-      "selectedIndex", "number")("text", "string"));
+      "selectedIndex", "number")("text", "string")("placeholder", "string"));
 
   return props;
 }

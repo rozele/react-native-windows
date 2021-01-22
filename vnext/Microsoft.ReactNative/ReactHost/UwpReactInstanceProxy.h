@@ -51,6 +51,8 @@ struct UwpReactInstanceProxy : IReactInstance, std::enable_shared_from_this<UwpR
   // Test hooks
   void SetXamlViewCreatedTestHook(std::function<void(react::uwp::XamlView)> testHook) override;
   void CallXamlViewCreatedTestHook(react::uwp::XamlView view) override;
+  // ARCHON_RNW_XAMLROOT Allow getting to xaml root from legacy instance
+  auto GetReactInstance() { return m_weakReactInstance.GetStrongPtr(); }
 
  private:
   Mso::WeakPtr<Mso::React::IReactInstance> m_weakReactInstance;

@@ -5,10 +5,68 @@
 
 #include <Views/FrameworkElementViewManager.h>
 #include <Views/ViewPanel.h>
+#include <Views/ShadowNodeBase.h>
 
 namespace react::uwp {
 
-class ViewShadowNode;
+class ViewShadowNode : public ShadowNodeBase {
+  using Super = ShadowNodeBase;
+
+ public:
+  ViewShadowNode() = default;
+
+  void createView() override;
+
+  bool IsControl();
+  void IsControl(bool isControl);
+
+  bool HasOuterBorder();
+  void HasOuterBorder(bool hasOuterBorder);
+
+  bool EnableFocusRing();
+  void EnableFocusRing(bool enable);
+
+  int32_t TabIndex();
+  void TabIndex(int32_t tabIndex);
+
+  bool OnClick() const;
+  void OnClick(bool isSet);
+
+  bool IsFocusable() const;
+  void IsFocusable(bool isFocusable);
+
+  bool IsHitTestBrushRequired() const;
+
+  void AddView(ShadowNode &child, int64_t index) override;
+
+  void RemoveChildAt(int64_t indexToRemove) override;
+
+  void removeAllChildren() override;
+
+  void ReplaceChild(const XamlView &oldChildView, const XamlView &newChildView) override;
+
+  void RefreshProperties();
+
+  winrt::react::uwp::ViewPanel GetViewPanel();
+
+  winrt::react::uwp::ViewControl GetControl();
+
+  XamlView CreateViewControl();
+
+  void DispatchEvent(std::string eventName, folly::dynamic &&eventData);
+
+ private:
+  bool m_isControl = false;
+  bool m_hasOuterBorder = false;
+
+  bool m_enableFocusRing = true;
+  bool m_onClick = false;
+  bool m_isFocusable = false;
+  int32_t m_tabIndex = std::numeric_limits<std::int32_t>::max();
+
+  xaml::Controls::ContentControl::GotFocus_revoker m_contentControlGotFocusRevoker{};
+  xaml::Controls::ContentControl::LostFocus_revoker m_contentControlLostFocusRevoker{};
+};
 
 class ViewViewManager : public FrameworkElementViewManager {
   using Super = FrameworkElementViewManager;

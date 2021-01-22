@@ -9,6 +9,11 @@
 #include "ViewPanel.h"
 
 #include <Modules/NativeUIManager.h>
+
+// ARCHON_RNW_XAMLROOT Need to get xaml root for flyout
+#include <ReactHost/UwpReactInstanceProxy.h>
+#include <ReactHost/ReactInstanceWin.h>
+
 #include <UI.Xaml.Controls.Primitives.h>
 #include <UI.Xaml.Controls.h>
 #include <UI.Xaml.Documents.h>
@@ -101,6 +106,7 @@ class FlyoutShadowNode : public ShadowNodeBase {
   void SetTargetFrameworkElement();
   winrt::Popup GetFlyoutParentPopup() const;
   winrt::FlyoutPresenter GetFlyoutPresenter() const;
+  void OnShowFlyout();
 
   xaml::FrameworkElement m_targetElement = nullptr;
   winrt::Flyout m_flyout = nullptr;
@@ -119,6 +125,7 @@ class FlyoutShadowNode : public ShadowNodeBase {
   winrt::Flyout::Closed_revoker m_flyoutClosedRevoker{};
   int64_t m_tokenContentPropertyChangeCallback{0};
   winrt::Flyout::Opened_revoker m_flyoutOpenedRevoker{};
+  winrt::XamlRoot::Changed_revoker m_xamlRootChangedRevoker{};
 };
 
 FlyoutShadowNode::~FlyoutShadowNode() {
@@ -151,6 +158,7 @@ void FlyoutShadowNode::createView() {
   Super::createView();
 
   m_flyout = winrt::Flyout();
+  m_flyout.ShouldConstrainToRootBounds(false);
   m_isFlyoutShowOptionsSupported = !!(winrt::Flyout().try_as<winrt::IFlyoutBase5>());
 
   if (m_isFlyoutShowOptionsSupported)
@@ -180,6 +188,7 @@ void FlyoutShadowNode::createView() {
       }
 
       OnFlyoutClosed(*instance, m_tag, false);
+      m_xamlRootChangedRevoker.revoke();
     }
   });
 
@@ -234,8 +243,18 @@ void FlyoutShadowNode::createView() {
   // Set XamlRoot on the Flyout to handle XamlIsland/AppWindow scenarios.
   if (auto flyoutBase6 = m_flyout.try_as<winrt::IFlyoutBase6>()) {
     if (auto instance = wkinstance.lock()) {
-      if (auto xamlRoot = static_cast<NativeUIManager *>(instance->NativeUIManager())->tryGetXamlRoot()) {
-        flyoutBase6.XamlRoot(xamlRoot);
+      // ARCHON_RNW_MULTIWIN: Get xaml root for flyout from the one we set on the context based on focus.
+      // if (auto xamlRoot = static_cast<NativeUIManager *>(instance->NativeUIManager())->tryGetXamlRoot()) {
+      auto riw = static_cast<Mso::React::ReactInstanceWin*>(static_cast<UwpReactInstanceProxy*>(instance.get())->GetReactInstance().Get());
+      if (riw) {
+        if (auto xamlRoot = winrt::Microsoft::ReactNative::XamlUIService::GetXamlRoot(riw->Options().Properties)) {
+          flyoutBase6.XamlRoot(xamlRoot);
+          m_xamlRootChangedRevoker = xamlRoot.Changed(winrt::auto_revoke, [this](auto &&, auto &&) {
+            if (m_isLightDismissEnabled) {
+              onDropViewInstance();
+            }
+          });
+        }
       }
     }
   }
@@ -318,6 +337,10 @@ void FlyoutShadowNode::updateProperties(const folly::dynamic &&props) {
       }
 
       m_flyout.LightDismissOverlayMode(overlayMode);
+    } else if (propertyName == "shouldConstrainToRootBounds") {
+      if (propertyValue.isBool()) {
+        m_flyout.ShouldConstrainToRootBounds(propertyValue.asBool());
+      }
     }
   }
 
@@ -333,16 +356,7 @@ void FlyoutShadowNode::updateProperties(const folly::dynamic &&props) {
 
   if (updateIsOpen) {
     if (m_isOpen) {
-      AdjustDefaultFlyoutStyle(50000, 50000);
-      if (m_isFlyoutShowOptionsSupported) {
-        m_flyout.ShowAt(m_targetElement, m_showOptions);
-      } else {
-        winrt::FlyoutBase::ShowAttachedFlyout(m_targetElement);
-      }
-
-      auto popup = GetFlyoutParentPopup();
-      if (popup != nullptr)
-        popup.IsLightDismissEnabled(m_isLightDismissEnabled);
+      OnShowFlyout();
     } else {
       m_flyout.Hide();
     }
@@ -356,6 +370,19 @@ void FlyoutShadowNode::updateProperties(const folly::dynamic &&props) {
 
 winrt::Flyout FlyoutShadowNode::GetFlyout() {
   return m_flyout;
+}
+
+void FlyoutShadowNode::OnShowFlyout() {
+  AdjustDefaultFlyoutStyle(50000, 50000);
+  if (m_isFlyoutShowOptionsSupported) {
+    m_flyout.ShowAt(m_targetElement, m_showOptions);
+  } else {
+    winrt::FlyoutBase::ShowAttachedFlyout(m_targetElement);
+  }
+
+  if (auto popup = GetFlyoutParentPopup()) {
+    popup.IsLightDismissEnabled(m_isLightDismissEnabled);
+  }
 }
 
 void FlyoutShadowNode::SetTargetFrameworkElement() {
@@ -439,7 +466,7 @@ folly::dynamic FlyoutViewManager::GetNativeProps() const {
 
   props.update(
       folly::dynamic::object("horizontalOffset", "number")("isLightDismissEnabled", "boolean")("isOpen", "boolean")(
-          "placement", "number")("target", "number")("verticalOffset", "number")("isOverlayEnabled", "boolean"));
+          "placement", "number")("target", "number")("verticalOffset", "number")("isOverlayEnabled", "boolean")("shouldConstrainToRootBounds", "boolean"));
 
   return props;
 }
