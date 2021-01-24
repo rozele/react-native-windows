@@ -93,6 +93,17 @@ void ViewShadowNode::OnClick(bool isSet) {
   m_onClick = isSet;
 }
 
+bool ViewShadowNode::IsFocusable() const {
+  return m_isFocusable;
+}
+void ViewShadowNode::IsFocusable(bool isFocusable) {
+  m_isFocusable = isFocusable;
+}
+
+bool ViewShadowNode::IsHitTestBrushRequired() const {
+  return IsRegisteredForMouseEvents();
+}
+
 void ViewShadowNode::AddView(ShadowNode &child, int64_t index) {
   const auto &view = static_cast<ShadowNodeBase &>(child).GetView();
   if (view.try_as<xaml::UIElement>() == nullptr) {
@@ -326,8 +337,6 @@ bool ViewViewManager::UpdateProperty(
     const std::string &propertyName,
     const folly::dynamic &propertyValue) {
   auto *pViewShadowNode = static_cast<ViewShadowNode *>(nodeToUpdate);
-  bool shouldBeControl = pViewShadowNode->IsControl();
-  bool finalizeBorderRadius{false};
 
   auto pPanel = pViewShadowNode->GetViewPanel();
   bool ret = true;
@@ -335,7 +344,7 @@ bool ViewViewManager::UpdateProperty(
     if (TryUpdateBackgroundBrush(pPanel, propertyName, propertyValue)) {
     } else if (TryUpdateBorderProperties(nodeToUpdate, pPanel, propertyName, propertyValue)) {
     } else if (TryUpdateCornerRadiusOnNode(nodeToUpdate, pPanel, propertyName, propertyValue)) {
-      finalizeBorderRadius = true;
+      UpdateCornerRadiusOnElement(nodeToUpdate, pPanel);
     } else if (TryUpdateMouseEvents(nodeToUpdate, propertyName, propertyValue)) {
     } else if (propertyName == "onClick") {
       pViewShadowNode->OnClick(!propertyValue.isNull() && propertyValue.asBool());
@@ -351,7 +360,7 @@ bool ViewViewManager::UpdateProperty(
       }
     } else if (propertyName == "focusable" || propertyName == "acceptsKeyboardFocus") {
       if (propertyValue.isBool())
-        shouldBeControl = propertyValue.getBool();
+        pViewShadowNode->IsFocusable(propertyValue.getBool());
     } else if (propertyName == "enableFocusRing") {
       if (propertyValue.isBool())
         pViewShadowNode->EnableFocusRing(propertyValue.getBool());
@@ -371,19 +380,35 @@ bool ViewViewManager::UpdateProperty(
     }
   }
 
-  if (auto view = pViewShadowNode->GetView().try_as<xaml::UIElement>()) {
+  return ret;
+}
+
+void ViewViewManager::OnPropertiesUpdated(ShadowNodeBase *node) {
+  auto *viewShadowNode = static_cast<ViewShadowNode *>(node);
+  auto panel = viewShadowNode->GetViewPanel();
+
+  if (panel.Background() == nullptr) {
+    // In XAML, a null background means no hit-test will happen.
+    // We actually want hit-testing to happen if the app has registered
+    // for mouse events, so detect that case and add a transparent background.
+    if (viewShadowNode->IsHitTestBrushRequired()) {
+      panel.Background(EnsureTransparentBrush());
+    }
+    // Note:  Technically we could detect when the transparent brush is
+    // no longer needed, but this adds complexity and it can't hurt to
+    // keep it around, so not adding that code (yet).
+  }
+
+  bool shouldBeControl = viewShadowNode->IsFocusable();
+  if (auto view = viewShadowNode->GetView().try_as<xaml::UIElement>()) {
     // If we have DynamicAutomationProperties, we need a ViewControl with a
     // DynamicAutomationPeer
     shouldBeControl = shouldBeControl || HasDynamicAutomationProperties(view);
   }
 
-  if (finalizeBorderRadius)
-    UpdateCornerRadiusOnElement(nodeToUpdate, pPanel);
+  panel.FinalizeProperties();
 
-  pPanel.FinalizeProperties();
-
-  TryUpdateView(pViewShadowNode, pPanel, shouldBeControl);
-  return ret;
+  TryUpdateView(viewShadowNode, panel, shouldBeControl);
 }
 
 void ViewViewManager::TryUpdateView(
@@ -520,4 +545,12 @@ void ViewViewManager::SetLayoutProps(
 
   Super::SetLayoutProps(nodeToUpdate, viewToUpdate, left, top, width, height);
 }
+
+xaml::Media::SolidColorBrush ViewViewManager::EnsureTransparentBrush() {
+  if (!m_transparentBrush) {
+    m_transparentBrush = xaml::Media::SolidColorBrush(winrt::Colors::Transparent());
+  }
+  return m_transparentBrush;
+}
+
 } // namespace react::uwp
