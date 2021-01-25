@@ -130,9 +130,11 @@ bool ImageViewManager::UpdateProperty(
   } else if (propertyName == "blurRadius" && propertyValue.isNumber()) {
     auto reactImage{grid.as<ReactImage>()};
     reactImage->BlurRadius(static_cast<float>(propertyValue.asDouble()));
-  } else if (propertyName == "tintColor" && IsValidColorValue(propertyValue)) {
+  // ARCHON_RNW_TINTCOLOR: When undefined is specified, tint color should be cleared.
+  } else if (propertyName == "tintColor") { // && IsValidColorValue(propertyValue)) {
     auto reactImage{grid.as<ReactImage>()};
-    reactImage->TintColor(ColorFrom(propertyValue));
+    const auto color = propertyValue.isNumber() ? ColorFrom(propertyValue) : winrt::Colors::Transparent();
+    reactImage->TintColor(color);
   } else if (TryUpdateCornerRadiusOnNode(nodeToUpdate, grid, propertyName, propertyValue)) {
     finalizeBorderRadius = true;
   } else if (TryUpdateBorderProperties(nodeToUpdate, grid, propertyName, propertyValue)) {
