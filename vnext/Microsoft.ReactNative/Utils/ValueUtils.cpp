@@ -3,6 +3,9 @@
 
 #include "pch.h"
 
+// ARCHON_RNW_BUILD: We get undefined symbol for SolidColorBrush on our opt builds otherwise.
+#include <UI.Xaml.Media.h>
+
 #include <UI.Xaml.Markup.h>
 #include <Utils/ValueUtils.h>
 #include "Unicode.h"

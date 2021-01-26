@@ -9,6 +9,9 @@
 
 #include "IconViewManager.h"
 
+// ARCHON_RNW_BUILD: We get undefined symbol for SolidColorBrush on our opt builds otherwise.
+#include <UI.Xaml.Media.h>
+
 #include <UI.Xaml.Documents.h>
 #include <Utils/ValueUtils.h>
 #include <Views/ShadowNodeBase.h>

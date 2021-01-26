@@ -13,6 +13,9 @@
 #include <winrt/Windows.Foundation.h>
 
 #ifndef CORE_ABI
+// ARCHON_RNW_BUILD: We get undefined symbol for SolidColorBrush on our opt builds otherwise.
+#include <UI.Xaml.Media.h>
+
 #include <UI.Xaml.Controls.Primitives.h>
 #include <UI.Xaml.Controls.h>
 #include <UI.Xaml.Documents.h>

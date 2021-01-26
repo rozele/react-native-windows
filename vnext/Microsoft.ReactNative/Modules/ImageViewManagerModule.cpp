@@ -10,6 +10,9 @@
 
 #include "ImageViewManagerModule.h"
 
+// ARCHON_RNW_BUILD: We get undefined symbol for InMemoryRandomAccessStream on our opt builds otherwise.
+#include <winrt/Windows.Storage.Streams.h>
+
 #include <UI.Xaml.Media.Imaging.h>
 #include <Views/Image/ReactImage.h>
 #include <cxxreact/JsArgumentHelpers.h>
