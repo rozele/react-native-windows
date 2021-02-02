@@ -35,4 +35,5 @@ export interface IFlyoutProps extends ViewProps {
   placement?: Placement;
   target?: React.ReactNode;
   verticalOffset?: number;
+  showMode?: number;
 }

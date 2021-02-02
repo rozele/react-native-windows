@@ -66,6 +66,12 @@ static const std::unordered_map<std::string, winrt::FlyoutPlacementMode> placeme
     {"right-edge-aligned-top", winrt::FlyoutPlacementMode::RightEdgeAlignedTop},
     {"right-edge-aligned-bottom", winrt::FlyoutPlacementMode::RightEdgeAlignedBottom}};
 
+static const std::unordered_map<std::string, winrt::FlyoutShowMode> showMode = {
+    {"auto", winrt::FlyoutShowMode::Auto},
+    {"standard", winrt::FlyoutShowMode::Standard},
+    {"transient", winrt::FlyoutShowMode::Transient},
+    {"transient-with-dismiss-on-pointer-move-away", winrt::FlyoutShowMode::TransientWithDismissOnPointerMoveAway}};
+
 template <>
 struct json_type_traits<winrt::FlyoutPlacementMode> {
   static winrt::FlyoutPlacementMode parseJson(const folly::dynamic &json) {
@@ -77,6 +83,19 @@ struct json_type_traits<winrt::FlyoutPlacementMode> {
     }
 
     return winrt::FlyoutPlacementMode::Right;
+  }
+};
+
+template <>
+struct json_type_traits<winrt::FlyoutShowMode> {
+  static winrt::FlyoutShowMode parseJson(const folly::dynamic &json) {
+    auto iter = showMode.find(json.asString());
+
+    if (iter != showMode.end()) {
+      return iter->second;
+    }
+
+    return winrt::FlyoutShowMode::Auto;
   }
 };
 
@@ -117,6 +136,7 @@ class FlyoutShadowNode : public ShadowNodeBase {
   float m_verticalOffset = 0;
   bool m_isFlyoutShowOptionsSupported = false;
   winrt::FlyoutShowOptions m_showOptions = nullptr;
+  winrt::FlyoutShowMode m_showMode = winrt::FlyoutShowMode::Auto;
 
   std::unique_ptr<TouchEventHandler> m_touchEventHanadler;
   std::unique_ptr<PreviewKeyboardEventHandlerOnRoot> m_previewKeyboardEventHandlerOnRoot;
@@ -341,6 +361,12 @@ void FlyoutShadowNode::updateProperties(const folly::dynamic &&props) {
       if (propertyValue.isBool()) {
         m_flyout.ShouldConstrainToRootBounds(propertyValue.asBool());
       }
+    } else if (propertyName == "showMode") {
+      m_showMode = json_type_traits<winrt::FlyoutShowMode>::parseJson(propertyValue);
+      m_flyout.ShowMode(m_showMode);
+      if (m_isFlyoutShowOptionsSupported) {
+        m_showOptions.ShowMode(m_showMode);
+      }
     }
   }
 
@@ -465,8 +491,8 @@ folly::dynamic FlyoutViewManager::GetNativeProps() const {
   auto props = Super::GetNativeProps();
 
   props.update(
-      folly::dynamic::object("horizontalOffset", "number")("isLightDismissEnabled", "boolean")("isOpen", "boolean")(
-          "placement", "number")("target", "number")("verticalOffset", "number")("isOverlayEnabled", "boolean")("shouldConstrainToRootBounds", "boolean"));
+      folly::dynamic::object("horizontalOffset", "number")("isLightDismissEnabled", "boolean")("isOpen", "boolean")("placement", "number")("showMode", "number")("target", "number")("verticalOffset", "number")(
+      "isOverlayEnabled", "boolean")("shouldConstrainToRootBounds", "boolean"));
 
   return props;
 }
