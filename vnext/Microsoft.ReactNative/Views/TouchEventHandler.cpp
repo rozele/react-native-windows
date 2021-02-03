@@ -53,6 +53,7 @@ void TouchEventHandler::AddTouchHandlers(XamlView xamlView) {
       uiElement.PointerCaptureLost(winrt::auto_revoke, {this, &TouchEventHandler::OnPointerCaptureLost});
   m_exitedRevoker = uiElement.PointerExited(winrt::auto_revoke, {this, &TouchEventHandler::OnPointerExited});
   m_movedRevoker = uiElement.PointerMoved(winrt::auto_revoke, {this, &TouchEventHandler::OnPointerMoved});
+  m_doubleTappedRevoker = uiElement.DoubleTapped(winrt::auto_revoke, {this, &TouchEventHandler::OnDoubleTapped});
 }
 
 void TouchEventHandler::RemoveTouchHandlers() {
@@ -62,6 +63,7 @@ void TouchEventHandler::RemoveTouchHandlers() {
   m_captureLostRevoker.revoke();
   m_exitedRevoker.revoke();
   m_movedRevoker.revoke();
+  m_doubleTappedRevoker.revoke();
 }
 
 void TouchEventHandler::OnPointerPressed(
@@ -153,6 +155,27 @@ void TouchEventHandler::OnPointerMoved(
     // Move with no buttons pressed
     UpdatePointersInViews(args, tag, sourceElement);
   }
+}
+
+void TouchEventHandler::OnDoubleTapped(
+    const winrt::IInspectable& /* sender */,
+    const winrt::DoubleTappedRoutedEventArgs& args) {
+  // Short circuit all of this if we are in an error state
+  if (m_context->State() == Mso::React::ReactInstanceState::HasError)
+    return;
+
+  // Only if the view has a Tag can we process this
+  int64_t tag;
+  xaml::UIElement sourceElement(nullptr);
+  if (!TagFromOriginalSource(args, &tag, &sourceElement))
+    return;
+
+  auto positionRoot = args.GetPosition(m_xamlView.as<xaml::FrameworkElement>());
+  auto positionView = args.GetPosition(sourceElement);
+  auto eventData = folly::dynamic::object()("target", tag)("pageX", positionRoot.X)("pageY", positionRoot.Y)(
+      "locationX", positionView.X)("locationY", positionView.Y)(
+      "pointerType", GetPointerDeviceTypeName(args.PointerDeviceType()));
+  m_context->DispatchEvent(tag, "topDoubleTapped", std::move(eventData));
 }
 
 void TouchEventHandler::OnPointerConcluded(TouchEventType eventType, const winrt::PointerRoutedEventArgs &args) {
@@ -432,6 +455,55 @@ bool TouchEventHandler::TagFromOriginalSource(
         break;
       }
     }
+    sourceElement = winrt::VisualTreeHelper::GetParent(sourceElement).try_as<xaml::UIElement>();
+  }
+
+  if (tag == nullptr) {
+    // If the root view fails to be fully created, then the Tag property will
+    // never be set. This can happen,
+    //  for example, when the red box error box is shown.
+    return false;
+  }
+
+  *pTag = tag.GetInt64();
+  *pSourceElement = sourceElement;
+  return true;
+}
+
+bool TouchEventHandler::TagFromOriginalSource(
+    const winrt::DoubleTappedRoutedEventArgs &args,
+    int64_t *pTag,
+    xaml::UIElement *pSourceElement) {
+  assert(pTag != nullptr);
+  assert(pSourceElement != nullptr);
+
+  // Find the React element that triggered the input event
+  xaml::UIElement sourceElement = args.OriginalSource().try_as<xaml::UIElement>();
+  winrt::IPropertyValue tag(nullptr);
+
+  while (sourceElement) {
+    tag = sourceElement.GetValue(xaml::FrameworkElement::TagProperty()).try_as<winrt::IPropertyValue>();
+    if (tag) {
+      // If a TextBlock was the UIElement event source, perform a more accurate hit test,
+      // searching for the tag of the nested Run/Span XAML elements that the user actually clicked.
+      // This is to support nested <Text> elements in React.
+      // Nested React <Text> elements get translated into nested XAML <Span> elements,
+      // while the content of the <Text> becomes a list of XAML <Run> elements.
+      // However, we should report the Text element as the target, not the contexts of the text.
+      if (const auto textBlock = sourceElement.try_as<xaml::Controls::TextBlock>()) {
+        const auto pointerPos = args.GetPosition(textBlock);
+        const auto inlines = textBlock.Inlines().GetView();
+
+        bool isHit = false;
+        const auto finerTag = TestHit(inlines, pointerPos, isHit);
+        if (finerTag) {
+          tag = finerTag;
+        }
+      }
+
+      break;
+    }
+
     sourceElement = winrt::VisualTreeHelper::GetParent(sourceElement).try_as<xaml::UIElement>();
   }
 

@@ -37,12 +37,14 @@ class TouchEventHandler {
   void OnPointerCaptureLost(const winrt::IInspectable &, const winrt::PointerRoutedEventArgs &args);
   void OnPointerExited(const winrt::IInspectable &, const winrt::PointerRoutedEventArgs &args);
   void OnPointerMoved(const winrt::IInspectable &, const winrt::PointerRoutedEventArgs &args);
+  void OnDoubleTapped(const winrt::IInspectable &, const winrt::DoubleTappedRoutedEventArgs &args);
   winrt::event_revoker<winrt::IUIElement> m_pressedRevoker;
   winrt::event_revoker<winrt::IUIElement> m_releasedRevoker;
   winrt::event_revoker<winrt::IUIElement> m_canceledRevoker;
   winrt::event_revoker<winrt::IUIElement> m_captureLostRevoker;
   winrt::event_revoker<winrt::IUIElement> m_exitedRevoker;
   winrt::event_revoker<winrt::IUIElement> m_movedRevoker;
+  winrt::event_revoker<winrt::IUIElement> m_doubleTappedRevoker;
 
   struct ReactPointer {
     int64_t target = 0;
@@ -91,6 +93,7 @@ class TouchEventHandler {
   int64_t m_touchId = 0;
 
   bool TagFromOriginalSource(const winrt::PointerRoutedEventArgs &args, int64_t *pTag, xaml::UIElement *pSourceElement);
+  bool TagFromOriginalSource(const winrt::DoubleTappedRoutedEventArgs &args, int64_t *pTag, xaml::UIElement *pSourceElement);
   winrt::IPropertyValue TestHit(
       const winrt::Collections::IVectorView<xaml::Documents::Inline> &inlines,
       const winrt::Point &pointerPos,

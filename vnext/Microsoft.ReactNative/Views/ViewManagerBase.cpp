@@ -149,6 +149,9 @@ void ViewManagerBase::GetExportedCustomBubblingEventTypeConstants(
       L"TouchCancel",
       L"TouchEnd",
 
+      // Double Tapped
+      L"DoubleTapped",
+
       // Keyboard events
       L"KeyUp",
       L"KeyDown",
@@ -165,7 +168,7 @@ void ViewManagerBase::GetExportedCustomBubblingEventTypeConstants(
     writer.WritePropertyName(L"phasedRegistrationNames");
     writer.WriteObjectBegin();
     React::WriteProperty(writer, L"captured", bubbleName + L"Capture");
-    React::WriteProperty(writer, L"capbubbledtured", std::move(bubbleName));
+    React::WriteProperty(writer, L"bubbled", std::move(bubbleName));
     writer.WriteObjectEnd();
     writer.WriteObjectEnd();
   }

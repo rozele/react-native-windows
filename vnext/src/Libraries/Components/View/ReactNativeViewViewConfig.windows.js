@@ -100,6 +100,12 @@ const ReactNativeViewConfig: ViewConfig = {
         captured: 'onKeyDownCapture',
       },
     },
+    topDoubleTapped: {
+      phasedRegistrationNames: {
+        bubbled: 'onDoubleTapped',
+        captured: 'onDoubleTappedCapture',
+      },
+    },
   },
   directEventTypes: {
     ...ReactNativeViewViewConfigAndroid.directEventTypes,
