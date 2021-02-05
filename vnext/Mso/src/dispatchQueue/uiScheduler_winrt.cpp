@@ -16,6 +16,19 @@ namespace Mso {
 
 namespace {
 
+// ARCHON_RNW_NOFASTFAIL Direct unhandled exceptions on DispatcherQueue to crashpad
+// Please see https://fburl.com/o2pzo6lq for the details. CoreMessaging will fastfail
+// when it catches in exception bypassing crashpad.
+static std::once_flag s_initOnce;
+static LPTOP_LEVEL_EXCEPTION_FILTER s_previousFilter;
+static LONG WINAPI unhandledExceptionHandler(EXCEPTION_POINTERS* exception_pointers) {
+  // Delegate to the previous filter, hopefully setup by or chaining up to crashpad.
+  if (s_previousFilter) {
+    return s_previousFilter(exception_pointers);
+  }
+  return EXCEPTION_CONTINUE_SEARCH;
+}
+
 // TODO: consider to move it into its own liblet
 template <class TKey, class TValue>
 struct ThreadSafeMap {
@@ -160,7 +173,10 @@ int32_t __stdcall TaskDispatcherHandler::Invoke() noexcept {
   Mso::CntPtr<IDispatchQueueService> queue;
   DispatchTask task;
   if (m_scheduler->TryTakeTask(queue, task)) {
-    queue->InvokeTask(std::move(task), std::chrono::steady_clock::now() + std::chrono::milliseconds(1000 / 60));
+    __try {
+      queue->InvokeTask(std::move(task), std::chrono::steady_clock::now() + std::chrono::milliseconds(1000 / 60));
+    } __except(unhandledExceptionHandler(GetExceptionInformation())) {
+    }
   }
 
   return impl::error_ok;
@@ -171,6 +187,10 @@ int32_t __stdcall TaskDispatcherHandler::Invoke() noexcept {
 //=============================================================================
 
 UISchedulerWinRT::UISchedulerWinRT(DispatcherQueue &&dispatcher) noexcept : m_dispatcher{std::move(dispatcher)} {
+  // ARCHON_RNW_NOFASTFAIL Direct unhandled exceptions on DispatcherQueue to crashpad
+  std::call_once(s_initOnce, []() {
+    s_previousFilter = SetUnhandledExceptionFilter(unhandledExceptionHandler);
+    });
   m_shutdownCompletedRevoker =
       m_dispatcher.ShutdownCompleted(winrt::auto_revoke, [](DispatcherQueue const &, IInspectable const &) noexcept {
         GetDispatchQueueRegistry().Remove(std::this_thread::get_id());
