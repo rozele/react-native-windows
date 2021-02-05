@@ -89,7 +89,7 @@ LinkingManagerModule::~LinkingManagerModule() noexcept {
 void LinkingManagerModule::HandleOpenUri(winrt::hstring const &uri) noexcept {
   if (auto instance = getInstance().lock()) {
     instance->callJSFunction(
-        "RCTDeviceEventEmitter", "emit", folly::dynamic::array("url", folly::dynamic::object("url", to_string(uri))));
+        "RCTDeviceEventEmitter", "emit", folly::dynamic::array("url", to_string(uri)));
   }
 }
 
@@ -128,3 +128,8 @@ auto LinkingManagerModule::getMethods() -> std::vector<Method> {
 }
 
 } // namespace react::uwp
+
+extern "C" __declspec(dllexport) void OpenDeeplinkUri(const wchar_t *uri) noexcept {
+  winrt::Windows::Foundation::Uri winrtUri{uri};
+  react::uwp::LinkingManagerModule::OpenUri(winrtUri);
+}
