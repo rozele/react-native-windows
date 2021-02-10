@@ -4,10 +4,10 @@
 #pragma once
 
 #include <INativeUIManager.h>
-#include <ShadowNodeBase.h>
 #include <UI.Xaml.Documents.h>
 #include <Utils/TransformableText.h>
 #include <Views/FrameworkElementViewManager.h>
+#include <Views/ShadowNodeBase.h>
 
 namespace react::uwp {
 
