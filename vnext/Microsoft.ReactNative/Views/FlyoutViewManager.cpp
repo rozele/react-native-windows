@@ -101,6 +101,10 @@ struct json_type_traits<winrt::FlyoutShowMode> {
 
 namespace react::uwp {
 
+namespace FlyoutCommands {
+constexpr const char *StopImmediateClosing = "stopImmediateClosing";
+}; // namespace FlyoutCommands
+
 class FlyoutShadowNode : public ShadowNodeBase {
   using Super = ShadowNodeBase;
 
@@ -108,6 +112,7 @@ class FlyoutShadowNode : public ShadowNodeBase {
   FlyoutShadowNode() = default;
   virtual ~FlyoutShadowNode();
 
+  void dispatchCommand(const std::string &commandId, const folly::dynamic &commandArgs) override;
   void AddView(ShadowNode &child, int64_t index) override;
   void createView() override;
   static void OnFlyoutClosed(IReactInstance &instance, int64_t tag, bool newValue);
@@ -137,6 +142,7 @@ class FlyoutShadowNode : public ShadowNodeBase {
   bool m_isFlyoutShowOptionsSupported = false;
   winrt::FlyoutShowOptions m_showOptions = nullptr;
   winrt::FlyoutShowMode m_showMode = winrt::FlyoutShowMode::Auto;
+  bool m_shouldStopImmediateClosing = false;
 
   std::unique_ptr<TouchEventHandler> m_touchEventHanadler;
   std::unique_ptr<PreviewKeyboardEventHandlerOnRoot> m_previewKeyboardEventHandlerOnRoot;
@@ -151,6 +157,13 @@ class FlyoutShadowNode : public ShadowNodeBase {
 FlyoutShadowNode::~FlyoutShadowNode() {
   m_touchEventHanadler->RemoveTouchHandlers();
   m_previewKeyboardEventHandlerOnRoot->unhook();
+}
+
+void FlyoutShadowNode::dispatchCommand(const std::string &commandId, const folly::dynamic &commandArgs) {
+  if (commandId == FlyoutCommands::StopImmediateClosing) {
+    auto shouldStop = commandArgs[0].asBool();
+    m_shouldStopImmediateClosing = shouldStop;
+  }
 }
 
 void FlyoutShadowNode::AddView(ShadowNode &child, int64_t /*index*/) {
@@ -193,6 +206,10 @@ void FlyoutShadowNode::createView() {
         auto instance = wkinstance.lock();
         if (!m_updating && instance != nullptr && !m_isLightDismissEnabled && m_isOpen) {
           args.Cancel(true);
+        }
+        if (m_shouldStopImmediateClosing) {
+          args.Cancel(true);
+          m_shouldStopImmediateClosing = false;
         }
       });
 
@@ -401,6 +418,20 @@ winrt::Flyout FlyoutShadowNode::GetFlyout() {
 void FlyoutShadowNode::OnShowFlyout() {
   AdjustDefaultFlyoutStyle(50000, 50000);
   if (m_isFlyoutShowOptionsSupported) {
+    if (m_showMode == winrt::FlyoutShowMode::Transient ||
+        m_showMode == winrt::FlyoutShowMode::TransientWithDismissOnPointerMoveAway) {
+      auto parent = winrt::VisualTreeHelper::GetParent(m_targetElement);
+      if (parent == nullptr) {
+        m_flyout.OverlayInputPassThroughElement(m_targetElement);
+      } else {
+        auto current = parent;
+        while (parent != nullptr) {
+          current = parent;
+          parent = winrt::VisualTreeHelper::GetParent(current);
+        }
+        m_flyout.OverlayInputPassThroughElement(current);
+      }
+    }
     m_flyout.ShowAt(m_targetElement, m_showOptions);
   } else {
     winrt::FlyoutBase::ShowAttachedFlyout(m_targetElement);
@@ -487,11 +518,15 @@ facebook::react::ShadowNode *FlyoutViewManager::createShadow() const {
   return new FlyoutShadowNode();
 }
 
+folly::dynamic FlyoutViewManager::GetCommands() const {
+  return folly::dynamic::object(FlyoutCommands::StopImmediateClosing, FlyoutCommands::StopImmediateClosing);
+}
+
 folly::dynamic FlyoutViewManager::GetNativeProps() const {
   auto props = Super::GetNativeProps();
 
-  props.update(
-      folly::dynamic::object("horizontalOffset", "number")("isLightDismissEnabled", "boolean")("isOpen", "boolean")("placement", "number")("showMode", "number")("target", "number")("verticalOffset", "number")(
+  props.update(folly::dynamic::object("horizontalOffset", "number")("isLightDismissEnabled", "boolean")(
+      "isOpen", "boolean")("placement", "number")("showMode", "number")("target", "number")("verticalOffset", "number")(
       "isOverlayEnabled", "boolean")("shouldConstrainToRootBounds", "boolean"));
 
   return props;
