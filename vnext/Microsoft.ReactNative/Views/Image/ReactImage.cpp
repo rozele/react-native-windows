@@ -146,6 +146,8 @@ void ReactImage::Source(ReactImageSource source) {
       source.sourceType = ImageSourceType::InlineData;
     } else if (ext == L".svg" || ext == L".svgz") {
       source.sourceType = ImageSourceType::Svg;
+    } else if (ext == L".webp") {
+      source.sourceType = ImageSourceType::WebP;
     }
 
     m_imageSource = source;
@@ -160,6 +162,7 @@ winrt::IAsyncOperation<winrt::InMemoryRandomAccessStream> ReactImage::GetImageMe
     ReactImageSource source) {
   switch (source.sourceType) {
     case ImageSourceType::Download:
+    case ImageSourceType::WebP:
       co_return co_await GetImageStreamAsync(source);
     case ImageSourceType::InlineData:
       co_return co_await GetImageInlineDataAsync(source);
@@ -201,7 +204,11 @@ winrt::fire_and_forget ReactImage::SetBackground(bool fireLoadEndEvent) {
   // Increment the image source ID before any co_await calls
   auto currentImageSourceId = ++m_imageSourceId;
   const bool fromStream{source.sourceType == ImageSourceType::Download ||
-                        source.sourceType == ImageSourceType::InlineData};
+                        source.sourceType == ImageSourceType::InlineData ||
+                        source.sourceType == ImageSourceType::WebP};
+
+  // Dispose any active WebP animations
+  m_webpAnimator = nullptr;
 
   winrt::InMemoryRandomAccessStream memoryStream{nullptr};
 
@@ -332,6 +339,29 @@ winrt::fire_and_forget ReactImage::SetBackground(bool fireLoadEndEvent) {
 
         svgImageSource.UriSource(uri);
 
+#ifdef USE_WEBP
+      } else if (source.sourceType == ImageSourceType::WebP) {
+        // Create WebPAnimator instance
+        auto webpAnimator = std::make_shared<WebPAnimator>(winrt::make_weak(imageBrush));
+
+        // Set the downloaded image data on the WebPAnimator instance
+        auto success = co_await webpAnimator->SetSourceAsync(memoryStream);
+
+        if (currentImageSourceId == strong_this->m_imageSourceId) {
+          // Send the onLoad and onLoadEnd events
+          strong_this->m_imageSource.height = webpAnimator->PixelHeight();
+          strong_this->m_imageSource.width = webpAnimator->PixelWidth();
+          strong_this->m_onLoadEndEvent(*strong_this, success);
+
+          // Set the first frame and start animation loop if animated
+          webpAnimator->Start();
+
+          // Hold a reference to the animator if animating
+          if (webpAnimator->IsAnimated()) {
+            strong_this->m_webpAnimator = webpAnimator;
+          }
+        }
+#endif
       } else {
         winrt::BitmapImage bitmapImage{imageBrush.ImageSource().try_as<winrt::BitmapImage>()};
 

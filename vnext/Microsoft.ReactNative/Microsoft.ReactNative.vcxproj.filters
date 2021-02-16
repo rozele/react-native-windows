@@ -328,6 +328,9 @@
     </ClCompile>
     <ClCompile Include="RedBoxErrorInfo.cpp" />
     <ClCompile Include="RedBoxErrorFrameInfo.cpp" />
+    <ClCompile Include="Views\Image\WebPAnimator.cpp">
+      <Filter>Views\Image</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ABICxxModule.h" />
@@ -707,6 +710,9 @@
     </ClInclude>
     <ClInclude Include="Utils\TransformableText.h">
       <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Views\Image\WebPAnimator.h">
+      <Filter>Views\Image</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

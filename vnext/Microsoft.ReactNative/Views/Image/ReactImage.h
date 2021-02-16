@@ -5,6 +5,7 @@
 
 #include "CppWinRTIncludes.h"
 #include "ReactImageBrush.h"
+#include "WebPAnimator.h"
 
 #include <UI.Xaml.Controls.h>
 
@@ -12,7 +13,7 @@
 
 namespace react::uwp {
 
-enum class ImageSourceType { Uri = 0, Download = 1, InlineData = 2, Svg = 3 };
+enum class ImageSourceType { Uri = 0, Download = 1, InlineData = 2, Svg = 3, WebP = 4 };
 
 struct ReactImageSource {
   std::string uri;
@@ -74,6 +75,7 @@ struct ReactImage : xaml::Controls::GridT<ReactImage> {
   ReactImageSource m_imageSource;
   react::uwp::ResizeMode m_resizeMode{ResizeMode::Contain};
   winrt::Windows::UI::Color m_tintColor{winrt::Colors::Transparent()};
+  std::shared_ptr<WebPAnimator> m_webpAnimator{nullptr};
 
   winrt::event<winrt::Windows::Foundation::EventHandler<bool>> m_onLoadEndEvent;
   xaml::FrameworkElement::SizeChanged_revoker m_sizeChangedRevoker;
