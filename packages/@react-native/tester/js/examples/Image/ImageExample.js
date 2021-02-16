@@ -372,7 +372,7 @@ class LoadingIndicatorSourceExample extends React.Component<
 
   render() {
     const loadingImage = {
-      uri: `https://www.facebook.com/ads/pics/successstories.png?hash=${this.state.imageHash}`,
+      uri: `https://mathiasbynens.be/demo/animated-webp-supported.webp`,
     };
 
     return (

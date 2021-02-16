@@ -143,6 +143,8 @@ void ReactImage::Source(ReactImageSource source) {
       source.sourceType = ImageSourceType::InlineData;
     } else if (ext == L".svg" || ext == L".svgz") {
       source.sourceType = ImageSourceType::Svg;
+    } else if (ext == L".webp") {
+      source.sourceType = ImageSourceType::WebP;
     }
 
     m_imageSource = source;
@@ -157,6 +159,7 @@ winrt::IAsyncOperation<winrt::InMemoryRandomAccessStream> ReactImage::GetImageMe
     ReactImageSource source) {
   switch (source.sourceType) {
     case ImageSourceType::Download:
+    case ImageSourceType::WebP:
       co_return co_await GetImageStreamAsync(source);
     case ImageSourceType::InlineData:
       co_return co_await GetImageInlineDataAsync(source);
@@ -195,12 +198,13 @@ void ImageFailed(const TImage &image, const TSourceFailedEventArgs &args) {
 winrt::fire_and_forget ReactImage::SetBackground(bool fireLoadEndEvent) {
   const ReactImageSource source{m_imageSource};
   winrt::Uri uri{react::uwp::UriTryCreate(Utf8ToUtf16(source.uri))};
+  m_webpAnimator = nullptr;
 
   // Increment the image source ID before any co_await calls
   auto currentImageSourceId = ++m_imageSourceId;
 
   const bool fromStream{
-      source.sourceType == ImageSourceType::Download || source.sourceType == ImageSourceType::InlineData};
+      source.sourceType == ImageSourceType::Download || source.sourceType == ImageSourceType::InlineData || source.sourceType == ImageSourceType::WebP};
 
   winrt::InMemoryRandomAccessStream memoryStream{nullptr};
 
@@ -332,6 +336,9 @@ winrt::fire_and_forget ReactImage::SetBackground(bool fireLoadEndEvent) {
 
         svgImageSource.UriSource(uri);
 
+      } else if (source.sourceType == ImageSourceType::WebP) {
+        strong_this->m_webpAnimator = std::make_unique<WebPAnimator>(winrt::make_weak(imageBrush));
+        co_await strong_this->m_webpAnimator->InitializeAsync(memoryStream);
       } else {
         winrt::BitmapImage bitmapImage{imageBrush.ImageSource().try_as<winrt::BitmapImage>()};
 

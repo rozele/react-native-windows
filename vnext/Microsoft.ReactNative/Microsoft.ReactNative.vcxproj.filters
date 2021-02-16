@@ -314,6 +314,9 @@
       <Filter>JSI</Filter>
     </ClCompile>
     <ClCompile Include="DesktopWindowMessage.cpp" />
+    <ClCompile Include="Views\Image\WebPAnimator.cpp">
+      <Filter>Views\Image</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ABICxxModule.h" />
@@ -669,6 +672,9 @@
     <ClInclude Include="Views\ShadowNodeRegistry.h" />
     <ClInclude Include="DocString.h" />
     <ClInclude Include="DesktopWindowMessage.h" />
+    <ClInclude Include="Views\Image\WebPAnimator.h">
+      <Filter>Views\Image</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Midl Include="IJSValueReader.idl" />

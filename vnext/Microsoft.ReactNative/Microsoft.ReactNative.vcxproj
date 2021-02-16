@@ -322,6 +322,7 @@
     <ClInclude Include="Views\Image\Microsoft.UI.Composition.Effects_Impl.h" />
     <ClInclude Include="Views\Image\ReactImage.h" />
     <ClInclude Include="Views\Image\ReactImageBrush.h" />
+    <ClInclude Include="Views\Image\WebPAnimator.h" />
     <ClInclude Include="Views\Impl\ScrollViewUWPImplementation.h" />
     <ClInclude Include="Views\Impl\SnapPointManagingContentControl.h" />
     <ClInclude Include="Views\IXamlRootView.h" />
@@ -512,6 +513,7 @@
     <ClCompile Include="Views\Image\ImageViewManager.cpp" />
     <ClCompile Include="Views\Image\ReactImage.cpp" />
     <ClCompile Include="Views\Image\ReactImageBrush.cpp" />
+    <ClCompile Include="Views\Image\WebPAnimator.cpp" />
     <ClCompile Include="Views\Impl\ScrollViewUWPImplementation.cpp" />
     <ClCompile Include="Views\Impl\SnapPointManagingContentControl.cpp" />
     <ClCompile Include="Views\KeyboardEventHandler.cpp" />
