@@ -20,6 +20,8 @@ namespace Microsoft.ReactNative {
     // This needs to be manually provided to the ReactInstanceSettings when using XamlIslands
     static void SetXamlRoot(IReactPropertyBag properties, XAML_NAMESPACE.XamlRoot xamlRoot);
     static XAML_NAMESPACE.XamlRoot GetXamlRoot(IReactPropertyBag properties);
-  }
 
+    static UInt64 GetIslandWindowHandle(IReactPropertyBag properties);
+    static void SetIslandWindowHandle(IReactPropertyBag properties, UInt64 windowHandle);
+  }
 } // namespace Microsoft.ReactNative
