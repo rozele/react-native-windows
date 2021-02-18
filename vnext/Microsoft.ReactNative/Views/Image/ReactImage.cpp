@@ -198,6 +198,8 @@ void ImageFailed(const TImage &image, const TSourceFailedEventArgs &args) {
 winrt::fire_and_forget ReactImage::SetBackground(bool fireLoadEndEvent) {
   const ReactImageSource source{m_imageSource};
   winrt::Uri uri{react::uwp::UriTryCreate(Utf8ToUtf16(source.uri))};
+
+  // Dispose any active WebP animations 
   m_webpAnimator = nullptr;
 
   // Increment the image source ID before any co_await calls
@@ -336,10 +338,23 @@ winrt::fire_and_forget ReactImage::SetBackground(bool fireLoadEndEvent) {
 
         svgImageSource.UriSource(uri);
 
-      } else if (source.sourceType == ImageSourceType::WebP) {
-        strong_this->m_webpAnimator = std::make_unique<WebPAnimator>(winrt::make_weak(imageBrush));
-        co_await strong_this->m_webpAnimator->InitializeAsync(memoryStream);
-      } else {
+      }
+#ifdef USE_WEBP
+      else if (source.sourceType == ImageSourceType::WebP) {
+        // Copy contents to byte buffer that will be owned by WebPAnimator
+        // TODO: Avoid copying image content twice, once into InMemoryRandomAccessStream and once into byte buffer
+        auto length{static_cast<size_t>(memoryStream.Size())};
+        winrt::DataReader reader{memoryStream};
+        std::vector<uint8_t> buffer;
+        buffer.resize(static_cast<size_t>(memoryStream.Size()));
+        co_await reader.LoadAsync(length);
+        reader.ReadBytes(buffer);
+
+        // Create WebPAnimator instance, which handles updates to brush
+        strong_this->m_webpAnimator = std::make_unique<WebPAnimator>(winrt::make_weak(imageBrush), std::move(buffer));
+      }
+#endif
+      else {
         winrt::BitmapImage bitmapImage{imageBrush.ImageSource().try_as<winrt::BitmapImage>()};
 
         if (!bitmapImage) {

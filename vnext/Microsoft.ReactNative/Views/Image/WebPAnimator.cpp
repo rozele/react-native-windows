@@ -1,63 +1,120 @@
+#ifdef USE_WEBP
+
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 #include "pch.h"
 #include "WebPAnimator.h"
 
-#include <winrt/Windows.Graphics.Imaging.h>
 #include <winrt/Windows.UI.Xaml.Media.Imaging.h>
 
 namespace winrt {
   using namespace Windows::Foundation;
-  using namespace Windows::Graphics::Imaging;
-  using namespace Windows::Storage::Streams;
+  using namespace Windows::UI::Xaml::Media;
   using namespace Windows::UI::Xaml::Media::Imaging;
 } // namespace winrt
 
 namespace react::uwp {
 
-winrt::IAsyncAction WebPAnimator::InitializeAsync(winrt::IRandomAccessStream const &memoryStream) {
-  // TODO: use libwebp, this isn't supported
-  m_bitmapDecoder = co_await winrt::BitmapDecoder::CreateAsync(memoryStream);
+winrt::WriteableBitmap CreateNextFrame(int width, int height, WebPAnimDecoder* decoder, int* timestamp);
 
-  auto currentImage = co_await m_bitmapDecoder.GetSoftwareBitmapAsync(
-      winrt::BitmapPixelFormat::Bgra8, winrt::BitmapAlphaMode::Premultiplied);
-  auto imageBrush{m_imageBrush.get()};
-  auto imageSource = imageBrush.ImageSource().try_as<winrt::SoftwareBitmapSource>();
-  if (!imageSource) {
-    imageSource = winrt::SoftwareBitmapSource{};
-    imageBrush.ImageSource(imageSource);
-  }
+WebPAnimator::WebPAnimator(winrt::weak_ref<winrt::ImageBrush> imageBrush, std::vector<uint8_t>&& buffer) {
+  m_imageBrush = imageBrush;
 
-  co_await imageSource.SetBitmapAsync(std::move(currentImage));
+  // Take ownership of WebP bitstream
+  m_buffer = std::move(buffer);
 
-  auto frameCount{m_bitmapDecoder.FrameCount()};
-  if (frameCount > 1) {
-    m_dispatcherTimer.Interval(std::chrono::milliseconds(150));
-    m_tickRevoker = m_dispatcherTimer.Tick(winrt::auto_revoke, { this, &WebPAnimator::UpdateImageBrush });
-    m_dispatcherTimer.Start();
+  // Initialize WebP container
+  WebPData webpData;
+  webpData.bytes = m_buffer.data();
+  webpData.size = m_buffer.size();
+
+  // Create demuxer to read WebP metadata
+  auto demuxer = WebPDemux(&webpData);
+  // TODO: use has_animation feature rather than frame_count?
+  m_frameCount = WebPDemuxGetI(demuxer, WEBP_FF_FRAME_COUNT);
+  m_canvasWidth = WebPDemuxGetI(demuxer, WEBP_FF_CANVAS_WIDTH);
+  m_canvasHeight = WebPDemuxGetI(demuxer, WEBP_FF_CANVAS_HEIGHT);
+  m_loopCount = 3; //WebPDemuxGetI(demuxer, WEBP_FF_LOOP_COUNT);
+  WebPDemuxDelete(demuxer);
+
+  // Create WebPAnimDecoder
+  WebPAnimDecoderOptions decOptions;
+  WebPAnimDecoderOptionsInit(&decOptions);
+  decOptions.color_mode = MODE_bgrA;
+  decOptions.use_threads = 1;
+  m_animDecoder = WebPAnimDecoderNew(&webpData, &decOptions);
+
+  if (m_frameCount == 1) {
+    // Not animated
+    auto strongBrush = m_imageBrush.get();
+    if (strongBrush) {
+      int ignored;
+      // Render first and only frame
+      strongBrush.ImageSource(CreateNextFrame(m_canvasWidth, m_canvasHeight, m_animDecoder, &ignored));
+    }
+  } else if (m_frameCount > 1) {
+    // The CompositionTarget rendering event is called once per frame after layout has been computed.
+    // This feels like a heavyweight approach, but DispatcherTimer resulted in slow animations.
+    m_loopStart = winrt::clock::now();
+    m_renderingRevoker =
+        winrt::CompositionTarget::Rendering(winrt::auto_revoke, {this, &WebPAnimator::DisplayNextFrame});
   }
 }
 
 WebPAnimator::~WebPAnimator() {
-  m_tickRevoker.revoke();
-  m_dispatcherTimer.Stop();
+  if (m_frameCount > 1) {
+    m_renderingRevoker.revoke();
+  }
+
+  // TODO: we could potentially free the WebPAnimDecoder more eagerly for finite loops or static images
+  WebPAnimDecoderDelete(m_animDecoder);
 }
 
-winrt::fire_and_forget WebPAnimator::UpdateImageBrush(winrt::IInspectable const &sender, winrt::IInspectable const &args) {
-  if (auto imageBrush = m_imageBrush.get()) {
-    if (currentFrameIndex == m_bitmapDecoder.FrameCount()) {
-      currentFrameIndex = 0;
-    }
+void WebPAnimator::DisplayNextFrame(winrt::IInspectable const &sender, winrt::IInspectable const &args) {
+  // Return if frame duration has not been reached
+  if ((winrt::clock::now() - m_loopStart) < std::chrono::milliseconds(m_currentTimestamp)) {
+    return;
+  }
 
-    // TODO: Conditional check shouldn't be needed
-    if (auto imageSource = imageBrush.ImageSource().try_as<winrt::SoftwareBitmapSource>()) {
-      auto frame{co_await m_bitmapDecoder.GetFrameAsync(currentFrameIndex++)};
-      auto bitmap{co_await frame.GetSoftwareBitmapAsync(
-          winrt::BitmapPixelFormat::Bgra8, winrt::BitmapAlphaMode::Premultiplied)};
-      co_await imageSource.SetBitmapAsync(bitmap);
+  if (auto imageBrush = m_imageBrush.get()) {
+    if (!WebPAnimDecoderHasMoreFrames(m_animDecoder)) {
+      if (m_loopCount == 0 || ++m_currentLoopIndex < m_loopCount) {
+        WebPAnimDecoderReset(m_animDecoder);
+        m_loopStart = winrt::clock::now();
+      } else {
+        // Unsubscribe from the rendering event, this call is idempotent so
+        // there are no concerns with it being called again in the destructor.
+        m_renderingRevoker.revoke();
+        return;
+      }
     }
+    // Otherwise we need to unsubscribe
+
+    // Create and display next frame
+    int timestamp;
+    imageBrush.ImageSource(CreateNextFrame(m_canvasWidth, m_canvasHeight, m_animDecoder, &timestamp));
+
+    // The difference between the previous frames timestamp and the current frames timestamp is the duration
+    m_currentTimestamp = timestamp;
   }
 }
 
+winrt::WriteableBitmap CreateNextFrame(int width, int height, WebPAnimDecoder* decoder, int* timestamp) {
+  // Render next frame to internal animation buffer
+  // Internal animation buffer is owned by WebpAnimDecoder
+  uint8_t *buf;
+  WebPAnimDecoderGetNext(decoder, &buf, timestamp);
+
+  // Copy frame to WriteableBitmap
+  // TODO: should we pool these bitmaps, or potentially swap between two instances?
+  winrt::WriteableBitmap writeableBitmap{width, height};
+  auto pixels = writeableBitmap.PixelBuffer().data();
+  memcpy(pixels, buf, width * height * sizeof(uint32_t));
+
+  return writeableBitmap;
+}
+
 } // namespace react::uwp
+
+#endif
