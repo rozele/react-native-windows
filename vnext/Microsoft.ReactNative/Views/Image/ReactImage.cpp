@@ -351,7 +351,15 @@ winrt::fire_and_forget ReactImage::SetBackground(bool fireLoadEndEvent) {
         reader.ReadBytes(buffer);
 
         // Create WebPAnimator instance, which handles updates to brush
-        strong_this->m_webpAnimator = std::make_unique<WebPAnimator>(winrt::make_weak(imageBrush), std::move(buffer));
+        strong_this->m_webpAnimator = std::make_unique<WebPAnimator>(
+          winrt::make_weak(imageBrush),
+          std::move(buffer),
+          [weak_this, fireLoadEndEvent](bool succeeded) {
+            auto strong_this{weak_this.get()};
+            if (strong_this && fireLoadEndEvent) {
+              strong_this->m_onLoadEndEvent(*strong_this, succeeded);
+            }
+          });
       }
 #endif
       else {

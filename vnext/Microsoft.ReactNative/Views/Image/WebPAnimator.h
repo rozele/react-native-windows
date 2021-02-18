@@ -10,18 +10,19 @@
 
 namespace react::uwp {
 
-// TODO: pass in onLoad and onLoadError callbacks
-class WebPAnimator : std::enable_shared_from_this<WebPAnimator> {
+class WebPAnimator {
  public:
   WebPAnimator(
       winrt::weak_ref<winrt::Windows::UI::Xaml::Media::ImageBrush> imageBrush,
-      std::vector<uint8_t> &&buffer);
+      std::vector<uint8_t> &&buffer,
+      std::function<void(bool)>&& onLoadEnd);
 
   ~WebPAnimator();
 
  private:
   winrt::weak_ref<winrt::Windows::UI::Xaml::Media::ImageBrush> m_imageBrush;
   std::vector<uint8_t> m_buffer;
+  std::function<void(bool)> m_onLoadEnd;
 
   WebPAnimDecoder *m_animDecoder;
 
@@ -33,6 +34,7 @@ class WebPAnimator : std::enable_shared_from_this<WebPAnimator> {
   int m_canvasWidth;
   int m_canvasHeight;
 
+  bool m_invokedOnLoadEnd;
   int m_currentLoopIndex;
   int m_currentTimestamp;
 
