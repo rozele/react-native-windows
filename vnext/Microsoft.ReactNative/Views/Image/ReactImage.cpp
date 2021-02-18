@@ -341,25 +341,23 @@ winrt::fire_and_forget ReactImage::SetBackground(bool fireLoadEndEvent) {
       }
 #ifdef USE_WEBP
       else if (source.sourceType == ImageSourceType::WebP) {
-        // Copy contents to byte buffer that will be owned by WebPAnimator
-        // TODO: Avoid copying image content twice, once into InMemoryRandomAccessStream and once into byte buffer
-        auto length{static_cast<size_t>(memoryStream.Size())};
-        winrt::DataReader reader{memoryStream};
-        std::vector<uint8_t> buffer;
-        buffer.resize(static_cast<size_t>(memoryStream.Size()));
-        co_await reader.LoadAsync(length);
-        reader.ReadBytes(buffer);
-
-        // Create WebPAnimator instance, which handles updates to brush
+        // Create WebPAnimator instance
         strong_this->m_webpAnimator = std::make_unique<WebPAnimator>(
           winrt::make_weak(imageBrush),
-          std::move(buffer),
           [weak_this, fireLoadEndEvent](bool succeeded) {
             auto strong_this{weak_this.get()};
             if (strong_this && fireLoadEndEvent) {
               strong_this->m_onLoadEndEvent(*strong_this, succeeded);
             }
           });
+
+        // Set the downloaded image data on the WebPAnimator instance
+        co_await strong_this->m_webpAnimator->SetSourceAsync(memoryStream);
+
+        // If the WebP image is not animated, we can destroy the animator
+        if (!strong_this->m_webpAnimator->IsAnimated()) {
+          strong_this->m_webpAnimator = nullptr;
+        }
       }
 #endif
       else {
