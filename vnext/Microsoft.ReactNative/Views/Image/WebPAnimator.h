@@ -6,7 +6,7 @@
 #pragma once
 
 #include "CppWinRTIncludes.h"
-#include <../libwebp/webp/demux.h>
+#include <webp/demux.h>
 
 namespace react::uwp {
 
