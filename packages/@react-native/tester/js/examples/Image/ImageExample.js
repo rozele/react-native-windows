@@ -88,16 +88,21 @@ class NetworkImageCallbackExample extends React.Component<
           }}
           onLoad={event => {
             if (event.nativeEvent.source) {
-              const url = event.nativeEvent.source.uri;
+              const {width, height, uri} = event.nativeEvent.source;
               this._loadEventFired(
-                `✔ onLoad (+${Date.now() - mountTime}ms) for URL ${url}`,
+                `✔ onLoad (+${Date.now() -
+                  mountTime}ms) size is ${width} by ${height}.`,
               );
             } else {
               this._loadEventFired(`✔ onLoad (+${Date.now() - mountTime}ms)`);
             }
           }}
-          onLoadEnd={() => {
-            this._loadEventFired(`✔ onLoadEnd (+${Date.now() - mountTime}ms)`);
+          onLoadEnd={event => {
+            const {width, height, uri} = event.nativeEvent.source;
+            this._loadEventFired(
+              `✔ onLoadEnd (+${Date.now() -
+                mountTime}ms) should not have info about url = ${uri}, width = ${width}, height = ${height}`,
+            );
             this.setState({startLoadPrefetched: true}, () => {
               prefetchTask.then(
                 () => {
@@ -157,7 +162,13 @@ class NetworkImageCallbackExample extends React.Component<
             }
           />
         ) : null}
-        <Text style={{marginTop: 20}}>{this.state.events.join('\n')}</Text>
+        {this.state.events.map(event => {
+          return (
+            <Text style={{marginTop: 20}} key={event}>
+              {event}
+            </Text>
+          );
+        })}
       </View>
     );
   }
