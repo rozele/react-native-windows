@@ -338,15 +338,20 @@ winrt::fire_and_forget ReactImage::SetBackground(bool fireLoadEndEvent) {
 
         svgImageSource.UriSource(uri);
 
-      }
 #ifdef USE_WEBP
-      else if (source.sourceType == ImageSourceType::WebP) {
+      } else if (source.sourceType == ImageSourceType::WebP) {
         // Create WebPAnimator instance
-        strong_this->m_webpAnimator = std::make_unique<WebPAnimator>(
+        strong_this->m_webpAnimator = std::make_shared<WebPAnimator>(
           winrt::make_weak(imageBrush),
           [weak_this, fireLoadEndEvent](bool succeeded) {
             auto strong_this{weak_this.get()};
             if (strong_this && fireLoadEndEvent) {
+              auto animator = strong_this->m_webpAnimator;
+              if (animator) {
+                strong_this->m_imageSource.height = animator->PixelHeight();
+                strong_this->m_imageSource.width = animator->PixelWidth();
+              }
+
               strong_this->m_onLoadEndEvent(*strong_this, succeeded);
             }
           });
@@ -358,9 +363,8 @@ winrt::fire_and_forget ReactImage::SetBackground(bool fireLoadEndEvent) {
         if (!strong_this->m_webpAnimator->IsAnimated()) {
           strong_this->m_webpAnimator = nullptr;
         }
-      }
 #endif
-      else {
+      } else {
         winrt::BitmapImage bitmapImage{imageBrush.ImageSource().try_as<winrt::BitmapImage>()};
 
         if (!bitmapImage) {

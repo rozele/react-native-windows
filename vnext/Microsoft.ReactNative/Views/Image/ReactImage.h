@@ -76,7 +76,7 @@ struct ReactImage : xaml::Controls::GridT<ReactImage> {
   ReactImageSource m_imageSource;
   react::uwp::ResizeMode m_resizeMode{ResizeMode::Contain};
   winrt::Windows::UI::Color m_tintColor{winrt::Colors::Transparent()};
-  std::unique_ptr<WebPAnimator> m_webpAnimator{nullptr};
+  std::shared_ptr<WebPAnimator> m_webpAnimator{nullptr};
 
   winrt::event<winrt::Windows::Foundation::EventHandler<bool>> m_onLoadEndEvent;
   xaml::FrameworkElement::SizeChanged_revoker m_sizeChangedRevoker;
