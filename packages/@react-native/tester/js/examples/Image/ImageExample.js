@@ -357,12 +357,24 @@ class LoadingIndicatorSourceExample extends React.Component<
   LoadingIndicatorSourceExampleState,
 > {
   state = {
-    imageHash: Date.now(),
+    count: 0,
+    source: {
+      uri: 'https://www.facebook.com/ads/pics/successstories.png',
+    },
   };
 
   reloadImage = () => {
+    const source =
+      this.state.count % 2 === 0
+        ? {
+            uri:
+              'https://upload.wikimedia.org/wikipedia/en/thumb/9/9a/Trollface_non-free.png/330px-Trollface_non-free.png',
+            headers: {accept: 'image/png'},
+          }
+        : {uri: 'https://www.facebook.com/ads/pics/successstories.png'};
     this.setState({
-      imageHash: Date.now(),
+      count: this.state.count + 1,
+      source,
     });
   };
 
@@ -371,10 +383,6 @@ class LoadingIndicatorSourceExample extends React.Component<
   };
 
   render() {
-    const loadingImage = {
-      uri: `https://www.facebook.com/ads/pics/successstories.png?hash=${this.state.imageHash}`,
-    };
-
     return (
       <View>
         <View style={{flexDirection: 'row', justifyContent: 'space-between'}}>
@@ -383,12 +391,10 @@ class LoadingIndicatorSourceExample extends React.Component<
           </Text>
         </View>
         <Image
-          loadingIndicatorSource={this.loaderGif}
-          source={loadingImage}
-          style={styles.base}
+          source={this.state.source}
+          style={{...styles.base, width: 100, height: 100}}
         />
-        <Text>Image Hash: {this.state.imageHash}</Text>
-        <Text>Image URI: {loadingImage.uri}</Text>
+        <Text>Refreshed {this.state.count} times</Text>
       </View>
     );
   }

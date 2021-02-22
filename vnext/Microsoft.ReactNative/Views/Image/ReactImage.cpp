@@ -404,6 +404,7 @@ winrt::IAsyncOperation<winrt::InMemoryRandomAccessStream> GetImageStreamAsync(Re
       co_await winrt::RandomAccessStream::CopyAsync(inputStream, memoryStream);
       memoryStream.Seek(0);
 
+      Sleep(5000);
       co_return memoryStream;
     }
   } catch (winrt::hresult_error const &e) {
