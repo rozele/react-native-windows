@@ -330,7 +330,6 @@ winrt::fire_and_forget ReactImage::SetBackground(bool fireLoadEndEvent) {
         }
 
         svgImageSource.UriSource(uri);
-
       } else {
         winrt::BitmapImage bitmapImage{imageBrush.ImageSource().try_as<winrt::BitmapImage>()};
 
