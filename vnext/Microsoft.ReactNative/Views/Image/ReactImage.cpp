@@ -341,27 +341,13 @@ winrt::fire_and_forget ReactImage::SetBackground(bool fireLoadEndEvent) {
 #ifdef USE_WEBP
       } else if (source.sourceType == ImageSourceType::WebP) {
         // Create WebPAnimator instance
-        strong_this->m_webpAnimator = std::make_shared<WebPAnimator>(
-          winrt::make_weak(imageBrush),
-          [weak_this, fireLoadEndEvent](bool succeeded) {
-            auto strong_this{weak_this.get()};
-            if (strong_this && fireLoadEndEvent) {
-              auto animator = strong_this->m_webpAnimator;
-              if (animator) {
-                strong_this->m_imageSource.height = animator->PixelHeight();
-                strong_this->m_imageSource.width = animator->PixelWidth();
-              }
-
-              strong_this->m_onLoadEndEvent(*strong_this, succeeded);
-            }
-          });
+        auto webpAnimator = std::make_shared<WebPAnimator>(winrt::make_weak(imageBrush));
 
         // Set the downloaded image data on the WebPAnimator instance
-        co_await strong_this->m_webpAnimator->SetSourceAsync(memoryStream);
+        auto success = co_await webpAnimator->SetSourceAsync(memoryStream);
 
-        // If the WebP image is not animated, we can destroy the animator
-        if (!strong_this->m_webpAnimator->IsAnimated()) {
-          strong_this->m_webpAnimator = nullptr;
+        if (webpAnimator->IsAnimated()) {
+          strong_this->m_webpAnimator = webpAnimator;
         }
 #endif
       } else {

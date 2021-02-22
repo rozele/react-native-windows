@@ -12,175 +12,168 @@
 namespace winrt {
 using namespace Windows::Foundation;
 using namespace Windows::Storage::Streams;
+using namespace Windows::System;
 using namespace Windows::UI::Xaml::Media;
 using namespace Windows::UI::Xaml::Media::Imaging;
 } // namespace winrt
 
 namespace react::uwp {
 
-winrt::IAsyncAction WebPAnimator::SetSourceAsync(winrt::IRandomAccessStream inputStream) {
+winrt::IAsyncOperation<bool> WebPAnimator::SetSourceAsync(winrt::IRandomAccessStream inputStream) {
+  auto weakThis = weak_from_this();
+
+  // Get the current dispatcher queue.
+  winrt::DispatcherQueue dispatcherQueue = winrt::DispatcherQueue::GetForCurrentThread();
+
+  // Switch to thread pool thread
+  co_await winrt::resume_background();
+
   // Copy stream contents to memory buffer
   auto length{static_cast<uint32_t>(inputStream.Size())};
   winrt::DataReader reader{inputStream};
-  m_buffer.resize(length);
+  std::vector<uint8_t> buffer;
+  buffer.resize(length);
   co_await reader.LoadAsync(length);
-  reader.ReadBytes(m_buffer);
+  reader.ReadBytes(buffer);
 
   // Initialize WebP container
   WebPData webpData;
-  webpData.bytes = m_buffer.data();
-  webpData.size = m_buffer.size();
+  webpData.bytes = buffer.data();
+  webpData.size = buffer.size();
 
   // Create demuxer to read WebP metadata
   auto demuxer = WebPDemux(&webpData);
   if (!demuxer) {
-    m_onLoadEnd(false);
-    co_return;
+    co_return false;
   }
 
-  m_canvasWidth = WebPDemuxGetI(demuxer, WEBP_FF_CANVAS_WIDTH);
-  m_canvasHeight = WebPDemuxGetI(demuxer, WEBP_FF_CANVAS_HEIGHT);
-  m_frameCount = WebPDemuxGetI(demuxer, WEBP_FF_FRAME_COUNT);
-  m_loopCount = WebPDemuxGetI(demuxer, WEBP_FF_LOOP_COUNT);
+  // Get WebP image metadata
+  auto canvasWidth = WebPDemuxGetI(demuxer, WEBP_FF_CANVAS_WIDTH);
+  auto canvasHeight = WebPDemuxGetI(demuxer, WEBP_FF_CANVAS_HEIGHT);
+  auto loopCount = WebPDemuxGetI(demuxer, WEBP_FF_LOOP_COUNT);
+  auto frameCount = WebPDemuxGetI(demuxer, WEBP_FF_FRAME_COUNT);
   WebPDemuxDelete(demuxer);
 
   // Create WebPAnimDecoder
   WebPAnimDecoderOptions decOptions;
   if (!WebPAnimDecoderOptionsInit(&decOptions)) {
-    m_onLoadEnd(false);
-    co_return;
+    co_return false;
   }
 
+  // Create WebPAnimDecoder
   decOptions.color_mode = MODE_bgrA;
-  m_animDecoder = WebPAnimDecoderNew(&webpData, &decOptions);
-  if (!m_animDecoder) {
-    m_onLoadEnd(false);
-    co_return;
+  auto animDecoder = WebPAnimDecoderNew(&webpData, &decOptions);
+  if (!animDecoder) {
+    co_return false;
   }
 
-  m_onLoadEnd(true);
-
-  if (m_frameCount == 1) {
-    // Not animated
-    if (auto strongBrush = m_weakBrush.get()) {
-      co_await CreateNextFrameAsync();
-
-      std::lock_guard<std::mutex> lock{m_disposeMutex};
-
-      if (m_nextFrameState == WebPFrameState::Ready) {
-        // Copy frame data to WriteableBitmap and set source
-        winrt::WriteableBitmap frame{m_canvasWidth, m_canvasHeight};
-        memcpy(frame.PixelBuffer().data(), m_nextFrameData, m_canvasWidth * m_canvasHeight * sizeof(uint32_t));
-        strongBrush.ImageSource(frame);
-      }
+  // Decode all frames
+  std::vector<int> timestamps;
+  timestamps.reserve(frameCount);
+  std::vector<uint8_t> frameData;
+  auto frameSize = static_cast<size_t>(canvasWidth * canvasHeight * sizeof(uint32_t));
+  frameData.resize(frameSize * frameCount);
+  for (uint32_t i = 0; i < frameCount; ++i) {
+    if (!WebPAnimDecoderHasMoreFrames(animDecoder)) {
+      co_return false;
     }
-  } else if (m_frameCount > 1) {
-    // The CompositionTarget rendering event is called once per frame after layout has been computed.
-    // This feels like a heavyweight approach, but DispatcherTimer resulted in slow animations.
-    m_frameStart = winrt::clock::now();
-    CreateNextFrameAsync();
-    m_renderingRevoker =
-        winrt::CompositionTarget::Rendering(winrt::auto_revoke, {this, &WebPAnimator::DisplayNextFrame});
+
+    uint8_t *nextFrameData;
+    int timestamp;
+    if (!WebPAnimDecoderGetNext(animDecoder, &nextFrameData, &timestamp)) {
+      co_return false;
+    }
+
+    memcpy(frameData.data() + i * frameSize, nextFrameData, frameSize);
+    timestamps.push_back(timestamp);
   }
+
+  // Delete WebPAnimDecoder
+  WebPAnimDecoderDelete(animDecoder);
+
+  {
+    // Update WebP image metadata
+    if (auto backgroundStrongThis = weakThis.lock()) {
+      backgroundStrongThis->m_canvasWidth = canvasWidth;
+      backgroundStrongThis->m_canvasHeight = canvasHeight;
+      backgroundStrongThis->m_loopCount = loopCount;
+      backgroundStrongThis->m_timestamps = std::move(timestamps);
+    }
+  }
+
+  // Switch back to foreground thread to create DependencyObjects for frames
+  co_await winrt::resume_foreground(dispatcherQueue);
+
+  auto strongThis = weakThis.lock();
+  auto strongBrush = m_weakBrush.get();
+  if (strongThis && strongBrush) {
+    // Create WriteableBitmap images for each frame
+    strongThis->m_frames.reserve(frameCount);
+    for (uint32_t i = 0; i < frameCount; ++i) {
+      winrt::WriteableBitmap bitmap{static_cast<int>(canvasWidth), static_cast<int>(canvasHeight)};
+      memcpy(bitmap.PixelBuffer().data(), frameData.data() + i * frameSize, frameSize);
+      strongThis->m_frames.push_back(bitmap);
+    }
+
+    // Set the first frame of the WebP image
+    // Currently, setting an image source is a fire-and-forget operation, so there is a known race
+    // condition where this call may actually overwrite a later change to the image source.
+    // TODO: file issue on GitHub and track here
+    if (frameCount >= 1) {
+      strongBrush.ImageSource(m_frames[0]);
+    }
+
+    // If there are multiple frames, start the animation
+    if (frameCount > 1) {
+      // The CompositionTarget rendering event is called once per frame after layout has been computed.
+      // This feels like a heavyweight approach, but DispatcherTimer resulted in slow animations.
+      strongThis->m_frameStart = winrt::clock::now();
+      strongThis->m_renderingRevoker = winrt::CompositionTarget::Rendering(
+          winrt::auto_revoke, [weakThis](auto&& ...) {
+            if (auto strongThis = weakThis.lock()) {
+              strongThis->DisplayNextFrame();
+            }
+          });
+    }
+  }
+
+  co_return true;
 }
 
 WebPAnimator::~WebPAnimator() {
-  if (m_frameCount > 1) {
+  if (m_frames.size() > 1) {
     m_renderingRevoker.revoke();
   }
-
-  std::lock_guard<std::mutex> lock{m_disposeMutex};
-
-  m_isDisposed = true;
-
-  // This could potentially be released earlier for finite loop animations.
-  WebPAnimDecoderDelete(m_animDecoder);
 }
 
-void WebPAnimator::DisplayNextFrame(winrt::IInspectable const &sender, winrt::IInspectable const &args) {
-  // Unsubscribe if we failed to decode a frame
-  if (m_nextFrameState == WebPFrameState::Failed) {
-    m_renderingRevoker.revoke();
+void WebPAnimator::DisplayNextFrame() {
+  // If frame duration has not passed, return
+  auto previousTimestamp = m_frameIndex > 0 ? m_timestamps[static_cast<size_t>(m_frameIndex - 1)] : 0;
+  auto duration = std::chrono::milliseconds(m_timestamps[m_frameIndex] - previousTimestamp);
+  if ((winrt::clock::now() - m_frameStart) < duration) {
     return;
   }
 
-  // If the next frame is not ready, return 
-  if (m_nextFrameState != WebPFrameState::Ready) {
-    return;
-  }
-
-  // If the current frame duration has not passed, return
-  auto frameDuration = winrt::clock::now() - m_frameStart;
-  if (frameDuration < std::chrono::milliseconds(m_currentDurationMs)) {
-    return;
-  }
-
-  // Unsubscribe if we no longer have a valid reference to the image brush.
+  // Unsubscribe if this animator no longer has access to the ImageBrush
   auto strongBrush = m_weakBrush.get();
   if (!strongBrush) {
     m_renderingRevoker.revoke();
     return;
   }
 
-  std::lock_guard<std::mutex> lock{m_disposeMutex};
-
-  // Do not attempt to render the frame if the WebPAnimDecoder was deleted
-  if (m_isDisposed) {
-    m_renderingRevoker.revoke();
-    return;
-  }
-
-  // Copy frame data to WriteableBitmap and set source
-  winrt::WriteableBitmap frame{m_canvasWidth, m_canvasHeight};
-  memcpy(frame.PixelBuffer().data(), m_nextFrameData, m_canvasWidth * m_canvasHeight * sizeof(uint32_t));
-  strongBrush.ImageSource(frame);
-
-  // Update the timestamp for the next frame
-  m_currentDurationMs = m_nextTimestampMs - m_currentTimestampMs;
-  m_currentTimestampMs = m_nextTimestampMs;
+  // Set the ImageSource to the next frame
+  strongBrush.ImageSource(m_frames[m_frameIndex++]);
+  // Reset the frame start time
   m_frameStart = winrt::clock::now();
 
-  // Check if we've reached the end of the loop
-  if (!WebPAnimDecoderHasMoreFrames(m_animDecoder)) {
-    if (m_loopCount == 0 || ++m_currentLoopIndex < m_loopCount) {
-      // Reset the WebPAnimationDecoder to the first frame
-      WebPAnimDecoderReset(m_animDecoder);
-      m_currentTimestampMs = 0;
-    } else {
-      // Unsubscribe from the rendering event, this call is idempotent so
-      // there are no concerns with it being called again in the destructor.
+  // If we've reached the last frame, check if image should loop and reset
+  if (m_frameIndex == m_frames.size()) {
+    if (m_loopCount != 0 && ++m_loopIndex == m_loopCount) {
       m_renderingRevoker.revoke();
-      return;
+    } else {
+      m_frameIndex = 0;
     }
   }
-
-  // Kick off another frame decoding background task
-  CreateNextFrameAsync();
-}
-
-winrt::IAsyncAction WebPAnimator::CreateNextFrameAsync() {
-  // Must set before switching to background thread
-  m_nextFrameState = WebPFrameState::Started;
-
-  // Switch to thread pool thread
-  co_await winrt::resume_background();
-
-  std::lock_guard<std::mutex> lock{m_disposeMutex};
-
-  // Do not attempt to decode the next frame if the WebPAnimDecoder is deleted.
-  if (m_isDisposed) {
-    m_nextFrameState = WebPFrameState::Canceled;
-    co_return;
-  }
-
-  // Render next frame to internal animation buffer
-  if (!WebPAnimDecoderGetNext(m_animDecoder, &m_nextFrameData, &m_nextTimestampMs)) {
-    // Set the frame data pointer to null so the rendering loop will know decoding failed
-    m_nextFrameState = WebPFrameState::Failed;
-    co_return;
-  }
-
-  m_nextFrameState = WebPFrameState::Ready;
 }
 
 } // namespace react::uwp

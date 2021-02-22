@@ -17,17 +17,15 @@ enum class WebPFrameState {
   Failed = 3,
 };
 
-class WebPAnimator {
+class WebPAnimator : public std::enable_shared_from_this<WebPAnimator> {
  public:
-  WebPAnimator(
-      winrt::weak_ref<winrt::Windows::UI::Xaml::Media::ImageBrush> imageBrush,
-      std::function<void(bool)> &&onLoadEnd)
-      : m_weakBrush{imageBrush}, m_onLoadEnd{onLoadEnd} {};
+  WebPAnimator(winrt::weak_ref<winrt::Windows::UI::Xaml::Media::ImageBrush> imageBrush)
+      : m_weakBrush{imageBrush} {};
 
-  winrt::Windows::Foundation::IAsyncAction SetSourceAsync(winrt::Windows::Storage::Streams::IRandomAccessStream inputStream);
+  winrt::Windows::Foundation::IAsyncOperation<bool> SetSourceAsync(winrt::Windows::Storage::Streams::IRandomAccessStream inputStream);
 
   bool IsAnimated() {
-    return m_frameCount > 1;
+    return m_frames.size() > 1;
   };
 
   int PixelWidth() {
@@ -43,51 +41,29 @@ class WebPAnimator {
  private:
   // ImageBrush supplied via constructor
   winrt::weak_ref<winrt::Windows::UI::Xaml::Media::ImageBrush> m_weakBrush;
-  // Callback supplied by the constructor 
-  std::function<void(bool)> m_onLoadEnd;
 
   // Handle used to revoke CompositionTarget::Rendering registration
   winrt::Windows::UI::Xaml::Media::CompositionTarget::Rendering_revoker m_renderingRevoker;
 
-  // Mutex used to ensure we do not delete the WebPAnimationDecoder while it is in use
-  std::mutex m_disposeMutex;
-  // Flag that signals that the WebPAnimationDecoder is deleted
-  bool m_isDisposed = false;
+  // WebP canvas width
+  int m_canvasWidth = 0;
+  // WebP canvas height
+  int m_canvasHeight = 0;
+  // WebP loop count
+  int m_loopCount = 0;
+  // WebP frame data
+  std::vector<winrt::Windows::UI::Xaml::Media::Imaging::WriteableBitmap> m_frames;
+  // WebP frame timestamps
+  std::vector<int> m_timestamps;
 
-  // Byte buffer for WebP data
-  std::vector<uint8_t> m_buffer;
-  // Animation decoder from libwebp
-  WebPAnimDecoder *m_animDecoder;
-
-  // Canvas width of the WebP image
-  int m_canvasWidth;
-  // Canvas height of the WebP image
-  int m_canvasHeight;
-  // Number of frames in the WebP image
-  int m_frameCount;
-  // Number of times the WebP animation should loop
-  int m_loopCount;
-  // Number of times the WebP animation has actually looped
-  int m_currentLoopIndex;
-
-  // Pointer to frame data when it's finished decoding, memory owned by m_animDecoder
-  uint8_t *m_nextFrameData;
-  // Frame decoding state
-  WebPFrameState m_nextFrameState;
-
-  // Timestamp when the last frame was displayed, used to determine when next frame should be displayed
+  // Current animation frame start
   winrt::Windows::Foundation::DateTime m_frameStart;
-  // Duration of current frame, next frame will be displayed at m_frameStart + m_currentDuration
-  int m_currentDurationMs = 0;
-  // Timestamp of the currently displayed frame, used to calculate duration of next frame
-  int m_currentTimestampMs = 0;
-  // Timestamp of next frame, used to calculate duration of next frame
-  int m_nextTimestampMs;
+  // Current frame index
+  int m_frameIndex = 0;
+  // Current loop index
+  int m_loopIndex = 0;
 
-  winrt::Windows::Foundation::IAsyncAction CreateNextFrameAsync();
-  void DisplayNextFrame(
-      winrt::Windows::Foundation::IInspectable const &sender,
-      winrt::Windows::Foundation::IInspectable const &args);
+  void DisplayNextFrame();
 };
 
 } // namespace react::uwp
