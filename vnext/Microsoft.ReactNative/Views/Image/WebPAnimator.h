@@ -24,6 +24,8 @@ class WebPAnimator : public std::enable_shared_from_this<WebPAnimator> {
 
   winrt::Windows::Foundation::IAsyncOperation<bool> SetSourceAsync(winrt::Windows::Storage::Streams::IRandomAccessStream inputStream);
 
+  void Start();
+
   bool IsAnimated() {
     return m_frames.size() > 1;
   };
@@ -46,11 +48,11 @@ class WebPAnimator : public std::enable_shared_from_this<WebPAnimator> {
   winrt::Windows::UI::Xaml::Media::CompositionTarget::Rendering_revoker m_renderingRevoker;
 
   // WebP canvas width
-  int m_canvasWidth = 0;
+  int m_canvasWidth{0};
   // WebP canvas height
-  int m_canvasHeight = 0;
+  int m_canvasHeight{0};
   // WebP loop count
-  int m_loopCount = 0;
+  int m_loopCount{0};
   // WebP frame data
   std::vector<winrt::Windows::UI::Xaml::Media::Imaging::WriteableBitmap> m_frames;
   // WebP frame timestamps
@@ -59,9 +61,9 @@ class WebPAnimator : public std::enable_shared_from_this<WebPAnimator> {
   // Current animation frame start
   winrt::Windows::Foundation::DateTime m_frameStart;
   // Current frame index
-  int m_frameIndex = 0;
+  int m_frameIndex{0};
   // Current loop index
-  int m_loopIndex = 0;
+  int m_loopIndex{0};
 
   void DisplayNextFrame();
 };

@@ -114,35 +114,33 @@ winrt::IAsyncOperation<bool> WebPAnimator::SetSourceAsync(winrt::IRandomAccessSt
       memcpy(bitmap.PixelBuffer().data(), frameData.data() + i * frameSize, frameSize);
       strongThis->m_frames.push_back(bitmap);
     }
-
-    // Set the first frame of the WebP image
-    // Currently, setting an image source is a fire-and-forget operation, so there is a known race
-    // condition where this call may actually overwrite a later change to the image source.
-    // TODO: file issue on GitHub and track here
-    if (frameCount >= 1) {
-      strongBrush.ImageSource(m_frames[0]);
-    }
-
-    // If there are multiple frames, start the animation
-    if (frameCount > 1) {
-      // The CompositionTarget rendering event is called once per frame after layout has been computed.
-      // This feels like a heavyweight approach, but DispatcherTimer resulted in slow animations.
-      strongThis->m_frameStart = winrt::clock::now();
-      strongThis->m_renderingRevoker = winrt::CompositionTarget::Rendering(
-          winrt::auto_revoke, [weakThis](auto&& ...) {
-            if (auto strongThis = weakThis.lock()) {
-              strongThis->DisplayNextFrame();
-            }
-          });
-    }
   }
 
   co_return true;
 }
 
 WebPAnimator::~WebPAnimator() {
+  // It is safe to call revoke regardless of whether or not it's been set
+  m_renderingRevoker.revoke();
+}
+
+void WebPAnimator::Start() {
+  // Set the first frame of the WebP image
+  auto strongBrush = m_weakBrush.get();
+  if (strongBrush && m_frames.size() >= 1) {
+    strongBrush.ImageSource(m_frames[0]);
+  }
+
+  // If there are multiple frames, start the animation
   if (m_frames.size() > 1) {
-    m_renderingRevoker.revoke();
+    // The CompositionTarget rendering event is called once per frame after layout has been computed.
+    // This feels like a heavyweight approach, but DispatcherTimer resulted in slow animations.
+    m_frameStart = winrt::clock::now();
+    m_renderingRevoker = winrt::CompositionTarget::Rendering(winrt::auto_revoke, [weakThis = weak_from_this()](auto &&...) {
+      if (auto strongThis = weakThis.lock()) {
+        strongThis->DisplayNextFrame();
+      }
+    });
   }
 }
 

@@ -346,8 +346,19 @@ winrt::fire_and_forget ReactImage::SetBackground(bool fireLoadEndEvent) {
         // Set the downloaded image data on the WebPAnimator instance
         auto success = co_await webpAnimator->SetSourceAsync(memoryStream);
 
-        if (webpAnimator->IsAnimated()) {
-          strong_this->m_webpAnimator = webpAnimator;
+        if (currentImageSourceId == strong_this->m_imageSourceId) {
+          // Send the onLoad and onLoadEnd events
+          strong_this->m_imageSource.height = webpAnimator->PixelHeight();
+          strong_this->m_imageSource.width = webpAnimator->PixelWidth();
+          strong_this->m_onLoadEndEvent(*strong_this, success);
+
+          // Set the first frame and start animation loop if animated
+          webpAnimator->Start();
+
+          // Hold a reference to the animator if animating
+          if (webpAnimator->IsAnimated()) {
+            strong_this->m_webpAnimator = webpAnimator;
+          }
         }
 #endif
       } else {
