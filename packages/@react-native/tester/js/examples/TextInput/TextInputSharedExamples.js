@@ -303,7 +303,7 @@ class TokenizedTextExample extends React.Component<
 > {
   constructor(props) {
     super(props);
-    this.state = {text: 'Hello #World'};
+    this.state = {text: 'Hello #World', x: 0, y: 0};
   }
   render() {
     //define delimiter
@@ -349,11 +349,21 @@ class TokenizedTextExample extends React.Component<
         <TextInput
           multiline={true}
           style={styles.multiline}
+          onScroll={e =>
+            this.setState({
+              text: this.state.text,
+              x: this.state.x,
+              y: e.nativeEvent.contentOffset.y,
+            })
+          }
           onChangeText={text => {
             this.setState({text});
           }}>
           <Text>{parts}</Text>
         </TextInput>
+        <Text>
+          X: {this.state.x} Y: {this.state.y}
+        </Text>
       </View>
     );
   }
