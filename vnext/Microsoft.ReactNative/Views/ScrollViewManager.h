@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <Utils/BatchingEventEmitter.h>
 #include <Views/ControlViewManager.h>
 #include "Impl/ScrollViewUWPImplementation.h"
 
@@ -37,11 +38,15 @@ class ScrollViewManager : public ControlViewManager {
   void SnapToInterval(const XamlView &parent, float interval);
   void SnapToOffsets(const XamlView &parent, const winrt::IVectorView<float> &offsets);
 
+  BatchingEventEmitter &BatchingEmitter() noexcept;
+
  protected:
   XamlView CreateViewCore(int64_t tag) override;
 
  private:
   friend class ScrollViewShadowNode;
+
+  std::shared_ptr<BatchingEventEmitter> m_batchingEventEmitter;
 };
 
 } // namespace react::uwp

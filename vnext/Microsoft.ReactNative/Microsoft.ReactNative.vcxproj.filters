@@ -340,6 +340,9 @@
     <ClCompile Include="Utils\TextHitTestUtils.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
+    <ClCompile Include="Utils\BatchingEventEmitter.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ABICxxModule.h" />
@@ -733,6 +736,7 @@
       <Filter>Utils</Filter>
     </ClInclude>
     <ClInclude Include="Utils\TextHitTestUtils.h">
+    <ClInclude Include="Utils\BatchingEventEmitter.h">
       <Filter>Utils</Filter>
     </ClInclude>
   </ItemGroup>
