@@ -607,4 +607,26 @@ exports.examples = [
       );
     },
   },
+  {
+    title: 'display: none and position: absolute',
+    render: function(): React.Node {
+      return (
+        <>
+          <View
+            style={{
+              height: 100,
+              width: 100,
+              justifyContent: 'center',
+              alignItems: 'center',
+              backgroundColor: 'red',
+              position: 'absolute',
+              display: 'none',
+              top: 0,
+            }}>
+            <Text>This should be hidden.</Text>
+          </View>
+        </>
+      );
+    },
+  },
 ];
