@@ -109,9 +109,6 @@ class HandledKeyboardEventHandler {
       KeyboardEventPhase phase,
       winrt::IInspectable const &sender,
       xaml::Input::KeyRoutedEventArgs const &args);
-  bool ShouldMarkKeyboardHandled(
-      std::vector<HandledKeyboardEvent> const &handledEvents,
-      HandledKeyboardEvent currentEvent);
 
   std::vector<HandledKeyboardEvent> m_handledKeyUpKeyboardEvents;
   std::vector<HandledKeyboardEvent> m_handledKeyDownKeyboardEvents;
@@ -127,5 +124,8 @@ struct KeyboardHelper {
   static std::string CodeFromVirtualKey(winrt::Windows::System::VirtualKey key);
   static bool IsModifiedKeyPressed(winrt::CoreWindow const &coreWindow, winrt::Windows::System::VirtualKey virtualKey);
   static bool IsModifiedKeyLocked(winrt::CoreWindow const &coreWindow, winrt::Windows::System::VirtualKey virtualKey);
+  static bool ShouldMarkKeyboardHandled(
+      std::vector<HandledKeyboardEvent> const &handledEvents,
+      HandledKeyboardEvent currentEvent);
 };
 } // namespace react::uwp
