@@ -441,9 +441,13 @@ void TextInputShadowNode::updateProperties(winrt::Microsoft::ReactNative::JSValu
     } else if (propertyName == "clearTextOnFocus") {
       if (propertyValue.Type() == winrt::Microsoft::ReactNative::JSValueType::Boolean)
         m_shouldClearTextOnFocus = propertyValue.AsBoolean();
+      else if (propertyValue.IsNull())
+        m_shouldClearTextOnFocus = false;
     } else if (propertyName == "selectTextOnFocus") {
       if (propertyValue.Type() == winrt::Microsoft::ReactNative::JSValueType::Boolean)
         m_shouldSelectTextOnFocus = propertyValue.AsBoolean();
+      else if (propertyValue.IsNull())
+        m_shouldSelectTextOnFocus = false;
     } else if (propertyName == "mostRecentEventCount") {
       if (propertyValue.Type() == winrt::Microsoft::ReactNative::JSValueType::Double ||
           propertyValue.Type() == winrt::Microsoft::ReactNative::JSValueType::Int64) {
@@ -452,36 +456,37 @@ void TextInputShadowNode::updateProperties(winrt::Microsoft::ReactNative::JSValu
     } else if (propertyName == "contextMenuHidden") {
       if (propertyValue.Type() == winrt::Microsoft::ReactNative::JSValueType::Boolean)
         m_contextMenuHidden = propertyValue.AsBoolean();
+      else if (propertyValue.IsNull())
+        m_contextMenuHidden = false;
     } else if (propertyName == "caretHidden") {
       if (propertyValue.Type() == winrt::Microsoft::ReactNative::JSValueType::Boolean) {
         m_hideCaret = propertyValue.AsBoolean();
         HideCaretIfNeeded();
-      }
+      } else if (propertyValue.IsNull())
+        m_hideCaret = false;
     } else if (propertyName == "secureTextEntry") {
-      if (propertyValue.Type() == winrt::Microsoft::ReactNative::JSValueType::Boolean) {
-        if (propertyValue.AsBoolean()) {
-          if (m_isTextBox) {
-            xaml::Controls::PasswordBox newPasswordBox;
-            ReparentView(newPasswordBox);
-            m_isTextBox = false;
-            registerEvents();
-            control = newPasswordBox.as<xaml::Controls::Control>();
-            passwordBox = newPasswordBox;
-            if (!m_placeholderTextColor.IsNull()) {
-              setPasswordBoxPlaceholderForeground(newPasswordBox, m_placeholderTextColor);
-            }
+      if (propertyValue.Type() == winrt::Microsoft::ReactNative::JSValueType::Boolean && propertyValue.AsBoolean()) {
+        if (m_isTextBox) {
+          xaml::Controls::PasswordBox newPasswordBox;
+          ReparentView(newPasswordBox);
+          m_isTextBox = false;
+          registerEvents();
+          control = newPasswordBox.as<xaml::Controls::Control>();
+          passwordBox = newPasswordBox;
+          if (!m_placeholderTextColor.IsNull()) {
+            setPasswordBoxPlaceholderForeground(newPasswordBox, m_placeholderTextColor);
           }
-        } else {
-          if (!m_isTextBox) {
-            xaml::Controls::TextBox newTextBox;
-            ReparentView(newTextBox);
-            m_isTextBox = true;
-            registerEvents();
-            control = newTextBox.as<xaml::Controls::Control>();
-            textBox = newTextBox;
-            if (!m_placeholderTextColor.IsNull()) {
-              textBox.PlaceholderForeground(react::uwp::SolidColorBrushFrom(m_placeholderTextColor));
-            }
+        }
+      } else if (propertyValue.Type() == winrt::Microsoft::ReactNative::JSValueType::Boolean || propertyValue.IsNull()) {
+        if (!m_isTextBox) {
+          xaml::Controls::TextBox newTextBox;
+          ReparentView(newTextBox);
+          m_isTextBox = true;
+          registerEvents();
+          control = newTextBox.as<xaml::Controls::Control>();
+          textBox = newTextBox;
+          if (!m_placeholderTextColor.IsNull()) {
+            textBox.PlaceholderForeground(react::uwp::SolidColorBrushFrom(m_placeholderTextColor));
           }
         }
       }
@@ -553,8 +558,10 @@ void TextInputShadowNode::updateProperties(winrt::Microsoft::ReactNative::JSValu
             const bool isMultiline = propertyValue.AsBoolean();
             textBox.TextWrapping(isMultiline ? xaml::TextWrapping::Wrap : xaml::TextWrapping::NoWrap);
             textBox.AcceptsReturn(isMultiline);
-          } else if (propertyValue.IsNull())
+          } else if (propertyValue.IsNull()) {
             textBox.ClearValue(xaml::Controls::TextBox::TextWrappingProperty());
+            textBox.ClearValue(xaml::Controls::TextBox::AcceptsReturnProperty());
+          }
         } else if (propertyName == "editable") {
           if (propertyValue.Type() == winrt::Microsoft::ReactNative::JSValueType::Boolean)
             textBox.IsReadOnly(!propertyValue.AsBoolean());
