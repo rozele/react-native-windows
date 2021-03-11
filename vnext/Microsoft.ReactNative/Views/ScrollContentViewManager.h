@@ -14,6 +14,15 @@ class ScrollContentViewManager : public ViewViewManager {
   ScrollContentViewManager(const Mso::React::IReactContext &context);
 
   const wchar_t *GetName() const override;
+
+  // Yoga Layout
+  void SetLayoutProps(
+      ShadowNodeBase &nodeToUpdate,
+      const XamlView &viewToUpdate,
+      float left,
+      float top,
+      float width,
+      float height) override;
 };
 
 } // namespace Microsoft::ReactNative
