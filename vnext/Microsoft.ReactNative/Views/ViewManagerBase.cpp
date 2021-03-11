@@ -90,6 +90,7 @@ void ViewManagerBase::GetNativeProps(const winrt::Microsoft::ReactNative::IJSVal
   React::WriteProperty(writer, L"onLayout", L"function");
   React::WriteProperty(writer, L"keyDownEvents", L"array");
   React::WriteProperty(writer, L"keyUpEvents", L"array");
+  React::WriteProperty(writer, L"canBeScrollAnchor", L"boolean");
 }
 
 void ViewManagerBase::GetConstants(const winrt::Microsoft::ReactNative::IJSValueWriter &writer) const {
@@ -260,6 +261,9 @@ bool ViewManagerBase::UpdateProperty(
     nodeToUpdate->UpdateHandledKeyboardEvents(propertyName, propertyValue);
   } else if (propertyName == "keyUpEvents") {
     nodeToUpdate->UpdateHandledKeyboardEvents(propertyName, propertyValue);
+  } else if (propertyName == "canBeScrollAnchor") {
+    nodeToUpdate->GetView().as<xaml::UIElement>().CanBeScrollAnchor(
+        !propertyValue.IsNull() && propertyValue.AsBoolean());
   } else {
     return false;
   }

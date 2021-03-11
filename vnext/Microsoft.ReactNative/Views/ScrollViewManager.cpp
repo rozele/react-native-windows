@@ -229,6 +229,16 @@ void ScrollViewShadowNode::updateProperties(winrt::Microsoft::ReactNative::JSVal
       if (valid) {
         react::uwp::ScrollViewUWPImplementation(scrollViewer).PagingEnabled(pagingEnabled);
       }
+    } else if (propertyName == "horizontalAnchorRatio") {
+      const auto [valid, horizontalAnchorRatio] = getPropertyAndValidity(propertyValue, 0.0);
+      if (valid) {
+        scrollViewer.HorizontalAnchorRatio(horizontalAnchorRatio);
+      }
+    } else if (propertyName == "verticalAnchorRatio") {
+      const auto [valid, verticalAnchorRatio] = getPropertyAndValidity(propertyValue, 0.0);
+      if (valid) {
+        scrollViewer.VerticalAnchorRatio(verticalAnchorRatio);
+      }
     }
   }
 
@@ -448,6 +458,8 @@ void ScrollViewManager::GetNativeProps(const winrt::Microsoft::ReactNative::IJSV
   winrt::Microsoft::ReactNative::WriteProperty(writer, L"snapToEnd", L"boolean");
   winrt::Microsoft::ReactNative::WriteProperty(writer, L"pagingEnabled", L"boolean");
   winrt::Microsoft::ReactNative::WriteProperty(writer, L"keyboardDismissMode", L"string");
+  winrt::Microsoft::ReactNative::WriteProperty(writer, L"horizontalAnchorRatio", L"float");
+  winrt::Microsoft::ReactNative::WriteProperty(writer, L"verticalAnchorRatio", L"float");
 }
 
 ShadowNode *ScrollViewManager::createShadow() const {
