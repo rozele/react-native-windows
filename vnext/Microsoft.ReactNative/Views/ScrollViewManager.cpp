@@ -6,6 +6,7 @@
 #include <Views/SIPEventHandler.h>
 #include <Views/ShadowNodeBase.h>
 #include "Impl/ScrollViewUWPImplementation.h"
+#include "Impl/ScrollViewViewChanger.h"
 #include "ScrollViewManager.h"
 
 namespace react::uwp {
@@ -24,6 +25,7 @@ class ScrollViewShadowNode : public ShadowNodeBase {
   void dispatchCommand(const std::string &commandId, const folly::dynamic &commandArgs) override;
   void createView() override;
   void updateProperties(const folly::dynamic &&props) override;
+  bool IsInverted() const;
 
  private:
   void AddHandlers(const winrt::ScrollViewer &scrollViewer);
@@ -34,6 +36,7 @@ class ScrollViewShadowNode : public ShadowNodeBase {
       double x,
       double y,
       double zoom);
+  void EmitOnScrollEvent(const winrt::ScrollViewer &scrollViewer);
   template <typename T>
   std::tuple<bool, T> getPropertyAndValidity(folly::dynamic propertyValue, T defaultValue);
   void SetScrollMode(const winrt::ScrollViewer &scrollViewer);
@@ -46,6 +49,8 @@ class ScrollViewShadowNode : public ShadowNodeBase {
   bool m_isScrollingEnabled = true;
   bool m_changeViewAfterLoaded = false;
   bool m_dismissKeyboardOnDrag = false;
+
+  react::uwp::ScrollViewViewChanger m_viewChanger;
 
   std::shared_ptr<SIPEventHandler> m_SIPEventHandler;
 
@@ -73,14 +78,14 @@ void ScrollViewShadowNode::dispatchCommand(const std::string &commandId, const f
     double x = commandArgs[0].asDouble();
     double y = commandArgs[1].asDouble();
     bool animated = commandArgs[2].asBool();
-    scrollViewer.ChangeView(x, y, nullptr, !animated /*disableAnimation*/);
+    m_viewChanger.ChangeView(scrollViewer, x, y, animated);
   } else if (commandId == ScrollViewCommands::ScrollToEnd) {
     bool animated = commandArgs[0].asBool();
     bool horiz = scrollViewer.HorizontalScrollMode() == winrt::ScrollMode::Auto;
     if (horiz)
-      scrollViewer.ChangeView(scrollViewer.ScrollableWidth(), nullptr, nullptr, !animated /*disableAnimation*/);
+      m_viewChanger.ChangeView(scrollViewer, scrollViewer.ScrollableWidth(), nullptr, animated);
     else
-      scrollViewer.ChangeView(nullptr, scrollViewer.ScrollableHeight(), nullptr, !animated /*disableAnimation*/);
+      m_viewChanger.ChangeView(scrollViewer, nullptr, scrollViewer.ScrollableHeight(), animated);
   }
 }
 
@@ -94,24 +99,40 @@ void ScrollViewShadowNode::createView() {
 
   AddHandlers(scrollViewer);
 
-  m_scrollViewerSizeChangedRevoker =
-      scrollViewer.SizeChanged(winrt::auto_revoke, [scrollViewUWPImplementation](const auto &, const auto &) {
+  m_scrollViewerSizeChangedRevoker = scrollViewer.SizeChanged(
+      winrt::auto_revoke, [this, scrollViewUWPImplementation](const auto &sender, const auto &) {
+        const auto scrollViewerNotNull{sender.as<winrt::ScrollViewer>()};
         scrollViewUWPImplementation.UpdateScrollableSize();
+
+        // When inverted, the scroll offset may change with respect to the end of the content. This
+        // will emit a scroll event in the case that the computed offset changed but the did not.
+        if (m_viewChanger.OnSizeChanged(scrollViewerNotNull)) {
+          EmitOnScrollEvent(scrollViewerNotNull);
+        }
       });
 
   m_scrollViewerViewChangedRevoker = scrollViewer.ViewChanged(
-      winrt::auto_revoke, [this, scrollViewUWPImplementation](const auto &sender, const auto & /*args*/) {
+      winrt::auto_revoke, [this, scrollViewUWPImplementation](const auto &sender, const auto &args) {
         const auto scrollViewerNotNull{sender.as<winrt::ScrollViewer>()};
         const auto zoomFactor{scrollViewerNotNull.ZoomFactor()};
         if (m_zoomFactor != zoomFactor) {
           m_zoomFactor = zoomFactor;
           scrollViewUWPImplementation.UpdateScrollableSize();
         }
+
+        m_viewChanger.OnViewChanged(args);
       });
 
   m_contentSizeChangedRevoker = scrollViewUWPImplementation.ScrollViewerSnapPointManager()->SizeChanged(
-      winrt::auto_revoke, [this, scrollViewUWPImplementation](const auto &, const auto &) {
+      winrt::auto_revoke, [this, scrollViewUWPImplementation](const auto &sender, const auto &args) {
         scrollViewUWPImplementation.UpdateScrollableSize();
+        const auto scrollViewer{scrollViewUWPImplementation.ScrollViewer()};
+
+        // When inverted, the scroll offset may change with respect to the end of the content. This
+        // will emit a scroll event in the case that the computed offset changed but the did not.
+        if (scrollViewer && m_viewChanger.OnSizeChanged(scrollViewer)) {
+          EmitOnScrollEvent(scrollViewer);
+        }
       });
 }
 
@@ -130,6 +151,7 @@ void ScrollViewShadowNode::updateProperties(const folly::dynamic &&reactDiffMap)
       const auto [valid, horizontal] = getPropertyAndValidity(propertyValue, false);
       if (valid) {
         m_isHorizontal = horizontal;
+        m_viewChanger.Horizontal(horizontal);
         ScrollViewUWPImplementation(scrollViewer).SetHorizontal(horizontal);
         SetScrollMode(scrollViewer);
       }
@@ -210,11 +232,30 @@ void ScrollViewShadowNode::updateProperties(const folly::dynamic &&reactDiffMap)
       if (valid) {
         ScrollViewUWPImplementation(scrollViewer).PagingEnabled(pagingEnabled);
       }
+    } else if (propertyName == "nativeInverted") {
+      // TODO(T86782781): use 'inverted' instead once JS behavior changes
+      const auto [valid, inverted] = getPropertyAndValidity(propertyValue, false);
+      if (valid) {
+        m_viewChanger.Inverted(inverted);
+        ScrollViewUWPImplementation(scrollViewer).SetScrolledToTop(inverted);
+        ScrollViewUWPImplementation(scrollViewer).SetInverted(inverted);
+        if (inverted) {
+          scrollViewer.HorizontalAnchorRatio(1.0);
+          scrollViewer.VerticalAnchorRatio(1.0);
+        } else {
+          scrollViewer.HorizontalAnchorRatio(0.0);
+          scrollViewer.VerticalAnchorRatio(0.0);
+        }
+      }
     }
   }
 
   Super::updateProperties(std::move(reactDiffMap));
   m_updating = false;
+}
+
+bool ScrollViewShadowNode::IsInverted() const {
+  return m_viewChanger.Inverted();
 }
 
 void ScrollViewShadowNode::AddHandlers(const winrt::ScrollViewer &scrollViewer) {
@@ -243,13 +284,17 @@ void ScrollViewShadowNode::AddHandlers(const winrt::ScrollViewer &scrollViewer) 
               args.NextView().ZoomFactor());
         }
 
-        EmitScrollEvent(
-            scrollViewerNotNull,
-            m_tag,
-            "topScroll",
-            args.NextView().HorizontalOffset(),
-            args.NextView().VerticalOffset(),
-            args.NextView().ZoomFactor());
+        // This call checks if the offsets when adjusted for inversion have actually changed
+        // The offsets may not have changed if the native event is a result of anchoring
+        if (m_viewChanger.OnViewChanging(scrollViewerNotNull, args)) {
+          EmitScrollEvent(
+              scrollViewerNotNull,
+              m_tag,
+              "topScroll",
+              args.NextView().HorizontalOffset(),
+              args.NextView().VerticalOffset(),
+              args.NextView().ZoomFactor());
+        }
       });
 
   m_scrollViewerDirectManipulationStartedRevoker =
@@ -316,7 +361,8 @@ void ScrollViewShadowNode::EmitScrollEvent(
 
   const auto scrollViewerNotNull = scrollViewer;
 
-  folly::dynamic offset = folly::dynamic::object("x", x)("y", y);
+  const auto [adjustedX, adjustedY] = m_viewChanger.GetScrollOffsets(scrollViewerNotNull, x, y);
+  folly::dynamic offset = folly::dynamic::object("x", adjustedX)("y", adjustedY);
 
   folly::dynamic contentInset = folly::dynamic::object("left", 0)("top", 0)("right", 0)("bottom", 0);
 
@@ -332,6 +378,16 @@ void ScrollViewShadowNode::EmitScrollEvent(
 
   folly::dynamic params = folly::dynamic::array(tag, eventName, eventJson);
   instance->CallJsFunction("RCTEventEmitter", "receiveEvent", std::move(params));
+}
+
+void ScrollViewShadowNode::EmitOnScrollEvent(const winrt::ScrollViewer& scrollViewer) {
+  EmitScrollEvent(
+      scrollViewer,
+      m_tag,
+      "topScroll",
+      scrollViewer.HorizontalOffset(),
+      scrollViewer.VerticalOffset(),
+      scrollViewer.ZoomFactor());
 }
 
 template <typename T>
@@ -420,7 +476,7 @@ folly::dynamic ScrollViewManager::GetNativeProps() const {
       "showsHorizontalScrollIndicator", "boolean")("showsVerticalScrollIndicator", "boolean")(
       "minimumZoomScale", "float")("maximumZoomScale", "float")("zoomScale", "float")("snapToInterval", "float")(
       "snapToOffsets", "array")("snapToAlignment", "number")("snapToStart", "boolean")("snapToEnd", "boolean")(
-      "pagingEnabled", "boolean")("keyboardDismissMode", "string"));
+      "pagingEnabled", "boolean")("keyboardDismissMode", "string")("nativeInverted", "boolean"));
 
   return props;
 }
@@ -453,6 +509,23 @@ XamlView ScrollViewManager::CreateViewCore(int64_t /*tag*/) {
   scrollViewer.Content(*snapPointManager);
 
   return scrollViewer;
+}
+
+void ScrollViewManager::SetLayoutProps(
+    ShadowNodeBase &nodeToUpdate,
+    const XamlView &viewToUpdate,
+    float left,
+    float top,
+    float width,
+    float height) {
+  // ScrollViewer selects an anchor during the Arrange phase of layout.
+  // If you do not call InvalidateArrange whenever a new child is added
+  // to the ScrollViewer content, the anchor behavior does not seem to work.
+  if (static_cast<ScrollViewShadowNode&>(nodeToUpdate).IsInverted()) {
+    viewToUpdate.as<xaml::UIElement>().InvalidateArrange();
+  }
+
+  Super::SetLayoutProps(nodeToUpdate, viewToUpdate, left, top, width, height);
 }
 
 void ScrollViewManager::AddView(const XamlView &parent, const XamlView &child, [[maybe_unused]] int64_t index) {

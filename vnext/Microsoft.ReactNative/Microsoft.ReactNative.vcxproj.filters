@@ -328,6 +328,9 @@
     </ClCompile>
     <ClCompile Include="RedBoxErrorInfo.cpp" />
     <ClCompile Include="RedBoxErrorFrameInfo.cpp" />
+    <ClCompile Include="Views\Impl\ScrollViewViewChanger.cpp">
+      <Filter>Views\Impl</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ABICxxModule.h" />
@@ -704,6 +707,9 @@
     <ClInclude Include="RedBoxErrorFrameInfo.h" />
     <ClInclude Include="Views\Image\Effects.h">
       <Filter>Views\Image</Filter>
+    </ClInclude>
+    <ClInclude Include="Views\Impl\ScrollViewViewChanger.h">
+      <Filter>Views\Impl</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
