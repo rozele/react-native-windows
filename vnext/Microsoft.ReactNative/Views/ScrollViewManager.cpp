@@ -52,6 +52,10 @@ class ScrollViewShadowNode : public ShadowNodeBase {
       T defaultValue);
   void SetScrollMode(const winrt::ScrollViewer &scrollViewer);
   void UpdateZoomMode(const winrt::ScrollViewer &scrollViewer);
+  std::tuple<double, double> ComputeAdjustedScrollOffsets(
+      const winrt::ScrollViewer &scrollViewer,
+      double horizontalOffset,
+      double verticalOffset);
 
   float m_zoomFactor{1.0f};
   bool m_isScrollingFromInertia = false;
@@ -60,6 +64,7 @@ class ScrollViewShadowNode : public ShadowNodeBase {
   bool m_isScrollingEnabled = true;
   bool m_changeViewAfterLoaded = false;
   bool m_dismissKeyboardOnDrag = false;
+  bool m_isInverted = false;
 
   std::shared_ptr<SIPEventHandler> m_SIPEventHandler;
 
@@ -89,14 +94,16 @@ void ScrollViewShadowNode::dispatchCommand(
     double x = commandArgs[0].AsDouble();
     double y = commandArgs[1].AsDouble();
     bool animated = commandArgs[2].AsBoolean();
-    scrollViewer.ChangeView(x, y, nullptr, !animated /*disableAnimation*/);
+    const auto [adjustedX, adjustedY] = ComputeAdjustedScrollOffsets(scrollViewer, x, y);
+    scrollViewer.ChangeView(adjustedX, adjustedY, nullptr, !animated /*disableAnimation*/);
   } else if (commandId == ScrollViewCommands::ScrollToEnd) {
     bool animated = commandArgs[0].AsBoolean();
     bool horiz = scrollViewer.HorizontalScrollMode() == winrt::ScrollMode::Auto;
+    const auto [x, y] = ComputeAdjustedScrollOffsets(scrollViewer, scrollViewer.ScrollableWidth(), scrollViewer.ScrollableHeight());
     if (horiz)
-      scrollViewer.ChangeView(scrollViewer.ScrollableWidth(), nullptr, nullptr, !animated /*disableAnimation*/);
+      scrollViewer.ChangeView(x, nullptr, nullptr, !animated /*disableAnimation*/);
     else
-      scrollViewer.ChangeView(nullptr, scrollViewer.ScrollableHeight(), nullptr, !animated /*disableAnimation*/);
+      scrollViewer.ChangeView(nullptr, y, nullptr, !animated /*disableAnimation*/);
   }
 }
 
@@ -229,6 +236,19 @@ void ScrollViewShadowNode::updateProperties(winrt::Microsoft::ReactNative::JSVal
       if (valid) {
         react::uwp::ScrollViewUWPImplementation(scrollViewer).PagingEnabled(pagingEnabled);
       }
+    } else if (propertyName == "nativeInverted") {
+      // TODO: replace with simple inverted prop
+      const auto [valid, inverted] = getPropertyAndValidity(propertyValue, false);
+      if (valid) {
+        m_isInverted = inverted;
+        if (inverted) {
+          scrollViewer.HorizontalAnchorRatio(1.0);
+          scrollViewer.VerticalAnchorRatio(1.0);
+        } else {
+          scrollViewer.HorizontalAnchorRatio(0.0);
+          scrollViewer.VerticalAnchorRatio(0.0);
+        }
+      }
     }
   }
 
@@ -338,7 +358,8 @@ void ScrollViewShadowNode::EmitScrollEvent(
     CoalesceType coalesceType) {
   const auto scrollViewerNotNull = scrollViewer;
 
-  JSValueObject contentOffset{{"x", x}, {"y", y}};
+  const auto [adjustedX, adjustedY] = ComputeAdjustedScrollOffsets(scrollViewerNotNull, x, y);
+  JSValueObject contentOffset{{"x", adjustedX}, {"y", adjustedY}};
   JSValueObject contentInset{{"left", 0}, {"top", 0}, {"right", 0}, {"bottom", 0}};
 
   JSValueObject contentSize{
@@ -416,6 +437,19 @@ void ScrollViewShadowNode::UpdateZoomMode(const winrt::ScrollViewer &scrollViewe
                                                                    : winrt::ZoomMode::Disabled);
 }
 
+std::tuple<double, double> ScrollViewShadowNode::ComputeAdjustedScrollOffsets(
+    const winrt::ScrollViewer& scrollViewer,
+    double x,
+    double y) {
+  auto adjustedX = m_isHorizontal && m_isInverted
+    ? scrollViewer.ScrollableWidth() - x
+    : x;
+  auto adjustedY = !m_isHorizontal && m_isInverted
+    ? scrollViewer.ScrollableHeight() - y
+    : y;
+  return std::make_tuple(adjustedX, adjustedY);
+}
+
 ScrollViewManager::ScrollViewManager(const Mso::React::IReactContext &context)
     : Super(context), m_batchingEventEmitter{std::make_shared<BatchingEventEmitter>(Mso::CntPtr(&context))} {}
 
@@ -448,6 +482,7 @@ void ScrollViewManager::GetNativeProps(const winrt::Microsoft::ReactNative::IJSV
   winrt::Microsoft::ReactNative::WriteProperty(writer, L"snapToEnd", L"boolean");
   winrt::Microsoft::ReactNative::WriteProperty(writer, L"pagingEnabled", L"boolean");
   winrt::Microsoft::ReactNative::WriteProperty(writer, L"keyboardDismissMode", L"string");
+  winrt::Microsoft::ReactNative::WriteProperty(writer, L"nativeInverted", L"boolean");
 }
 
 ShadowNode *ScrollViewManager::createShadow() const {
