@@ -22,15 +22,30 @@ const {
 const NUM_ITEMS = 20;
 
 class ScrollViewSimpleExample extends React.Component<{...}> {
-  makeItems: (nItems: number, styles: any) => Array<any> = (
+  constructor(props) {
+    super(props);
+    this.state = {head: 0, tail: NUM_ITEMS};
+  }
+
+  makeItems: (nItems: number, isHead: boolean, styles: any) => Array<any> = (
     nItems: number,
+    isHead: boolean,
     styles,
   ): Array<any> => {
     const items = [];
     for (let i = 0; i < nItems; i++) {
+      const isEven = i % 2 === 0;
+      const key = isHead ? -(i + 1) : i;
       items[i] = (
-        <TouchableOpacity key={i} style={styles}>
-          <Text>{'Item ' + i}</Text>
+        <TouchableOpacity
+          key={key}
+          style={styles}
+          onPress={() =>
+            isEven
+              ? this.setState({head: this.state.head + 1})
+              : this.setState({tail: this.state.tail + 1})
+          }>
+          <Text>{`Item ${key} (${isEven ? 'Add Above' : 'Add Below'})`}</Text>
         </TouchableOpacity>
       );
     }
@@ -39,31 +54,17 @@ class ScrollViewSimpleExample extends React.Component<{...}> {
 
   render(): React.Node {
     // One of the items is a horizontal scroll view
-    const items = this.makeItems(NUM_ITEMS, styles.itemWrapper);
-    items[4] = (
-      <ScrollView key={'scrollView'} horizontal={true}>
-        {this.makeItems(NUM_ITEMS, [
-          styles.itemWrapper,
-          styles.horizontalItemWrapper,
-        ])}
-      </ScrollView>
-    );
-    items.push(
-      <ScrollView
-        key={'scrollViewSnap'}
-        horizontal
-        snapToInterval={210.0}
-        pagingEnabled>
-        {this.makeItems(NUM_ITEMS, [
-          styles.itemWrapper,
-          styles.horizontalItemWrapper,
-          styles.horizontalPagingItemWrapper,
-        ])}
-      </ScrollView>,
-    );
+    const head = this.makeItems(
+      this.state.head,
+      true,
+      styles.itemWrapper,
+    ).reverse();
+    const tail = this.makeItems(this.state.tail, false, styles.itemWrapper);
 
     const verticalScrollView = (
-      <ScrollView style={styles.verticalScrollView}>{items}</ScrollView>
+      <ScrollView nativeInverted style={styles.verticalScrollView}>
+        {[...head, ...tail]}
+      </ScrollView>
     );
 
     return verticalScrollView;
@@ -73,6 +74,7 @@ class ScrollViewSimpleExample extends React.Component<{...}> {
 const styles = StyleSheet.create({
   verticalScrollView: {
     margin: 10,
+    marginBottom: 60,
   },
   itemWrapper: {
     backgroundColor: '#dddddd',
