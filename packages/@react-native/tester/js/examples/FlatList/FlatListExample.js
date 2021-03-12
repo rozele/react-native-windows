@@ -107,6 +107,11 @@ class FlatListExample extends React.PureComponent<Props, State> {
       filterRegex.test(item.text) || filterRegex.test(item.title);
     const filteredData = this.state.data.filter(filter);
     const flatListItemRendererProps = this._renderItemComponent();
+    const maybeInvertedStyle = this.state.inverted
+      ? this.state.horizontal
+        ? {flexDirection: 'row-reverse'}
+        : {flexDirection: 'column-reverse'}
+      : null;
     return (
       <RNTesterPage
         noSpacer={true}
@@ -197,7 +202,6 @@ class FlatListExample extends React.PureComponent<Props, State> {
               this.state.fixedHeight ? this._getItemLayout : undefined
             }
             horizontal={this.state.horizontal}
-            inverted={this.state.inverted}
             key={
               (this.state.horizontal ? 'h' : 'v') +
               (this.state.fixedHeight ? 'f' : 'd')
@@ -213,7 +217,7 @@ class FlatListExample extends React.PureComponent<Props, State> {
             onViewableItemsChanged={this._onViewableItemsChanged}
             ref={this._captureRef}
             refreshing={false}
-            contentContainerStyle={styles.list}
+            contentContainerStyle={[maybeInvertedStyle, styles.list]}
             viewabilityConfig={VIEWABILITY_CONFIG}
             {...flatListItemRendererProps}
           />
