@@ -229,6 +229,23 @@ void ScrollViewShadowNode::updateProperties(winrt::Microsoft::ReactNative::JSVal
       if (valid) {
         react::uwp::ScrollViewUWPImplementation(scrollViewer).PagingEnabled(pagingEnabled);
       }
+    } else if (propertyName == "maintainVisibleContentPosition") {
+      if (propertyValue.Type() == winrt::Microsoft::ReactNative::JSValueType::Object) {
+        auto autoscrollToBottomThresholdJson = propertyValue.TryGetObjectProperty("autoscrollToBottomThreshold");
+        if (autoscrollToBottomThresholdJson) {
+          // TODO: do we care if autoscrollToBottomThreshold: null?
+          auto [valid, autoscrollToBottomThreshold] = getPropertyAndValidity(*autoscrollToBottomThresholdJson, 0.0);
+          if (valid) {
+            // TODO: implement threshold behavior
+            scrollViewer.HorizontalAnchorRatio(1.0);
+            scrollViewer.VerticalAnchorRatio(1.0);
+          }
+          // TODO: implement reset behavior
+        }
+
+        // TODO: implement autoscrollToTopThreshold
+        // TODO: implement minIndexForVisible
+      }
     }
   }
 
@@ -448,6 +465,7 @@ void ScrollViewManager::GetNativeProps(const winrt::Microsoft::ReactNative::IJSV
   winrt::Microsoft::ReactNative::WriteProperty(writer, L"snapToEnd", L"boolean");
   winrt::Microsoft::ReactNative::WriteProperty(writer, L"pagingEnabled", L"boolean");
   winrt::Microsoft::ReactNative::WriteProperty(writer, L"keyboardDismissMode", L"string");
+  winrt::Microsoft::ReactNative::WriteProperty(writer, L"maintainVisibleContentPosition", L"Map");
 }
 
 ShadowNode *ScrollViewManager::createShadow() const {

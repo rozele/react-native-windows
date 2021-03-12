@@ -3,17 +3,22 @@
 
 #pragma once
 
-#include <Views/ViewViewManager.h>
+#include <Views/FrameworkElementViewManager.h>
 
 namespace Microsoft::ReactNative {
 
-class ScrollContentViewManager : public ViewViewManager {
-  using Super = ViewViewManager;
+class ScrollContentViewManager : public FrameworkElementViewManager {
+  using Super = FrameworkElementViewManager;
 
  public:
   ScrollContentViewManager(const Mso::React::IReactContext &context);
 
   const wchar_t *GetName() const override;
+
+  ShadowNode *createShadow() const override;
+
+ protected:
+  XamlView CreateViewCore(int64_t tag, const winrt::Microsoft::ReactNative::JSValueObject &) override;
 };
 
 } // namespace Microsoft::ReactNative
