@@ -28,10 +28,8 @@ void ScrollContentViewManager::AddView(const XamlView &parent, const XamlView &c
   // All top-level children of the ScrollViewer content panel will be anchor candidates.
   // TODO: Pass a prop setting to the ScrollViewContent component in JS to enable / disable scroll anchoring.
   auto childElement = child.as<xaml::UIElement>();
-  //childElement.CanBeScrollAnchor(true);
-
-  auto panel = parent.as<winrt::react::uwp::ViewPanel>();
-  panel.InsertAt(static_cast<uint32_t>(index), childElement);
+  childElement.CanBeScrollAnchor(true);
+  parent.as<winrt::react::uwp::ViewPanel>().InsertAt(static_cast<uint32_t>(index), childElement);
 }
 
 void ScrollContentViewManager::RemoveAllChildren(const XamlView &parent) {

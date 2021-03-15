@@ -54,8 +54,10 @@ class ScrollViewShadowNode : public ShadowNodeBase {
   void SetScrollMode(const winrt::ScrollViewer &scrollViewer);
   void UpdateZoomMode(const winrt::ScrollViewer &scrollViewer);
   bool UpdateLatestOffsets(const winrt::ScrollViewer &scrollViewer, double x, double y);
+  bool IsScrolledToTop();
   bool ScrollingFromTopEdge(const winrt::ScrollViewer &scrollViewer, double x, double y);
   bool ScrollingToTopEdge(const winrt::ScrollViewer &scrollViewer, double x, double y);
+  void SetContentScrollAnchors(const winrt::ScrollViewer &scrollViewer, bool enabled);
 
   float m_zoomFactor{1.0f};
   bool m_isScrollingFromInertia = false;
@@ -142,6 +144,11 @@ void ScrollViewShadowNode::createView(const winrt::Microsoft::ReactNative::JSVal
         const auto scrollViewer{scrollViewUWPImplementation.ScrollViewer()};
         if (scrollViewer) {
           m_viewChanger.OnSizeChanged(scrollViewer);
+
+          // When inverted and scrolled to top, we need to reset any child anchor settings
+          if (m_viewChanger.Inverted() && IsScrolledToTop()) {
+            SetContentScrollAnchors(false);
+          }
 
           // When inverted, the inverted offsets may have changed even though the view port did not.
           if (m_viewChanger.Inverted() &&
@@ -307,24 +314,12 @@ void ScrollViewShadowNode::AddHandlers(const winrt::ScrollViewer &scrollViewer) 
               CoalesceType::Durable);
         }
 
-        if (ScrollingToTopEdge(
+        if (m_viewChanger.Inverted() && ScrollingToTopEdge(
                 scrollViewerNotNull, args.NextView().HorizontalOffset(), args.NextView().VerticalOffset())) {
-          if (auto snapPointManager = scrollViewerNotNull.Content().as<react::uwp::SnapPointManagingContentControl>()) {
-            if (auto panel = snapPointManager->Content().as<xaml::Controls::Panel>()) {
-              for (auto child : panel.Children()) {
-                child.as<xaml::UIElement>().CanBeScrollAnchor(false);
-              }
-            }
-          }
-        } else if (ScrollingFromTopEdge(
-                       scrollViewerNotNull, args.NextView().HorizontalOffset(), args.NextView().VerticalOffset())) {
-          if (auto snapPointManager = scrollViewerNotNull.Content().as<react::uwp::SnapPointManagingContentControl>()) {
-            if (auto panel = snapPointManager->Content().as<xaml::Controls::Panel>()) {
-              for (auto child : panel.Children()) {
-                child.as<xaml::UIElement>().CanBeScrollAnchor(true);
-              }
-            }
-          }
+          SetContentScrollAnchors(false);
+        } else if (m_viewChanger.Inverted() && ScrollingFromTopEdge(
+                      scrollViewerNotNull, args.NextView().HorizontalOffset(), args.NextView().VerticalOffset())) {
+          SetContentScrollAnchors(true);
         }
 
         // When the ScrollView is inverted, only emit the event if the scroll offsets have changed.
@@ -502,9 +497,13 @@ bool ScrollViewShadowNode::UpdateLatestOffsets(const winrt::ScrollViewer &scroll
   return false;
 }
 
+bool ScrollViewShadowNode::IsScrolledToTop() {
+  return (m_isHorizontal && m_latestX == 0) || (!m_isHorizontal && m_latestY == 0);
+}
+
 bool ScrollViewShadowNode::ScrollingFromTopEdge(const winrt::ScrollViewer &scrollViewer, double x, double y) {
-  // If we were not previously at zero, we are not scrolling away from the top edge
-  if ((m_isHorizontal && m_latestX != 0) || (!m_isHorizontal && m_latestY != 0)) {
+  // If we were not previously to top, we are not scrolling away from the top edge
+  if (!IsScrolledToTop()) {
     return false;
   }
 
@@ -520,8 +519,8 @@ bool ScrollViewShadowNode::ScrollingFromTopEdge(const winrt::ScrollViewer &scrol
 }
 
 bool ScrollViewShadowNode::ScrollingToTopEdge(const winrt::ScrollViewer &scrollViewer, double x, double y) {
-  // If we were previously at zero, we are not scrolling to the top edge
-  if ((m_isHorizontal && m_latestX == 0) || (!m_isHorizontal && m_latestY == 0)) {
+  // If we were previously at top top, we are not scrolling to the top edge
+  if (IsScrolledToTop()) {
     return false;
   }
 
@@ -534,6 +533,16 @@ bool ScrollViewShadowNode::ScrollingToTopEdge(const winrt::ScrollViewer &scrollV
   }
 
   return false;
+}
+
+void ScrollViewShadowNode::SetContentScrollAnchors(const winrt::ScrollViewer &scrollViewer, bool enabled) {
+  if (auto snapPointManager = scrollViewer.Content().as<react::uwp::SnapPointManagingContentControl>()) {
+    if (auto panel = snapPointManager->Content().as<xaml::Controls::Panel>()) {
+      for (auto child : panel.Children()) {
+        child.as<xaml::UIElement>().CanBeScrollAnchor(enabled);
+      }
+    }
+  }
 }
 
 ScrollViewManager::ScrollViewManager(const Mso::React::IReactContext &context)
