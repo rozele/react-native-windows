@@ -318,6 +318,9 @@
     <ClCompile Include="ReactHost\JSCallInvokerScheduler.cpp">
       <Filter>ReactHost</Filter>
     </ClCompile>
+    <ClCompile Include="Views\Impl\ScrollViewViewChanger.cpp">
+      <Filter>Views\Impl</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ABICxxModule.h" />
@@ -677,6 +680,9 @@
     </ClInclude>
     <ClInclude Include="ReactHost\JSCallInvokerScheduler.h">
       <Filter>ReactHost</Filter>
+    </ClInclude>
+    <ClInclude Include="Views\Impl\ScrollViewViewChanger.h">
+      <Filter>Views\Impl</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

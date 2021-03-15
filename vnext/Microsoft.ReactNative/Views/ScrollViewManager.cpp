@@ -9,6 +9,7 @@
 #include <Views/SIPEventHandler.h>
 #include <Views/ShadowNodeBase.h>
 #include "Impl/ScrollViewUWPImplementation.h"
+#include "Impl/ScrollViewViewChanger.h"
 #include "ScrollViewManager.h"
 
 using namespace winrt::Microsoft::ReactNative;
@@ -52,10 +53,7 @@ class ScrollViewShadowNode : public ShadowNodeBase {
       T defaultValue);
   void SetScrollMode(const winrt::ScrollViewer &scrollViewer);
   void UpdateZoomMode(const winrt::ScrollViewer &scrollViewer);
-  std::tuple<double, double> ComputeAdjustedScrollOffsets(
-      const winrt::ScrollViewer &scrollViewer,
-      double horizontalOffset,
-      double verticalOffset);
+  bool UpdateLatestOffsets(const winrt::ScrollViewer &scrollViewer, double x, double y);
 
   float m_zoomFactor{1.0f};
   bool m_isScrollingFromInertia = false;
@@ -64,7 +62,10 @@ class ScrollViewShadowNode : public ShadowNodeBase {
   bool m_isScrollingEnabled = true;
   bool m_changeViewAfterLoaded = false;
   bool m_dismissKeyboardOnDrag = false;
-  bool m_isInverted = false;
+  double m_latestX = 0.0;
+  double m_latestY = 0.0;
+
+  react::uwp::ScrollViewViewChanger m_viewChanger;
 
   std::shared_ptr<SIPEventHandler> m_SIPEventHandler;
 
@@ -94,16 +95,14 @@ void ScrollViewShadowNode::dispatchCommand(
     double x = commandArgs[0].AsDouble();
     double y = commandArgs[1].AsDouble();
     bool animated = commandArgs[2].AsBoolean();
-    const auto [adjustedX, adjustedY] = ComputeAdjustedScrollOffsets(scrollViewer, x, y);
-    scrollViewer.ChangeView(adjustedX, adjustedY, nullptr, !animated /*disableAnimation*/);
+    m_viewChanger.ChangeView(scrollViewer, x, y, animated);
   } else if (commandId == ScrollViewCommands::ScrollToEnd) {
     bool animated = commandArgs[0].AsBoolean();
     bool horiz = scrollViewer.HorizontalScrollMode() == winrt::ScrollMode::Auto;
-    const auto [x, y] = ComputeAdjustedScrollOffsets(scrollViewer, scrollViewer.ScrollableWidth(), scrollViewer.ScrollableHeight());
     if (horiz)
-      scrollViewer.ChangeView(x, nullptr, nullptr, !animated /*disableAnimation*/);
+      m_viewChanger.ChangeView(scrollViewer, scrollViewer.ScrollableWidth(), nullptr, animated);
     else
-      scrollViewer.ChangeView(nullptr, y, nullptr, !animated /*disableAnimation*/);
+      m_viewChanger.ChangeView(scrollViewer, nullptr, scrollViewer.ScrollableHeight(), animated);
   }
 }
 
@@ -117,23 +116,44 @@ void ScrollViewShadowNode::createView(const winrt::Microsoft::ReactNative::JSVal
   AddHandlers(scrollViewer);
 
   m_scrollViewerSizeChangedRevoker =
-      scrollViewer.SizeChanged(winrt::auto_revoke, [scrollViewUWPImplementation](const auto &, const auto &) {
+      scrollViewer.SizeChanged(winrt::auto_revoke, [this, scrollViewUWPImplementation](const auto &sender, const auto &) {
+        const auto scrollViewerNotNull{sender.as<winrt::ScrollViewer>()};
         scrollViewUWPImplementation.UpdateScrollableSize();
+        m_viewChanger.OnSizeChanged(scrollViewerNotNull);
       });
 
   m_scrollViewerViewChangedRevoker = scrollViewer.ViewChanged(
-      winrt::auto_revoke, [this, scrollViewUWPImplementation](const auto &sender, const auto & /*args*/) {
+      winrt::auto_revoke,
+      [this, scrollViewUWPImplementation](const auto &sender, const auto &args) {
         const auto scrollViewerNotNull{sender.as<winrt::ScrollViewer>()};
         const auto zoomFactor{scrollViewerNotNull.ZoomFactor()};
         if (m_zoomFactor != zoomFactor) {
           m_zoomFactor = zoomFactor;
           scrollViewUWPImplementation.UpdateScrollableSize();
         }
+
+        m_viewChanger.OnViewChanged(args);
       });
 
   m_contentSizeChangedRevoker = scrollViewUWPImplementation.ScrollViewerSnapPointManager()->SizeChanged(
-      winrt::auto_revoke, [this, scrollViewUWPImplementation](const auto &, const auto &) {
+      winrt::auto_revoke, [this, scrollViewUWPImplementation](const auto &sender, const auto &args) {
         scrollViewUWPImplementation.UpdateScrollableSize();
+        const auto scrollViewer{scrollViewUWPImplementation.ScrollViewer()};
+        if (scrollViewer) {
+          m_viewChanger.OnSizeChanged(scrollViewer);
+
+          // When inverted, the inverted offsets may have changed even though the view port did not.
+          if (m_viewChanger.Inverted() && UpdateLatestOffsets(scrollViewer, scrollViewer.HorizontalOffset(), scrollViewer.VerticalOffset())) {
+            EmitScrollEvent(
+                scrollViewer,
+                m_tag,
+                L"topScroll",
+                scrollViewer.HorizontalOffset(),
+                scrollViewer.VerticalOffset(),
+                scrollViewer.ZoomFactor(),
+                CoalesceType::CoalesceByTag);
+          }
+        }
       });
 }
 
@@ -152,6 +172,7 @@ void ScrollViewShadowNode::updateProperties(winrt::Microsoft::ReactNative::JSVal
       const auto [valid, horizontal] = getPropertyAndValidity(propertyValue, false);
       if (valid) {
         m_isHorizontal = horizontal;
+        m_viewChanger.Horizontal(horizontal);
         react::uwp::ScrollViewUWPImplementation(scrollViewer).SetHorizontal(horizontal);
         SetScrollMode(scrollViewer);
       }
@@ -240,7 +261,7 @@ void ScrollViewShadowNode::updateProperties(winrt::Microsoft::ReactNative::JSVal
       // TODO: replace with simple inverted prop
       const auto [valid, inverted] = getPropertyAndValidity(propertyValue, false);
       if (valid) {
-        m_isInverted = inverted;
+        m_viewChanger.Inverted(inverted);
         if (inverted) {
           scrollViewer.HorizontalAnchorRatio(1.0);
           scrollViewer.VerticalAnchorRatio(1.0);
@@ -284,14 +305,17 @@ void ScrollViewShadowNode::AddHandlers(const winrt::ScrollViewer &scrollViewer) 
               CoalesceType::Durable);
         }
 
-        EmitScrollEvent(
-            scrollViewerNotNull,
-            m_tag,
-            L"topScroll",
-            args.NextView().HorizontalOffset(),
-            args.NextView().VerticalOffset(),
-            args.NextView().ZoomFactor(),
-            CoalesceType::CoalesceByTag);
+        // When the ScrollView is inverted, only emit the event if the scroll offsets have changed.
+        if (UpdateLatestOffsets(scrollViewerNotNull, args.NextView().HorizontalOffset(), args.NextView().VerticalOffset())) {
+          EmitScrollEvent(
+              scrollViewerNotNull,
+              m_tag,
+              L"topScroll",
+              args.NextView().HorizontalOffset(),
+              args.NextView().VerticalOffset(),
+              args.NextView().ZoomFactor(),
+              CoalesceType::CoalesceByTag);
+        }
       });
 
   m_scrollViewerDirectManipulationStartedRevoker =
@@ -358,7 +382,8 @@ void ScrollViewShadowNode::EmitScrollEvent(
     CoalesceType coalesceType) {
   const auto scrollViewerNotNull = scrollViewer;
 
-  const auto [adjustedX, adjustedY] = ComputeAdjustedScrollOffsets(scrollViewerNotNull, x, y);
+  const auto [adjustedX, adjustedY] = m_viewChanger.GetScrollOffsets(scrollViewerNotNull, x, y);
+
   JSValueObject contentOffset{{"x", adjustedX}, {"y", adjustedY}};
   JSValueObject contentInset{{"left", 0}, {"top", 0}, {"right", 0}, {"bottom", 0}};
 
@@ -437,17 +462,22 @@ void ScrollViewShadowNode::UpdateZoomMode(const winrt::ScrollViewer &scrollViewe
                                                                    : winrt::ZoomMode::Disabled);
 }
 
-std::tuple<double, double> ScrollViewShadowNode::ComputeAdjustedScrollOffsets(
-    const winrt::ScrollViewer& scrollViewer,
-    double x,
-    double y) {
-  auto adjustedX = m_isHorizontal && m_isInverted
-    ? scrollViewer.ScrollableWidth() - x
-    : x;
-  auto adjustedY = !m_isHorizontal && m_isInverted
-    ? scrollViewer.ScrollableHeight() - y
-    : y;
-  return std::make_tuple(adjustedX, adjustedY);
+bool ScrollViewShadowNode::UpdateLatestOffsets(const winrt::ScrollViewer& scrollViewer, double x, double y) {
+  const auto [adjustedX, adjustedY] = m_viewChanger.GetScrollOffsets(scrollViewer, x, y);
+
+  // When inverted, layout above the current view port should not emit scrolling events.
+  // Assume that non-inverted changes should always be emitted.
+  // An epsilon is used to ignore changes less than 1px.
+  const auto epsilon = m_viewChanger.OffsetEpsilon();
+  if (!m_viewChanger.Inverted() ||
+      std::abs(adjustedX - m_latestX) > epsilon ||
+      std::abs(adjustedY - m_latestY) > epsilon) {
+    m_latestX = adjustedX;
+    m_latestY = adjustedY;
+    return true;
+  }
+
+  return false;
 }
 
 ScrollViewManager::ScrollViewManager(const Mso::React::IReactContext &context)
