@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 #pragma once
 
 namespace react::uwp {
@@ -9,7 +12,7 @@ class ScrollViewViewChanger {
   bool Inverted() const;
   void Inverted(bool inverted);
 
-  std::tuple<double, double> GetScrollOffsets(xaml::Controls::ScrollViewer scrollViewer, double x, double y); 
+  std::tuple<double, double> GetScrollOffsets(xaml::Controls::ScrollViewer scrollViewer, double x, double y);
 
   void ChangeView(
       xaml::Controls::ScrollViewer scrollViewer,

@@ -54,5 +54,4 @@ void ScrollContentViewManager::RemoveChildAt(const XamlView &parent, [[maybe_unu
   parent.as<winrt::react::uwp::ViewPanel>().RemoveAt(static_cast<uint32_t>(index));
 }
 
-
 } // namespace Microsoft::ReactNative

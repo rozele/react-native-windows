@@ -115,16 +115,15 @@ void ScrollViewShadowNode::createView(const winrt::Microsoft::ReactNative::JSVal
 
   AddHandlers(scrollViewer);
 
-  m_scrollViewerSizeChangedRevoker =
-      scrollViewer.SizeChanged(winrt::auto_revoke, [this, scrollViewUWPImplementation](const auto &sender, const auto &) {
+  m_scrollViewerSizeChangedRevoker = scrollViewer.SizeChanged(
+      winrt::auto_revoke, [this, scrollViewUWPImplementation](const auto &sender, const auto &) {
         const auto scrollViewerNotNull{sender.as<winrt::ScrollViewer>()};
         scrollViewUWPImplementation.UpdateScrollableSize();
         m_viewChanger.OnSizeChanged(scrollViewerNotNull);
       });
 
   m_scrollViewerViewChangedRevoker = scrollViewer.ViewChanged(
-      winrt::auto_revoke,
-      [this, scrollViewUWPImplementation](const auto &sender, const auto &args) {
+      winrt::auto_revoke, [this, scrollViewUWPImplementation](const auto &sender, const auto &args) {
         const auto scrollViewerNotNull{sender.as<winrt::ScrollViewer>()};
         const auto zoomFactor{scrollViewerNotNull.ZoomFactor()};
         if (m_zoomFactor != zoomFactor) {
@@ -143,7 +142,8 @@ void ScrollViewShadowNode::createView(const winrt::Microsoft::ReactNative::JSVal
           m_viewChanger.OnSizeChanged(scrollViewer);
 
           // When inverted, the inverted offsets may have changed even though the view port did not.
-          if (m_viewChanger.Inverted() && UpdateLatestOffsets(scrollViewer, scrollViewer.HorizontalOffset(), scrollViewer.VerticalOffset())) {
+          if (m_viewChanger.Inverted() &&
+              UpdateLatestOffsets(scrollViewer, scrollViewer.HorizontalOffset(), scrollViewer.VerticalOffset())) {
             EmitScrollEvent(
                 scrollViewer,
                 m_tag,
@@ -306,7 +306,8 @@ void ScrollViewShadowNode::AddHandlers(const winrt::ScrollViewer &scrollViewer) 
         }
 
         // When the ScrollView is inverted, only emit the event if the scroll offsets have changed.
-        if (UpdateLatestOffsets(scrollViewerNotNull, args.NextView().HorizontalOffset(), args.NextView().VerticalOffset())) {
+        if (UpdateLatestOffsets(
+                scrollViewerNotNull, args.NextView().HorizontalOffset(), args.NextView().VerticalOffset())) {
           EmitScrollEvent(
               scrollViewerNotNull,
               m_tag,
@@ -462,15 +463,14 @@ void ScrollViewShadowNode::UpdateZoomMode(const winrt::ScrollViewer &scrollViewe
                                                                    : winrt::ZoomMode::Disabled);
 }
 
-bool ScrollViewShadowNode::UpdateLatestOffsets(const winrt::ScrollViewer& scrollViewer, double x, double y) {
+bool ScrollViewShadowNode::UpdateLatestOffsets(const winrt::ScrollViewer &scrollViewer, double x, double y) {
   const auto [adjustedX, adjustedY] = m_viewChanger.GetScrollOffsets(scrollViewer, x, y);
 
   // When inverted, layout above the current view port should not emit scrolling events.
   // Assume that non-inverted changes should always be emitted.
   // An epsilon is used to ignore changes less than 1px.
   const auto epsilon = m_viewChanger.OffsetEpsilon();
-  if (!m_viewChanger.Inverted() ||
-      std::abs(adjustedX - m_latestX) > epsilon ||
+  if (!m_viewChanger.Inverted() || std::abs(adjustedX - m_latestX) > epsilon ||
       std::abs(adjustedY - m_latestY) > epsilon) {
     m_latestX = adjustedX;
     m_latestY = adjustedY;

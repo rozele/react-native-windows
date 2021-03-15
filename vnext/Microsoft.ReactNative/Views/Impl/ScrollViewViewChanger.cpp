@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 #include "pch.h"
 
 #include <UI.Xaml.Controls.h>
@@ -43,7 +46,8 @@ void ScrollViewViewChanger::ChangeView(
   m_lastAnimated = animated;
 
   // Calculate adjusted scroll offsets for inverted views
-  const auto [adjustedX, adjustedY] = GetScrollOffsets(scrollViewer, x != nullptr ? x.Value() : 0, y != nullptr ? y.Value() : 0);
+  const auto [adjustedX, adjustedY] =
+      GetScrollOffsets(scrollViewer, x != nullptr ? x.Value() : 0, y != nullptr ? y.Value() : 0);
 
   // Set the target "final view" for detection of interrupted scroll command
   m_adjustedTargetX = x != nullptr ? adjustedX : scrollViewer.HorizontalOffset();
@@ -71,7 +75,8 @@ void ScrollViewViewChanger::OnViewChanging(xaml::Controls::ScrollViewerViewChang
   const auto expectedOffset = m_horizontal ? m_adjustedTargetX : m_adjustedTargetY;
   const auto actualOffset = m_horizontal ? args.FinalView().HorizontalOffset() : args.FinalView().VerticalOffset();
 
-  // For safety, checking if the target offset and the projected final offset are within epsilon (rather than checking for equality).
+  // For safety, checking if the target offset and the projected final offset are within epsilon (rather than checking
+  // for equality).
   if (std::abs(expectedOffset - actualOffset) > OffsetEpsilon()) {
     m_activeScrollCommand = false;
   }
