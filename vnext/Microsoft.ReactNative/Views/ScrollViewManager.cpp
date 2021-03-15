@@ -54,6 +54,8 @@ class ScrollViewShadowNode : public ShadowNodeBase {
   void SetScrollMode(const winrt::ScrollViewer &scrollViewer);
   void UpdateZoomMode(const winrt::ScrollViewer &scrollViewer);
   bool UpdateLatestOffsets(const winrt::ScrollViewer &scrollViewer, double x, double y);
+  bool ScrollingFromTopEdge(const winrt::ScrollViewer &scrollViewer, double x, double y);
+  bool ScrollingToTopEdge(const winrt::ScrollViewer &scrollViewer, double x, double y);
 
   float m_zoomFactor{1.0f};
   bool m_isScrollingFromInertia = false;
@@ -305,6 +307,26 @@ void ScrollViewShadowNode::AddHandlers(const winrt::ScrollViewer &scrollViewer) 
               CoalesceType::Durable);
         }
 
+        if (ScrollingToTopEdge(
+                scrollViewerNotNull, args.NextView().HorizontalOffset(), args.NextView().VerticalOffset())) {
+          if (auto snapPointManager = scrollViewerNotNull.Content().as<react::uwp::SnapPointManagingContentControl>()) {
+            if (auto panel = snapPointManager->Content().as<xaml::Controls::Panel>()) {
+              for (auto child : panel.Children()) {
+                child.as<xaml::UIElement>().CanBeScrollAnchor(false);
+              }
+            }
+          }
+        } else if (ScrollingFromTopEdge(
+                       scrollViewerNotNull, args.NextView().HorizontalOffset(), args.NextView().VerticalOffset())) {
+          if (auto snapPointManager = scrollViewerNotNull.Content().as<react::uwp::SnapPointManagingContentControl>()) {
+            if (auto panel = snapPointManager->Content().as<xaml::Controls::Panel>()) {
+              for (auto child : panel.Children()) {
+                child.as<xaml::UIElement>().CanBeScrollAnchor(true);
+              }
+            }
+          }
+        }
+
         // When the ScrollView is inverted, only emit the event if the scroll offsets have changed.
         if (UpdateLatestOffsets(
                 scrollViewerNotNull, args.NextView().HorizontalOffset(), args.NextView().VerticalOffset())) {
@@ -480,11 +502,56 @@ bool ScrollViewShadowNode::UpdateLatestOffsets(const winrt::ScrollViewer &scroll
   return false;
 }
 
+bool ScrollViewShadowNode::ScrollingFromTopEdge(const winrt::ScrollViewer &scrollViewer, double x, double y) {
+  // If we were not previously at zero, we are not scrolling away from the top edge
+  if ((m_isHorizontal && m_latestX != 0) || (!m_isHorizontal && m_latestY != 0)) {
+    return false;
+  }
+
+  // Otherwise, if the adjusted offset on the primary axis is not zero (using greater than epsilon for good measure)
+  // then we are scrolling away from the top edge
+  const auto [adjustedX, adjustedY] = m_viewChanger.GetScrollOffsets(scrollViewer, x, y);
+  const auto epsilon = m_viewChanger.OffsetEpsilon();
+  if ((m_isHorizontal && adjustedX > epsilon) || (!m_isHorizontal && adjustedY > epsilon)) {
+    return true;
+  }
+
+  return false;
+}
+
+bool ScrollViewShadowNode::ScrollingToTopEdge(const winrt::ScrollViewer &scrollViewer, double x, double y) {
+  // If we were previously at zero, we are not scrolling to the top edge
+  if ((m_isHorizontal && m_latestX == 0) || (!m_isHorizontal && m_latestY == 0)) {
+    return false;
+  }
+
+  // Otherwise, if the adjusted offset on the primary axis is zero (using less than epsilon for good measure)
+  // then we are scrolling away from the top edge
+  const auto [adjustedX, adjustedY] = m_viewChanger.GetScrollOffsets(scrollViewer, x, y);
+  const auto epsilon = m_viewChanger.OffsetEpsilon();
+  if ((m_isHorizontal && adjustedX < epsilon) || (!m_isHorizontal && adjustedY < epsilon)) {
+    return true;
+  }
+
+  return false;
+}
+
 ScrollViewManager::ScrollViewManager(const Mso::React::IReactContext &context)
     : Super(context), m_batchingEventEmitter{std::make_shared<BatchingEventEmitter>(Mso::CntPtr(&context))} {}
 
 const wchar_t *ScrollViewManager::GetName() const {
   return L"RCTScrollView";
+}
+
+void ScrollViewManager::SetLayoutProps(
+    ShadowNodeBase &nodeToUpdate,
+    const XamlView &viewToUpdate,
+    float left,
+    float top,
+    float width,
+    float height) {
+  viewToUpdate.as<xaml::UIElement>().InvalidateArrange();
+  Super::SetLayoutProps(nodeToUpdate, viewToUpdate, left, top, width, height);
 }
 
 void ScrollViewManager::GetCommands(const winrt::Microsoft::ReactNative::IJSValueWriter &writer) const {
