@@ -115,6 +115,7 @@ class TextInputShadowNode : public ShadowNodeBase {
  private:
   void dispatchTextInputChangeEvent(winrt::hstring newText);
   void registerEvents();
+  void registerPreviewKeyDown();
   void HideCaretIfNeeded();
   void setPasswordBoxPlaceholderForeground(xaml::Controls::PasswordBox passwordBox, folly::dynamic color);
   void SetText(const folly::dynamic &text);
@@ -275,57 +276,7 @@ void TextInputShadowNode::registerEvents() {
     }
   });
 
-  m_controlKeyDownRevoker =
-      control.PreviewKeyDown(winrt::auto_revoke, [=](auto &&, xaml::Input::KeyRoutedEventArgs const &args) {
-        auto isMultiline = m_isTextBox && control.as<xaml::Controls::TextBox>().AcceptsReturn();
-        auto shouldSubmit = !args.Handled();
-        if (shouldSubmit) {
-          if (!isMultiline && m_submitKeyEvents.size() == 0) {
-            // If no 'submitKeyEvents' are supplied, use the default behavior for single-line TextInput
-            shouldSubmit = args.Key() == winrt::Windows::System::VirtualKey::Enter;
-          } else if (m_submitKeyEvents.size() > 0) {
-            // If 'submitKeyEvents' are supplied, use them to determine whether to emit
-            // 'onSubmitEditing' for either single-line or multi-line TextInput
-
-            // This must be kept in sync with the default value for HandledKeyboardEvent.handledEventPhase
-            auto defaultEventPhase = HandledEventPhase::Bubbling;
-            auto currentEvent = KeyboardHelper::CreateKeyboardEvent(defaultEventPhase, args);
-            shouldSubmit = KeyboardHelper::ShouldMarkKeyboardHandled(m_submitKeyEvents, currentEvent);
-          } else {
-            // If no 'submitKeyEvents' are supplied, do not emit 'onSubmitEditing' for multi-line TextInput
-            shouldSubmit = false;
-          }
-        }
-
-        if (shouldSubmit) {
-          if (auto instance = wkinstance.lock()) {
-            folly::dynamic eventDataSubmitEditing = {};
-            if (m_isTextBox) {
-              eventDataSubmitEditing = folly::dynamic::object("target", tag)(
-                  "text", HstringToDynamic(control.as<xaml::Controls::TextBox>().Text()));
-            } else {
-              eventDataSubmitEditing = folly::dynamic::object("target", tag)(
-                  "text", HstringToDynamic(control.as<xaml::Controls::PasswordBox>().Password()));
-            }
-
-            if (m_shouldClearTextOnSubmit) {
-              if (m_isTextBox) {
-                control.as<xaml::Controls::TextBox>().ClearValue(xaml::Controls::TextBox::TextProperty());
-              } else {
-                control.as<xaml::Controls::PasswordBox>().ClearValue(xaml::Controls::PasswordBox::PasswordProperty());
-              }
-            }
-
-            instance->DispatchEvent(tag, "topTextInputSubmitEditing", std::move(eventDataSubmitEditing));
-
-            // For multi-line TextInput, we have to mark the PreviewKeyDown event as
-            // handled to prevent the TextInput from adding a newline character
-            if (isMultiline) {
-              args.Handled(true);
-            }
-          }
-        }
-      });
+  registerPreviewKeyDown();
 
   if (m_isTextBox) {
     auto textBox = control.as<xaml::Controls::TextBox>();
@@ -393,6 +344,64 @@ void TextInputShadowNode::registerEvents() {
   }
 }
 
+void TextInputShadowNode::registerPreviewKeyDown() {
+  auto control = GetView().as<xaml::Controls::Control>();
+  auto wkinstance = GetViewManager()->GetReactInstance();
+  auto tag = m_tag;
+
+  m_controlKeyDownRevoker =
+      control.PreviewKeyDown(winrt::auto_revoke, [=](auto &&, xaml::Input::KeyRoutedEventArgs const &args) {
+        auto isMultiline = m_isTextBox && control.as<xaml::Controls::TextBox>().AcceptsReturn();
+        auto shouldSubmit = !args.Handled();
+        if (shouldSubmit) {
+          if (!isMultiline && m_submitKeyEvents.size() == 0) {
+            // If no 'submitKeyEvents' are supplied, use the default behavior for single-line TextInput
+            shouldSubmit = args.Key() == winrt::Windows::System::VirtualKey::Enter;
+          } else if (m_submitKeyEvents.size() > 0) {
+            // If 'submitKeyEvents' are supplied, use them to determine whether to emit
+            // 'onSubmitEditing' for either single-line or multi-line TextInput
+
+            // This must be kept in sync with the default value for HandledKeyboardEvent.handledEventPhase
+            auto defaultEventPhase = HandledEventPhase::Bubbling;
+            auto currentEvent = KeyboardHelper::CreateKeyboardEvent(defaultEventPhase, args);
+            shouldSubmit = KeyboardHelper::ShouldMarkKeyboardHandled(m_submitKeyEvents, currentEvent);
+          } else {
+            // If no 'submitKeyEvents' are supplied, do not emit 'onSubmitEditing' for multi-line TextInput
+            shouldSubmit = false;
+          }
+        }
+
+        if (shouldSubmit) {
+          if (auto instance = wkinstance.lock()) {
+            folly::dynamic eventDataSubmitEditing = {};
+            if (m_isTextBox) {
+              eventDataSubmitEditing = folly::dynamic::object("target", tag)(
+                  "text", HstringToDynamic(control.as<xaml::Controls::TextBox>().Text()));
+            } else {
+              eventDataSubmitEditing = folly::dynamic::object("target", tag)(
+                  "text", HstringToDynamic(control.as<xaml::Controls::PasswordBox>().Password()));
+            }
+
+            if (m_shouldClearTextOnSubmit) {
+              if (m_isTextBox) {
+                control.as<xaml::Controls::TextBox>().ClearValue(xaml::Controls::TextBox::TextProperty());
+              } else {
+                control.as<xaml::Controls::PasswordBox>().ClearValue(xaml::Controls::PasswordBox::PasswordProperty());
+              }
+            }
+
+            instance->DispatchEvent(tag, "topTextInputSubmitEditing", std::move(eventDataSubmitEditing));
+
+            // For multi-line TextInput, we have to mark the PreviewKeyDown event as
+            // handled to prevent the TextInput from adding a newline character
+            if (isMultiline) {
+              args.Handled(true);
+            }
+          }
+        }
+      });
+}
+
 xaml::Shapes::Shape TextInputShadowNode::FindCaret(xaml::DependencyObject element) {
   if (element == nullptr)
     return nullptr;
@@ -443,6 +452,7 @@ void TextInputShadowNode::updateProperties(const folly::dynamic &&props) {
   auto control = GetView().as<xaml::Controls::Control>();
   auto textBox = control.try_as<xaml::Controls::TextBox>();
   auto passwordBox = control.try_as<xaml::Controls::PasswordBox>();
+  auto hasKeyDownEvents = false;
 
   for (auto &pair : props.items()) {
     const std::string &propertyName = pair.first.getString();
@@ -570,6 +580,8 @@ void TextInputShadowNode::updateProperties(const folly::dynamic &&props) {
         m_submitKeyEvents = KeyboardHelper::FromJS(propertyValue);
       else if (propertyValue.isNull())
         m_submitKeyEvents.clear();
+    } else if (propertyName == "keyDownEvents") {
+      hasKeyDownEvents = !propertyValue.isNull();
     } else {
       if (m_isTextBox) { // Applicable properties for TextBox
         if (TryUpdateTextAlignment(textBox, propertyName, propertyValue)) {
@@ -627,6 +639,13 @@ void TextInputShadowNode::updateProperties(const folly::dynamic &&props) {
   }
 
   Super::updateProperties(std::move(props));
+
+  // We need to re-register the PreviewKeyDown handler so it is invoked after the ShadowNodeBase handler
+  if (hasKeyDownEvents) {
+    m_controlKeyDownRevoker.revoke();
+    registerPreviewKeyDown();
+  }
+
   m_updating = false;
 }
 
