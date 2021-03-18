@@ -122,14 +122,6 @@ void ScrollViewShadowNode::createView() {
         const auto scrollViewer{scrollViewUWPImplementation.ScrollViewer()};
         if (scrollViewer) {
           m_viewChanger.OnSizeChanged(scrollViewer);
-
-          EmitScrollEvent(
-              scrollViewer,
-              m_tag,
-              "topScroll",
-              scrollViewer.HorizontalOffset(),
-              scrollViewer.VerticalOffset(),
-              scrollViewer.ZoomFactor());
         }
       });
 }
