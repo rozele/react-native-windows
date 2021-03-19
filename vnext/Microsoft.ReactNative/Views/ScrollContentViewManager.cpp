@@ -5,6 +5,7 @@
 
 #include "ScrollContentViewManager.h"
 
+#include "Impl/SnapPointManagingContentControl.h"
 #include "ViewPanel.h"
 
 namespace react::uwp {
@@ -17,14 +18,20 @@ const char *ScrollContentViewManager::GetName() const {
 }
 
 XamlView ScrollContentViewManager::CreateViewCore(int64_t /*tag*/) {
-  return winrt::make<winrt::react::uwp::implementation::ViewPanel>();
+  auto panel = winrt::make<winrt::react::uwp::implementation::ViewPanel>();
+  panel.VerticalAlignment(xaml::VerticalAlignment::Stretch);
+  panel.HorizontalAlignment(xaml::HorizontalAlignment::Stretch);
+  return panel.as<XamlView>();
 }
 
 void ScrollContentViewManager::AddView(const XamlView &parent, const XamlView &child, int64_t index) {
-  // All top-level children of the ScrollViewer content panel will be anchor candidates.
-  // TODO(T86782781): Pass a prop setting to the ScrollViewContent component in JS to enable / disable default scroll anchoring.
+  // All top-level children of inverted ScrollView content will be anchor candidates, unless scrolled to the top.
   auto childElement = child.as<xaml::UIElement>();
-  childElement.CanBeScrollAnchor(true);
+  auto scrollViewContentControl = parent.as<xaml::FrameworkElement>().Parent().as<SnapPointManagingContentControl>();
+  if (scrollViewContentControl && scrollViewContentControl->IsInverted() && !scrollViewContentControl->IsScrolledToTop()) {
+    childElement.CanBeScrollAnchor(true);
+  }
+
   parent.as<winrt::react::uwp::ViewPanel>().InsertAt(static_cast<uint32_t>(index), childElement);
 }
 

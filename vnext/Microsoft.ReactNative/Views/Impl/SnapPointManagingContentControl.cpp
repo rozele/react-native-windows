@@ -124,6 +124,14 @@ void SnapPointManagingContentControl::SetHorizontal(bool horizontal) {
   }
 }
 
+void SnapPointManagingContentControl::SetInverted(bool inverted) {
+  m_inverted = inverted;
+}
+
+void SnapPointManagingContentControl::SetScrolledToTop(bool scrolledToTop) {
+  m_scrolledToTop = scrolledToTop;
+}
+
 void SnapPointManagingContentControl::SetWidthBounds(float startWidth, float endWidth) {
   const auto update = [this, startWidth, endWidth]() {
     const auto endUpdated = [this, endWidth]() {

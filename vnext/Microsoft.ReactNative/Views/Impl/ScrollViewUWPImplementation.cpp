@@ -19,6 +19,14 @@ void ScrollViewUWPImplementation::SetHorizontal(bool horizontal) {
   ScrollViewerSnapPointManager()->SetHorizontal(horizontal);
 }
 
+void ScrollViewUWPImplementation::SetInverted(bool inverted) {
+  ScrollViewerSnapPointManager()->SetInverted(inverted);
+}
+
+void ScrollViewUWPImplementation::SetScrolledToTop(bool scrolledToTop) {
+  ScrollViewerSnapPointManager()->SetScrolledToTop(scrolledToTop);
+}
+
 void ScrollViewUWPImplementation::SnapToInterval(float interval) {
   ScrollViewerSnapPointManager()->SnapToInterval(interval);
 }
