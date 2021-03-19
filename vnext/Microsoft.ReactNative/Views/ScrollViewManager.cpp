@@ -5,7 +5,6 @@
 
 #include <Views/SIPEventHandler.h>
 #include <Views/ShadowNodeBase.h>
-#include <UI.Xaml.Automation.h>
 #include "Impl/ScrollViewUWPImplementation.h"
 #include "Impl/ScrollViewViewChanger.h"
 #include "ScrollViewManager.h"
@@ -37,6 +36,7 @@ class ScrollViewShadowNode : public ShadowNodeBase {
       double x,
       double y,
       double zoom);
+  void EmitOnScrollEvent(const winrt::ScrollViewer &scrollViewer);
   template <typename T>
   std::tuple<bool, T> getPropertyAndValidity(folly::dynamic propertyValue, T defaultValue);
   void SetScrollMode(const winrt::ScrollViewer &scrollViewer);
@@ -103,7 +103,12 @@ void ScrollViewShadowNode::createView() {
       winrt::auto_revoke, [this, scrollViewUWPImplementation](const auto &sender, const auto &) {
         const auto scrollViewerNotNull{sender.as<winrt::ScrollViewer>()};
         scrollViewUWPImplementation.UpdateScrollableSize();
-        m_viewChanger.OnSizeChanged(scrollViewerNotNull);
+
+        // When inverted, the scroll offset may change with respect to the end of the content. This
+        // will emit a scroll event in the case that the computed offset changed but the did not.
+        if (m_viewChanger.OnSizeChanged(scrollViewerNotNull)) {
+          EmitOnScrollEvent(scrollViewerNotNull);
+        }
       });
 
   m_scrollViewerViewChangedRevoker = scrollViewer.ViewChanged(
@@ -122,8 +127,11 @@ void ScrollViewShadowNode::createView() {
       winrt::auto_revoke, [this, scrollViewUWPImplementation](const auto &sender, const auto &args) {
         scrollViewUWPImplementation.UpdateScrollableSize();
         const auto scrollViewer{scrollViewUWPImplementation.ScrollViewer()};
-        if (scrollViewer) {
-          m_viewChanger.OnSizeChanged(scrollViewer);
+
+        // When inverted, the scroll offset may change with respect to the end of the content. This
+        // will emit a scroll event in the case that the computed offset changed but the did not.
+        if (scrollViewer && m_viewChanger.OnSizeChanged(scrollViewer)) {
+          EmitOnScrollEvent(scrollViewer);
         }
       });
 }
@@ -276,15 +284,17 @@ void ScrollViewShadowNode::AddHandlers(const winrt::ScrollViewer &scrollViewer) 
               args.NextView().ZoomFactor());
         }
 
-        EmitScrollEvent(
-            scrollViewerNotNull,
-            m_tag,
-            "topScroll",
-            args.NextView().HorizontalOffset(),
-            args.NextView().VerticalOffset(),
-            args.NextView().ZoomFactor());
-
-        m_viewChanger.OnViewChanging(scrollViewerNotNull, args);
+        // This call checks if the offsets when adjusted for inversion have actually changed
+        // The offsets may not have changed if the native event is a result of anchoring
+        if (m_viewChanger.OnViewChanging(scrollViewerNotNull, args)) {
+          EmitScrollEvent(
+              scrollViewerNotNull,
+              m_tag,
+              "topScroll",
+              args.NextView().HorizontalOffset(),
+              args.NextView().VerticalOffset(),
+              args.NextView().ZoomFactor());
+        }
       });
 
   m_scrollViewerDirectManipulationStartedRevoker =
@@ -368,6 +378,16 @@ void ScrollViewShadowNode::EmitScrollEvent(
 
   folly::dynamic params = folly::dynamic::array(tag, eventName, eventJson);
   instance->CallJsFunction("RCTEventEmitter", "receiveEvent", std::move(params));
+}
+
+void ScrollViewShadowNode::EmitOnScrollEvent(const winrt::ScrollViewer& scrollViewer) {
+  EmitScrollEvent(
+      scrollViewer,
+      m_tag,
+      "topScroll",
+      scrollViewer.HorizontalOffset(),
+      scrollViewer.VerticalOffset(),
+      scrollViewer.ZoomFactor());
 }
 
 template <typename T>

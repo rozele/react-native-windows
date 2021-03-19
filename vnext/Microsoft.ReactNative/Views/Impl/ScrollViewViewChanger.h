@@ -19,8 +19,8 @@ class ScrollViewViewChanger {
       const winrt::IReference<double> y,
       bool disableAnimated);
 
-  void OnSizeChanged(const xaml::Controls::ScrollViewer &scrollViewer);
-  void OnViewChanging(
+  bool OnSizeChanged(const xaml::Controls::ScrollViewer &scrollViewer);
+  bool OnViewChanging(
       const xaml::Controls::ScrollViewer &scrollViewer,
       const xaml::Controls::ScrollViewerViewChangingEventArgs &args);
   void OnViewChanged(const xaml::Controls::ScrollViewerViewChangedEventArgs &args);
@@ -30,16 +30,15 @@ class ScrollViewViewChanger {
   bool m_horizontal{false};
 
   bool m_activeScrollCommand{false};
-  double m_adjustedTargetX{0};
-  double m_adjustedTargetY{0};
 
-  winrt::IReference<double> m_lastX{nullptr};
-  winrt::IReference<double> m_lastY{nullptr};
-  bool m_lastAnimated{false};
+  winrt::IReference<double> m_lastChangeViewX{nullptr};
+  winrt::IReference<double> m_lastChangeViewY{nullptr};
+  bool m_lastChangeViewAnimated{false};
 
-  double m_latestX{0};
-  double m_latestY{0};
+  double m_latestOnScrollX{0};
+  double m_latestOnScrollY{0};
 
+  bool UpdateLatestOffsets(const xaml::Controls::ScrollViewer &scrollViewer, double x, double y);
   static void SetContentScrollAnchors(const xaml::Controls::ScrollViewer &scrollViewer, bool enabled);
 };
 
