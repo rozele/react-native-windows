@@ -49,12 +49,22 @@ class SnapPointManagingContentControl
 
   // Helpers
   void SetHorizontal(bool horizontal);
+  void SetInverted(bool inverted);
+  void SetScrolledToTop(bool scrolledToTop);
   void SetHeightBounds(float startHeight, float endHeight);
   void SetWidthBounds(float startWidth, float endWidth);
   void SetViewportSize(float scaledViewportWidth, float scaledviewportHeight);
 
   bool IsHorizontal() {
     return m_horizontal;
+  }
+
+  bool IsInverted() {
+    return m_inverted;
+  }
+
+  bool IsSetScrolledToTop() {
+    return m_scrolledToTop;
   }
 
  private:
@@ -67,6 +77,8 @@ class SnapPointManagingContentControl
   winrt::event<winrt::EventHandler<winrt::IInspectable>> m_verticalSnapPointsChangedEventSource;
 
   bool m_horizontal{false};
+  bool m_inverted{false};
+  bool m_scrolledToTop{false};
   float m_startHeight{0};
   float m_startWidth{0};
   float m_endHeight{INFINITY};

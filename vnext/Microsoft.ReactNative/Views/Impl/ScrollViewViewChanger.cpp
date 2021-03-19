@@ -5,15 +5,12 @@
 
 #include <UI.Xaml.Controls.h>
 #include "ScrollViewViewChanger.h"
+#include "ScrollViewUWPImplementation.h"
+#include "SnapPointManagingContentControl.h"
 
 namespace react::uwp {
 
-double ScrollViewViewChanger::OffsetEpsilon() const {
-  // When anchored, the view port may change slightly.
-  // This epsilon is used to ignore minor view port shifts
-  // that occur during anchoring as content size changes.
-  return 1.0;
-}
+constexpr const double SCROLL_EPSILON = 1.0;
 
 void ScrollViewViewChanger::Horizontal(bool horizontal) {
   m_horizontal = horizontal;
@@ -59,29 +56,66 @@ void ScrollViewViewChanger::ChangeView(
   scrollViewer.ChangeView(x == nullptr ? x : adjustedX, y == nullptr ? y : adjustedY, nullptr, !animated);
 }
 
-void ScrollViewViewChanger::OnSizeChanged(xaml::Controls::ScrollViewer scrollViewer) {
+void ScrollViewViewChanger::OnSizeChanged(const xaml::Controls::ScrollViewer &scrollViewer) {
   // Restart scroll command if size changes when inverted
   if (m_inverted && m_activeScrollCommand) {
     ChangeView(scrollViewer, m_lastX, m_lastY, m_lastAnimated);
   }
 }
 
-void ScrollViewViewChanger::OnViewChanged(xaml::Controls::ScrollViewerViewChangedEventArgs args) {
-  // Stop tracking scroll command once the ScrollView comes to rest
-  if (!args.IsIntermediate()) {
-    m_activeScrollCommand = false;
-  }
-}
-
-void ScrollViewViewChanger::OnViewChanging(xaml::Controls::ScrollViewerViewChangingEventArgs args) {
+void ScrollViewViewChanger::OnViewChanging(
+    const xaml::Controls::ScrollViewer &scrollViewer,
+    const xaml::Controls::ScrollViewerViewChangingEventArgs &args) {
   // If the scroll destination has changed, we can assume it's due to a user manipulation and scroll command is canceled
   const auto expectedOffset = m_horizontal ? m_adjustedTargetX : m_adjustedTargetY;
   const auto actualOffset = m_horizontal ? args.FinalView().HorizontalOffset() : args.FinalView().VerticalOffset();
 
   // For safety, checking if the target offset and the projected final offset are within epsilon (rather than checking
   // for equality).
-  if (std::abs(expectedOffset - actualOffset) > OffsetEpsilon()) {
+  if (std::abs(expectedOffset - actualOffset) > SCROLL_EPSILON) {
     m_activeScrollCommand = false;
+  }
+
+  // For inverted views, we need to detect if we're scrolling to or away from the bottom edge
+  if (m_inverted) {
+    const auto [nextX, nextY] =
+        GetScrollOffsets(scrollViewer, args.NextView().HorizontalOffset(), args.NextView().VerticalOffset());
+
+    auto scrolledToTop = m_horizontal ? m_latestX < SCROLL_EPSILON : m_latestY < SCROLL_EPSILON;
+    auto scrollingToTop = m_horizontal ? nextX < SCROLL_EPSILON : nextY < SCROLL_EPSILON;
+    m_latestX = nextX;
+    m_latestY = nextY;
+
+    ScrollViewUWPImplementation(scrollViewer).SetScrolledToTop(scrollingToTop);
+    if (scrolledToTop && !scrollingToTop) {
+      // If scrolling away from anchor edge, turn on view anchoring
+      SetContentScrollAnchors(scrollViewer, true);
+    } else if (!scrolledToTop && scrollingToTop) {
+      // If scrolling to anchor edge, turn off view anchoring
+      SetContentScrollAnchors(scrollViewer, false);
+    }
+  }
+}
+
+void ScrollViewViewChanger::OnViewChanged(const xaml::Controls::ScrollViewerViewChangedEventArgs &args) {
+  // Stop tracking scroll command once the ScrollView comes to rest
+  if (!args.IsIntermediate()) {
+    m_activeScrollCommand = false;
+  }
+}
+
+void ScrollViewViewChanger::SetContentScrollAnchors(const xaml::Controls::ScrollViewer &scrollViewer, bool enabled) {
+  if (auto snapPointManager = scrollViewer.Content().as<react::uwp::SnapPointManagingContentControl>()) {
+    if (auto panel = snapPointManager->Content().as<xaml::Controls::Panel>()) {
+      for (const auto &child : panel.Children()) {
+        const auto &childElement = child.as<xaml::UIElement>();
+        if (enabled) {
+          childElement.CanBeScrollAnchor(true);
+        } else {
+          childElement.ClearValue(xaml::UIElement::CanBeScrollAnchorProperty());
+        }
+      }
+    }
   }
 }
 

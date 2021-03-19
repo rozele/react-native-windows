@@ -5,6 +5,7 @@
 
 #include <Views/SIPEventHandler.h>
 #include <Views/ShadowNodeBase.h>
+#include <UI.Xaml.Automation.h>
 #include "Impl/ScrollViewUWPImplementation.h"
 #include "Impl/ScrollViewViewChanger.h"
 #include "ScrollViewManager.h"
@@ -25,7 +26,7 @@ class ScrollViewShadowNode : public ShadowNodeBase {
   void dispatchCommand(const std::string &commandId, const folly::dynamic &commandArgs) override;
   void createView() override;
   void updateProperties(const folly::dynamic &&props) override;
-  bool Inverted() const;
+  bool IsInverted() const;
 
  private:
   void AddHandlers(const winrt::ScrollViewer &scrollViewer);
@@ -40,11 +41,6 @@ class ScrollViewShadowNode : public ShadowNodeBase {
   std::tuple<bool, T> getPropertyAndValidity(folly::dynamic propertyValue, T defaultValue);
   void SetScrollMode(const winrt::ScrollViewer &scrollViewer);
   void UpdateZoomMode(const winrt::ScrollViewer &scrollViewer);
-  bool UpdateLatestOffsets(const winrt::ScrollViewer &scrollViewer, double x, double y);
-  bool IsScrolledToTop();
-  bool ScrollingFromTopEdge(const winrt::ScrollViewer &scrollViewer, double x, double y);
-  bool ScrollingToTopEdge(const winrt::ScrollViewer &scrollViewer, double x, double y);
-  void SetContentScrollAnchors(const winrt::ScrollViewer &scrollViewer, bool enabled);
 
   float m_zoomFactor{1.0f};
   bool m_isScrollingFromInertia = false;
@@ -53,8 +49,6 @@ class ScrollViewShadowNode : public ShadowNodeBase {
   bool m_isScrollingEnabled = true;
   bool m_changeViewAfterLoaded = false;
   bool m_dismissKeyboardOnDrag = false;
-  double m_latestX = 0.0;
-  double m_latestY = 0.0;
 
   react::uwp::ScrollViewViewChanger m_viewChanger;
 
@@ -130,23 +124,6 @@ void ScrollViewShadowNode::createView() {
         const auto scrollViewer{scrollViewUWPImplementation.ScrollViewer()};
         if (scrollViewer) {
           m_viewChanger.OnSizeChanged(scrollViewer);
-
-          // When inverted and scrolled to top, we need to reset any child anchor settings
-          if (m_viewChanger.Inverted() && IsScrolledToTop()) {
-            SetContentScrollAnchors(scrollViewer, false);
-          }
-
-          // When inverted, the inverted offsets may have changed even though the view port did not.
-          if (m_viewChanger.Inverted() &&
-              UpdateLatestOffsets(scrollViewer, scrollViewer.HorizontalOffset(), scrollViewer.VerticalOffset())) {
-            EmitScrollEvent(
-                scrollViewer,
-                m_tag,
-                "topScroll",
-                scrollViewer.HorizontalOffset(),
-                scrollViewer.VerticalOffset(),
-                scrollViewer.ZoomFactor());
-          }
         }
       });
 }
@@ -252,6 +229,8 @@ void ScrollViewShadowNode::updateProperties(const folly::dynamic &&reactDiffMap)
       const auto [valid, inverted] = getPropertyAndValidity(propertyValue, false);
       if (valid) {
         m_viewChanger.Inverted(inverted);
+        ScrollViewUWPImplementation(scrollViewer).SetScrolledToTop(inverted);
+        ScrollViewUWPImplementation(scrollViewer).SetInverted(inverted);
         if (inverted) {
           scrollViewer.HorizontalAnchorRatio(1.0);
           scrollViewer.VerticalAnchorRatio(1.0);
@@ -267,7 +246,7 @@ void ScrollViewShadowNode::updateProperties(const folly::dynamic &&reactDiffMap)
   m_updating = false;
 }
 
-bool ScrollViewShadowNode::Inverted() const {
+bool ScrollViewShadowNode::IsInverted() const {
   return m_viewChanger.Inverted();
 }
 
@@ -297,28 +276,15 @@ void ScrollViewShadowNode::AddHandlers(const winrt::ScrollViewer &scrollViewer) 
               args.NextView().ZoomFactor());
         }
 
-        // If scrolling to the top edge, unset all the scroll anchors to prevent issues with anchoring during window resizing.
-        if (m_viewChanger.Inverted() && ScrollingToTopEdge(
-                scrollViewerNotNull, args.NextView().HorizontalOffset(), args.NextView().VerticalOffset())) {
-          SetContentScrollAnchors(scrollViewerNotNull, false);
-        // If scrolling away from the top edge, reset all content children to be scroll anchor candidates.
-        } else if (m_viewChanger.Inverted() && ScrollingFromTopEdge(
-                      scrollViewerNotNull, args.NextView().HorizontalOffset(), args.NextView().VerticalOffset())) {
-          SetContentScrollAnchors(scrollViewerNotNull, true);
-        }
+        EmitScrollEvent(
+            scrollViewerNotNull,
+            m_tag,
+            "topScroll",
+            args.NextView().HorizontalOffset(),
+            args.NextView().VerticalOffset(),
+            args.NextView().ZoomFactor());
 
-        // When the ScrollView is inverted, only emit the event if the scroll offsets have changed.
-        // The method will always return true when ScrollView is not inverted.
-        if (UpdateLatestOffsets(
-                scrollViewerNotNull, args.NextView().HorizontalOffset(), args.NextView().VerticalOffset())) {
-          EmitScrollEvent(
-              scrollViewerNotNull,
-              m_tag,
-              "topScroll",
-              args.NextView().HorizontalOffset(),
-              args.NextView().VerticalOffset(),
-              args.NextView().ZoomFactor());
-        }
+        m_viewChanger.OnViewChanging(scrollViewerNotNull, args);
       });
 
   m_scrollViewerDirectManipulationStartedRevoker =
@@ -470,63 +436,6 @@ void ScrollViewShadowNode::UpdateZoomMode(const winrt::ScrollViewer &scrollViewe
                                                                    : winrt::ZoomMode::Disabled);
 }
 
-bool ScrollViewShadowNode::UpdateLatestOffsets(const winrt::ScrollViewer &scrollViewer, double x, double y) {
-  const auto [adjustedX, adjustedY] = m_viewChanger.GetScrollOffsets(scrollViewer, x, y);
-
-  // When inverted, layout above the current view port should not emit scrolling events.
-  // Assume that non-inverted changes should always be emitted.
-  // An epsilon is used to ignore changes less than 1px.
-  const auto epsilon = m_viewChanger.OffsetEpsilon();
-  if (!m_viewChanger.Inverted() || std::abs(adjustedX - m_latestX) > epsilon ||
-      std::abs(adjustedY - m_latestY) > epsilon) {
-    m_latestX = adjustedX;
-    m_latestY = adjustedY;
-    return true;
-  }
-
-  return false;
-}
-
-bool ScrollViewShadowNode::IsScrolledToTop() {
-  return (m_isHorizontal && m_latestX == 0) || (!m_isHorizontal && m_latestY == 0);
-}
-
-bool ScrollViewShadowNode::ScrollingFromTopEdge(const winrt::ScrollViewer &scrollViewer, double x, double y) {
-  // If we were not previously to top, we are not scrolling away from the top edge
-  if (!IsScrolledToTop()) {
-    return false;
-  }
-
-  // Otherwise, if the adjusted offset on the primary axis is not zero (using greater than epsilon for good measure)
-  // then we are scrolling away from the top edge
-  const auto [adjustedX, adjustedY] = m_viewChanger.GetScrollOffsets(scrollViewer, x, y);
-  const auto epsilon = m_viewChanger.OffsetEpsilon();
-  return (m_isHorizontal && adjustedX > epsilon) || (!m_isHorizontal && adjustedY > epsilon);
-}
-
-bool ScrollViewShadowNode::ScrollingToTopEdge(const winrt::ScrollViewer &scrollViewer, double x, double y) {
-  // If we were previously at top top, we are not scrolling to the top edge
-  if (IsScrolledToTop()) {
-    return false;
-  }
-
-  // Otherwise, if the adjusted offset on the primary axis is zero (using less than epsilon for good measure)
-  // then we are scrolling away from the top edge
-  const auto [adjustedX, adjustedY] = m_viewChanger.GetScrollOffsets(scrollViewer, x, y);
-  const auto epsilon = m_viewChanger.OffsetEpsilon();
-  return (m_isHorizontal && adjustedX < epsilon) || (!m_isHorizontal && adjustedY < epsilon);
-}
-
-void ScrollViewShadowNode::SetContentScrollAnchors(const winrt::ScrollViewer &scrollViewer, bool enabled) {
-  if (auto snapPointManager = scrollViewer.Content().as<react::uwp::SnapPointManagingContentControl>()) {
-    if (auto panel = snapPointManager->Content().as<xaml::Controls::Panel>()) {
-      for (const auto& child : panel.Children()) {
-        child.as<xaml::UIElement>().CanBeScrollAnchor(enabled);
-      }
-    }
-  }
-}
-
 ScrollViewManager::ScrollViewManager(const std::shared_ptr<IReactInstance> &reactInstance) : Super(reactInstance) {}
 
 const char *ScrollViewManager::GetName() const {
@@ -592,7 +501,7 @@ void ScrollViewManager::SetLayoutProps(
   // ScrollViewer selects an anchor during the Arrange phase of layout.
   // If you do not call InvalidateArrange whenever a new child is added
   // to the ScrollViewer content, the anchor behavior does not seem to work.
-  if (static_cast<ScrollViewShadowNode&>(nodeToUpdate).Inverted()) {
+  if (static_cast<ScrollViewShadowNode&>(nodeToUpdate).IsInverted()) {
     viewToUpdate.as<xaml::UIElement>().InvalidateArrange();
   }
 

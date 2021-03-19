@@ -7,7 +7,6 @@ namespace react::uwp {
 
 class ScrollViewViewChanger {
  public:
-  double OffsetEpsilon() const;
   void Horizontal(bool horizontal);
   bool Inverted() const;
   void Inverted(bool inverted);
@@ -20,21 +19,28 @@ class ScrollViewViewChanger {
       const winrt::IReference<double> y,
       bool disableAnimated);
 
-  void OnSizeChanged(xaml::Controls::ScrollViewer scrollViewer);
-  void OnViewChanged(xaml::Controls::ScrollViewerViewChangedEventArgs args);
-  void OnViewChanging(xaml::Controls::ScrollViewerViewChangingEventArgs args);
+  void OnSizeChanged(const xaml::Controls::ScrollViewer &scrollViewer);
+  void OnViewChanging(
+      const xaml::Controls::ScrollViewer &scrollViewer,
+      const xaml::Controls::ScrollViewerViewChangingEventArgs &args);
+  void OnViewChanged(const xaml::Controls::ScrollViewerViewChangedEventArgs &args);
 
  private:
   bool m_inverted{false};
   bool m_horizontal{false};
 
   bool m_activeScrollCommand{false};
-  double m_adjustedTargetX;
-  double m_adjustedTargetY;
+  double m_adjustedTargetX{0};
+  double m_adjustedTargetY{0};
 
-  winrt::IReference<double> m_lastX;
-  winrt::IReference<double> m_lastY;
+  winrt::IReference<double> m_lastX{nullptr};
+  winrt::IReference<double> m_lastY{nullptr};
   bool m_lastAnimated{false};
+
+  double m_latestX{0};
+  double m_latestY{0};
+
+  static void SetContentScrollAnchors(const xaml::Controls::ScrollViewer &scrollViewer, bool enabled);
 };
 
 } // namespace react::uwp
