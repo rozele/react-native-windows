@@ -84,17 +84,15 @@ bool ScrollViewViewChanger::OnViewChanging(
   const auto [nextX, nextY] =
       GetScrollOffsets(scrollViewer, args.NextView().HorizontalOffset(), args.NextView().VerticalOffset());
 
+  // For inverted views, we need to detect if we're scrolling to or away from the bottom edge to enable or disable view anchoring
+  auto scrolledToTop = m_horizontal ? m_latestOnScrollX < SCROLL_EPSILON : m_latestOnScrollY < SCROLL_EPSILON;
+  auto scrollingToTop = m_horizontal ? nextX < SCROLL_EPSILON : nextY < SCROLL_EPSILON;
+
   // If the inverted offsets have not changed, we should not emit an event
   // We also will not need to check if scrolling to or from the bottom edge
   if (!UpdateLatestOffsets(scrollViewer, nextX, nextY)) {
     return false;
   }
-
-  // For inverted views, we need to detect if we're scrolling to or away from the bottom edge to enable or disable view anchoring
-  auto scrolledToTop = m_horizontal ? m_latestOnScrollX < SCROLL_EPSILON : m_latestOnScrollY < SCROLL_EPSILON;
-  auto scrollingToTop = m_horizontal ? nextX < SCROLL_EPSILON : nextY < SCROLL_EPSILON;
-  m_latestOnScrollX = nextX;
-  m_latestOnScrollY = nextY;
 
   ScrollViewUWPImplementation(scrollViewer).SetScrolledToTop(scrollingToTop);
   if (scrolledToTop && !scrollingToTop) {
@@ -117,13 +115,10 @@ void ScrollViewViewChanger::OnViewChanged(const xaml::Controls::ScrollViewerView
 }
 
 bool ScrollViewViewChanger::UpdateLatestOffsets(const xaml::Controls::ScrollViewer& scrollViewer, double x, double y) {
-  if (std::abs(x - m_latestOnScrollX) > SCROLL_EPSILON || std::abs(y - m_latestOnScrollY) > SCROLL_EPSILON) {
-    m_latestOnScrollX = x;
-    m_latestOnScrollY = y;
-    return true;
-  }
-
-  return false;
+  const auto viewChanging = std::abs(x - m_latestOnScrollX) > SCROLL_EPSILON || std::abs(y - m_latestOnScrollY) > SCROLL_EPSILON;
+  m_latestOnScrollX = x;
+  m_latestOnScrollY = y;
+  return viewChanging;
 }
 
 void ScrollViewViewChanger::SetContentScrollAnchors(const xaml::Controls::ScrollViewer &scrollViewer, bool enabled) {
