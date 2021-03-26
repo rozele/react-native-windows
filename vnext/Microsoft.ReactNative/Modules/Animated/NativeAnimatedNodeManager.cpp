@@ -336,9 +336,15 @@ void NativeAnimatedNodeManager::AddDelayedPropsNode(
     const std::shared_ptr<IReactInstance> &instance) {
   m_delayedPropsNodes.push_back(propsNodeTag);
   if (m_delayedPropsNodes.size() <= 1) {
-    static_cast<NativeUIManager *>(instance->NativeUIManager())->AddBatchCompletedCallback([this]() {
-      ProcessDelayedPropsNodes();
-    });
+    // TODO: Revert this chagnge with T85253407
+    // ARCHON_RNW_ANIMATED_RACES Mitigate (but not fix) crashes during unload/reload.
+    // We at least check if we could get the native UI manager.
+    auto nativeUIManager = static_cast<NativeUIManager *>(instance->NativeUIManager());
+    if (nativeUIManager) {
+      nativeUIManager->AddBatchCompletedCallback([this]() {
+        ProcessDelayedPropsNodes();
+      });
+    }
   }
 }
 

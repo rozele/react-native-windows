@@ -54,9 +54,13 @@ void AnimationDriver::StartAnimation() {
   }
   scopedBatch.End();
 
-  m_scopedBatchCompletedToken = scopedBatch.Completed([&](auto sender, auto) {
-    DoCallback(true);
-    if (auto manager = m_manager.lock()) {
+  m_scopedBatchCompletedToken = scopedBatch.Completed([&, weakManager = m_manager](auto sender, auto) {
+    // TODO: Revert this chagnge with T85253407
+    // ARCHON_RNW_ANIMATED_RACES Mitigate (but not fix) crashes during unload/reload.
+    // This driver may have already been freed before the callback runs. We cannot
+    // easily grab a weak pointer to it ... so at least make sure the manager is around.
+    if (auto manager = weakManager.lock()) {
+      DoCallback(true);
       if (auto const animatedValue = manager->GetValueAnimatedNode(m_animatedValueTag)) {
         animatedValue->RemoveActiveAnimation(m_id);
         animatedValue->FlattenOffset();
