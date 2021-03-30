@@ -320,6 +320,9 @@
     <ClCompile Include="Utils\TextHitTestUtils.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
+    <ClCompile Include="Views\HyperlinkTextViewManager.cpp">
+      <Filter>Views</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ABICxxModule.h" />
@@ -685,6 +688,9 @@
     </ClInclude>
     <ClInclude Include="Utils\TextHitTestUtils.h">
       <Filter>Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="Views\HyperlinkTextViewManager.h">
+      <Filter>Views</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

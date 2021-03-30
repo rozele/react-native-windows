@@ -11,7 +11,7 @@
 
 namespace Microsoft::ReactNative {
 
-struct VirtualTextShadowNode final : public ShadowNodeBase {
+struct VirtualTextShadowNode : public ShadowNodeBase {
   using Super = ShadowNodeBase;
   TextTransform textTransform{TextTransform::Undefined};
 
