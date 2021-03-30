@@ -14,6 +14,7 @@
 #include <Views/DatePickerViewManager.h>
 #include <Views/FlyoutViewManager.h>
 #include <Views/FocusZoneViewManager.h>
+#include <Views/HyperlinkTextViewManager.h>
 #include <Views/Image/ImageViewManager.h>
 #include <Views/PickerViewManager.h>
 #include <Views/PopupViewManager.h>
@@ -46,6 +47,7 @@ void AddStandardViewManagers(
   viewManagers.push_back(std::make_unique<DatePickerViewManager>(instance));
   viewManagers.push_back(std::make_unique<FlyoutViewManager>(instance));
   viewManagers.push_back(std::make_unique<FocusZoneViewManager>(instance));
+  viewManagers.push_back(std::make_unique<HyperlinkTextViewManager>(instance));
   viewManagers.push_back(std::make_unique<ImageViewManager>(instance));
   viewManagers.push_back(std::make_unique<PickerViewManager>(instance));
   viewManagers.push_back(std::make_unique<PopupViewManager>(instance));
