@@ -4,6 +4,7 @@
 #include "pch.h"
 
 #include "TextViewManager.h"
+#include "TouchEventHandler.h"
 
 #include <Views/RawTextViewManager.h>
 #include <Views/ShadowNodeBase.h>
@@ -26,6 +27,10 @@ using namespace xaml::Automation::Peers;
 
 namespace react::uwp {
 
+struct TextSelectionState {
+  bool selectionChanged{false};
+};
+
 class TextShadowNode final : public ShadowNodeBase {
   using Super = ShadowNodeBase;
   friend TextViewManager;
@@ -35,6 +40,8 @@ class TextShadowNode final : public ShadowNodeBase {
 
   std::optional<winrt::Windows::UI::Color> m_ColorValue = std::nullopt;
   int32_t m_prevCursorEnd = 0;
+  std::unique_ptr<TouchEventHandler> m_touchEventHandler{nullptr};
+  winrt::event_revoker<xaml::Controls::ITextBlock> m_selectionChangedRevoker;
 
  public:
   TextShadowNode() {
@@ -112,6 +119,34 @@ class TextShadowNode final : public ShadowNodeBase {
     newHigh.Ranges().Append(newRange);
 
     this->GetView().as<xaml::Controls::TextBlock>().TextHighlighters().Append(newHigh);
+  }
+
+  void ToggleTouchEvents(XamlView xamlView, bool selectable) {
+    if (selectable) {
+      if (m_touchEventHandler == nullptr) {
+        m_touchEventHandler = std::make_unique<TouchEventHandler>(GetViewManager()->GetReactInstance());
+      }
+
+      const auto textSelectionState = std::make_shared<TextSelectionState>();
+      std::function<bool()> shouldCancelOnCaptureLost = [textSelectionState]() {
+        const auto wasSelectionChanged = textSelectionState->selectionChanged;
+        textSelectionState->selectionChanged = false;
+        return wasSelectionChanged;
+      };
+
+      m_selectionChangedRevoker = xamlView.as<xaml::Controls::TextBlock>().SelectionChanged(
+          winrt::auto_revoke, [textSelectionState](const auto &sender, auto &&) {
+            const auto textBlock = sender.as<xaml::Controls::TextBlock>();
+            textSelectionState->selectionChanged = textBlock.SelectionStart().Offset() != textBlock.SelectionEnd().Offset();
+          });
+
+      m_touchEventHandler->AddTouchHandlers(xamlView, shouldCancelOnCaptureLost, true);
+    } else {
+      if (m_touchEventHandler != nullptr) {
+        m_touchEventHandler->RemoveTouchHandlers();
+        m_selectionChangedRevoker.revoke();
+      }
+    }
   }
 
   void removeAllChildren() override {
@@ -214,10 +249,14 @@ bool TextViewManager::UpdateProperty(
     else if (propertyValue.isNull())
       textBlock.ClearValue(xaml::Controls::TextBlock::LineHeightProperty());
   } else if (propertyName == "selectable") {
-    if (propertyValue.isBool())
-      textBlock.IsTextSelectionEnabled(propertyValue.asBool());
-    else if (propertyValue.isNull())
+    if (propertyValue.isBool()) {
+      const auto selectable = propertyValue.asBool();
+      textBlock.IsTextSelectionEnabled(selectable);
+      static_cast<TextShadowNode *>(nodeToUpdate)->ToggleTouchEvents(textBlock, selectable);
+    } else if (propertyValue.isNull()) {
       textBlock.ClearValue(xaml::Controls::TextBlock::IsTextSelectionEnabledProperty());
+      static_cast<TextShadowNode *>(nodeToUpdate)->ToggleTouchEvents(textBlock, false);
+    }
   } else if (propertyName == "allowFontScaling") {
     if (propertyValue.isBool()) {
       textBlock.IsTextScaleFactorEnabled(propertyValue.asBool());

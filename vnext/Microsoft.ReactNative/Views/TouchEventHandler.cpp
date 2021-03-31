@@ -28,13 +28,16 @@ namespace react::uwp {
 std::vector<int64_t> GetTagsForBranch(facebook::react::INativeUIManagerHost *host, int64_t tag);
 
 TouchEventHandler::TouchEventHandler(const std::weak_ptr<IReactInstance> &reactInstance)
-    : m_xamlView(nullptr), m_wkReactInstance(reactInstance) {}
+    : m_xamlView(nullptr), m_rootView(nullptr), m_wkReactInstance(reactInstance) {}
 
 TouchEventHandler::~TouchEventHandler() {
   RemoveTouchHandlers();
 }
 
-void TouchEventHandler::AddTouchHandlers(XamlView xamlView) {
+void TouchEventHandler::AddTouchHandlers(
+    XamlView xamlView,
+    std::function<bool()> shouldCancelOnCaptureLost,
+    bool handledEventsToo) {
   auto uiElement(xamlView.as<xaml::UIElement>());
   if (uiElement == nullptr) {
     assert(false);
@@ -42,25 +45,45 @@ void TouchEventHandler::AddTouchHandlers(XamlView xamlView) {
   }
 
   m_xamlView = xamlView;
+  m_shouldCancelOnCaptureLost = shouldCancelOnCaptureLost;
 
   RemoveTouchHandlers();
 
-  m_pressedRevoker = uiElement.PointerPressed(winrt::auto_revoke, {this, &TouchEventHandler::OnPointerPressed});
-  m_releasedRevoker = uiElement.PointerReleased(winrt::auto_revoke, {this, &TouchEventHandler::OnPointerReleased});
-  m_canceledRevoker = uiElement.PointerCanceled(winrt::auto_revoke, {this, &TouchEventHandler::OnPointerCanceled});
-  m_captureLostRevoker =
-      uiElement.PointerCaptureLost(winrt::auto_revoke, {this, &TouchEventHandler::OnPointerCaptureLost});
-  m_exitedRevoker = uiElement.PointerExited(winrt::auto_revoke, {this, &TouchEventHandler::OnPointerExited});
-  m_movedRevoker = uiElement.PointerMoved(winrt::auto_revoke, {this, &TouchEventHandler::OnPointerMoved});
+  m_pressedHandler = winrt::box_value(winrt::PointerEventHandler{this, &TouchEventHandler::OnPointerPressed});
+  m_releasedHandler = winrt::box_value(winrt::PointerEventHandler{this, &TouchEventHandler::OnPointerReleased});
+  m_canceledHandler = winrt::box_value(winrt::PointerEventHandler{this, &TouchEventHandler::OnPointerCanceled});
+  m_captureLostHandler = winrt::box_value(winrt::PointerEventHandler{this, &TouchEventHandler::OnPointerCaptureLost});
+  m_exitedHandler = winrt::box_value(winrt::PointerEventHandler{this, &TouchEventHandler::OnPointerExited});
+  m_movedHandler = winrt::box_value(winrt::PointerEventHandler{this, &TouchEventHandler::OnPointerMoved});
+  uiElement.AddHandler(xaml::UIElement::PointerPressedEvent(), m_pressedHandler, handledEventsToo);
+  uiElement.AddHandler(xaml::UIElement::PointerReleasedEvent(), m_releasedHandler, handledEventsToo);
+  uiElement.AddHandler(xaml::UIElement::PointerCanceledEvent(), m_canceledHandler, handledEventsToo);
+  uiElement.AddHandler(xaml::UIElement::PointerCaptureLostEvent(), m_captureLostHandler, handledEventsToo);
+  uiElement.AddHandler(xaml::UIElement::PointerExitedEvent(), m_exitedHandler, handledEventsToo);
+  uiElement.AddHandler(xaml::UIElement::PointerMovedEvent(), m_movedHandler, handledEventsToo);
+  m_subscribed = true;
 }
 
 void TouchEventHandler::RemoveTouchHandlers() {
-  m_pressedRevoker.revoke();
-  m_releasedRevoker.revoke();
-  m_canceledRevoker.revoke();
-  m_captureLostRevoker.revoke();
-  m_exitedRevoker.revoke();
-  m_movedRevoker.revoke();
+  if (m_subscribed) {
+    auto uiElement(m_xamlView.as<xaml::UIElement>());
+    uiElement.RemoveHandler(xaml::UIElement::PointerPressedEvent(), m_pressedHandler);
+    uiElement.RemoveHandler(xaml::UIElement::PointerReleasedEvent(), m_releasedHandler);
+    uiElement.RemoveHandler(xaml::UIElement::PointerCanceledEvent(), m_canceledHandler);
+    uiElement.RemoveHandler(xaml::UIElement::PointerCaptureLostEvent(), m_captureLostHandler);
+    uiElement.RemoveHandler(xaml::UIElement::PointerExitedEvent(), m_exitedHandler);
+    uiElement.RemoveHandler(xaml::UIElement::PointerMovedEvent(), m_movedHandler);
+    m_pressedHandler = nullptr;
+    m_releasedHandler = nullptr;
+    m_canceledHandler = nullptr;
+    m_captureLostHandler = nullptr;
+    m_exitedHandler = nullptr;
+    m_movedHandler = nullptr;
+    m_subscribed = false;
+    m_rootView = nullptr;
+    m_shouldCancelOnCaptureLost = nullptr;
+    m_xamlView = nullptr;
+  }
 }
 
 void TouchEventHandler::OnPointerPressed(
@@ -119,7 +142,9 @@ void TouchEventHandler::OnPointerCanceled(
 void TouchEventHandler::OnPointerCaptureLost(
     const winrt::IInspectable & /*sender*/,
     const winrt::PointerRoutedEventArgs &args) {
-  OnPointerConcluded(TouchEventType::Cancel, args);
+  if (m_shouldCancelOnCaptureLost == nullptr || m_shouldCancelOnCaptureLost()) {
+    OnPointerConcluded(TouchEventType::Cancel, args);
+  }
 }
 
 void TouchEventHandler::OnPointerExited(
@@ -227,7 +252,22 @@ void TouchEventHandler::UpdateReactPointer(
     ReactPointer &pointer,
     const winrt::PointerRoutedEventArgs &args,
     xaml::UIElement sourceElement) {
-  auto rootPoint = args.GetCurrentPoint(m_xamlView.as<xaml::FrameworkElement>());
+  const auto parentTag = GetTag(m_xamlView);
+  auto rootView = m_xamlView;
+  if (!m_rootView) {
+    if (auto instance = m_wkReactInstance.lock()) {
+      auto host = instance->NativeUIManager()->getHost();
+      const auto rootNode = static_cast<ShadowNodeBase *>(host->FindParentRootShadowNode(parentTag));
+      if (rootNode) {
+        m_rootView = rootNode->GetView();
+        rootView = m_rootView;
+      }
+    }
+  } else {
+    rootView = m_rootView;
+  }
+
+  auto rootPoint = args.GetCurrentPoint(rootView.as<xaml::FrameworkElement>());
   auto point = args.GetCurrentPoint(sourceElement);
   auto props = point.Properties();
   auto keyModifiers = static_cast<uint32_t>(args.KeyModifiers());
