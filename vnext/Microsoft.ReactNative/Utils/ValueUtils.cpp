@@ -96,6 +96,24 @@ xaml::Media::Brush BrushFromColorObject(const folly::dynamic &d) {
   return winrt::unbox_value<winrt::Brush>(resource);
 }
 
+xaml::Media::SolidColorBrush SolidBrushFromColor(winrt::Color color) {
+  thread_local static std::map<
+      winrt::Color,
+      winrt::weak_ref<xaml::Media::SolidColorBrush>,
+      ColorComp>
+      solidColorBrushCache;
+
+  if (solidColorBrushCache.count(color) != 0) {
+    if (auto brush = solidColorBrushCache[color].get()) {
+      return brush;
+    }
+  }
+
+  xaml::Media::SolidColorBrush brush(color);
+  solidColorBrushCache[color] = winrt::make_weak(brush);
+  return brush;
+}
+
 REACTWINDOWS_API_(winrt::Color) ColorFrom(const folly::dynamic &d) {
   UINT argb = static_cast<UINT>(d.asInt());
   return winrt::ColorHelper::FromArgb(GetAFromArgb(argb), GetRFromArgb(argb), GetGFromArgb(argb), GetBFromArgb(argb));
