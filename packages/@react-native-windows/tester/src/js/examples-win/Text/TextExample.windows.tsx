@@ -157,9 +157,11 @@ export class TextExample extends React.Component<{}> {
               </Text>
             </Text>
             <Text>
-              Should be "XyZ":
-              <Text style={{textTransform: 'uppercase'}}>
-                x<Text style={{textTransform: 'none'}}>y</Text>z
+              <Text>
+                Should be "xYz":
+                <Text>
+                  x<Text style={{textTransform: 'uppercase'}}>y</Text>z
+                </Text>
               </Text>
             </Text>
           </View>
