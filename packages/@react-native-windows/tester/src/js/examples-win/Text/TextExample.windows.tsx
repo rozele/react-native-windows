@@ -124,7 +124,12 @@ export class BackgroundColorDemo extends React.Component<{}> {
   }
 }
 
-export class TextExample extends React.Component<{}> {
+export class TextExample extends React.Component<{}, {toggle:boolean}> {
+  constructor(props: any) {
+    super(props)
+    this.state = {toggle: false}
+  }
+
   public render() {
     const lorumIpsum =
       'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed dapibus felis eget augue condimentum suscipit. Suspendisse hendrerit, libero aliquet malesuada tempor, urna nibh consectetur tellus, vitae efficitur quam erat non mi. Maecenas vitae eros sit amet quam vestibulum porta sed sit amet tellus. Fusce quis lectus congue, fringilla arcu id, luctus urna. Cras sagittis ornare mauris sit amet dictum. Vestibulum feugiat laoreet fringilla. Vivamus ac diam vehicula felis venenatis sagittis vitae ultrices elit. Curabitur libero augue, laoreet quis orci vitae, congue euismod massa. Aenean nec odio sed urna vehicula fermentum non a magna. Quisque ut commodo neque, eget eleifend odio. Sed sit amet lacinia sem. Suspendisse in metus in purus scelerisque vestibulum. Nam metus dui, efficitur nec metus non, tincidunt pharetra sapien. Praesent id convallis metus, ut malesuada arcu. Quisque quam libero, pharetra eu tellus ac, aliquam fringilla erat. Quisque tempus in lorem ac suscipit.';
@@ -161,6 +166,24 @@ export class TextExample extends React.Component<{}> {
               <Text style={{textTransform: 'uppercase'}}>
                 x<Text style={{textTransform: 'none'}}>y</Text>z
               </Text>
+            </Text>
+            <Text>
+              Should be "ABC"
+              <Text style={{textTransform: 'uppercase'}}>
+                a
+                <Text>
+                  b
+                  <Text>c</Text>
+                </Text>
+              </Text>
+            </Text>
+            <Text style={{textTransform: 'uppercase'}}>
+              <Text>all</Text>
+              {' '}
+              text here should be uppercase
+            </Text>
+            <Text style={{textTransform: this.state.toggle ? 'uppercase' : 'none'}} onPress={() => this.setState({toggle: !this.state.toggle})}>
+              Click to toggle uppercase. Toggle {this.state.toggle ? 'on' : 'off' }.
             </Text>
           </View>
         </RNTesterBlock>
