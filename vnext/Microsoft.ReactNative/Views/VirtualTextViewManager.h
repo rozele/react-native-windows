@@ -16,8 +16,15 @@ struct VirtualTextShadowNode final : public ShadowNodeBase {
   TextTransform textTransform{TextTransform::Undefined};
 
   void AddView(ShadowNode &child, int64_t index) override;
+  void onDropViewInstance() override;
+
+  void AddToPressableCount(int pressableCount);
+  void SetPressable(bool isPressable);
 
   static void ApplyTextTransform(ShadowNodeBase &node, TextTransform transform, bool forceUpdate, bool isRoot);
+
+  static xaml::Documents::TextPointer
+  HitTest(const ShadowNodeBase &node, const winrt::Point &point, bool hasPressableParent);
 
   struct HighlightData {
     std::vector<HighlightData> data;
@@ -26,6 +33,8 @@ struct VirtualTextShadowNode final : public ShadowNodeBase {
   };
 
   HighlightData m_highlightData;
+  int m_pressableCount{0};
+  bool m_isPressable{false};
 };
 
 class VirtualTextViewManager : public ViewManagerBase {

@@ -14,6 +14,7 @@
 #include <UI.Xaml.Controls.h>
 #include <UI.Xaml.Documents.h>
 #include <Utils/PropertyUtils.h>
+#include <Utils/TextHitTestUtils.h>
 #include <Utils/TransformableText.h>
 #include <Utils/ValueUtils.h>
 
@@ -60,6 +61,7 @@ class TextShadowNode final : public ShadowNodeBase {
               m_ColorValue.value(),
               textBlock.Text().size());
         }
+
         m_prevCursorEnd += textBlock.Text().size();
 
         return;
@@ -71,6 +73,7 @@ class TextShadowNode final : public ShadowNodeBase {
       Super::AddView(*m_firstChildNode, 0);
       m_firstChildNode = nullptr;
     }
+
     Super::AddView(child, index);
 
     if (auto run = static_cast<ShadowNodeBase&>(child).GetView().try_as<winrt::Run>()) {
@@ -81,8 +84,10 @@ class TextShadowNode final : public ShadowNodeBase {
             run.Text().size());
       }
       m_prevCursorEnd += run.Text().size();
-    } else if (auto span = static_cast<ShadowNodeBase&>(child).GetView().try_as<winrt::Span>()) {
-      AddNestedTextHighlighter(m_ColorValue, span, static_cast<VirtualTextShadowNode&>(child).m_highlightData);
+    } else if (auto span = static_cast<ShadowNodeBase &>(child).GetView().try_as<winrt::Span>()) {
+      const auto &virtualTextNode = static_cast<VirtualTextShadowNode &>(child);
+      AddNestedTextHighlighter(m_ColorValue, span, virtualTextNode.m_highlightData);
+      pressableCount += virtualTextNode.m_pressableCount;
     }
   }
 
@@ -139,7 +144,35 @@ class TextShadowNode final : public ShadowNodeBase {
     this->GetView().as<xaml::Controls::TextBlock>().TextHighlighters().Clear();
   }
 
+  int64_t GetReactTagAtPoint(const winrt::Point &point) {
+    if (pressableCount > 0) {
+      const auto textPointer = useBlockHitTest
+          ? TextHitTestUtils::GetPositionFromPoint(GetView().as<xaml::Controls::TextBlock>(), point)
+          : VirtualTextShadowNode::HitTest(*this, point, /* hasPressableParent = */ false);
+
+      if (textPointer != nullptr) {
+        auto inlineTag = GetTag(textPointer.Parent());
+        if (inlineTag != -1) {
+          if (auto instance = GetViewManager()->GetReactInstance().lock()) {
+            auto host = instance->NativeUIManager()->getHost();
+            const auto node = static_cast<ShadowNodeBase *>(host->FindShadowNodeForTag(inlineTag));
+            // React Native does not support events targeted to raw text nodes.
+            // Get the parent tag instead.
+            if (!std::strcmp(node->GetViewManager()->GetName(), "RCTRawText")) {
+              inlineTag = node->GetParent();
+            }
+            return inlineTag;
+          }
+        }
+      }
+    }
+
+    return m_tag;
+  }
+
   TextTransform textTransform{TextTransform::Undefined};
+  int pressableCount{0};
+  bool useBlockHitTest{false};
 };
 
 TextViewManager::TextViewManager(const std::shared_ptr<IReactInstance> &reactInstance) : Super(reactInstance) {}
@@ -219,6 +252,12 @@ bool TextViewManager::UpdateProperty(
     if (react::uwp::IsValidColorValue(propertyValue)) {
       static_cast<TextShadowNode*>(nodeToUpdate)->m_ColorValue = react::uwp::ColorFrom(propertyValue);
     }
+  } else if (propertyName == "hitTestStrategy") {
+    if (propertyValue.isString()) {
+      static_cast<TextShadowNode *>(nodeToUpdate)->useBlockHitTest = propertyValue.asString() == "block";
+    } else if (propertyValue.isNull()) {
+      static_cast<TextShadowNode *>(nodeToUpdate)->useBlockHitTest = false;
+    }
   } else {
     return Super::UpdateProperty(nodeToUpdate, propertyName, propertyValue);
   }
@@ -266,6 +305,22 @@ TextTransform TextViewManager::GetTextTransformValue(ShadowNodeBase *node) {
   }
 
   return TextTransform::Undefined;
+}
+
+void TextViewManager::AddToPressableCount(ShadowNodeBase *node, int pressableCount) {
+  if (!std::strcmp(node->GetViewManager()->GetName(), GetName())) {
+    const auto textNode = static_cast<TextShadowNode *>(node);
+    textNode->pressableCount += pressableCount;
+  }
+}
+
+int64_t TextViewManager::GetReactTagAtPoint(ShadowNodeBase *node, const winrt::Point &point) {
+  if (!std::strcmp(node->GetViewManager()->GetName(), "RCTText")) {
+    const auto textNode = static_cast<TextShadowNode *>(node);
+    return textNode->GetReactTagAtPoint(point);
+  }
+
+  return node->m_tag;
 }
 
 } // namespace react::uwp

@@ -3,14 +3,14 @@
 
 #include "pch.h"
 
+#include "RawTextViewManager.h"
+#include "TextViewManager.h"
 #include "VirtualTextViewManager.h"
 
-#include <Views/RawTextViewManager.h>
-
-#include <Modules/NativeUIManager.h>
 #include <UI.Xaml.Controls.h>
 #include <UI.Xaml.Documents.h>
 #include <Utils/PropertyUtils.h>
+#include <Utils/TextHitTestUtils.h>
 #include <Utils/TransformableText.h>
 #include <Utils/ValueUtils.h>
 
@@ -29,8 +29,40 @@ void VirtualTextShadowNode::AddView(ShadowNode &child, int64_t index) {
   if (auto span = childNode.GetView().try_as<xaml::Documents::Span>()) {
     auto &childVTSN = static_cast<VirtualTextShadowNode &>(child);
     m_highlightData.data.emplace_back(childVTSN.m_highlightData);
+    AddToPressableCount(childVTSN.m_pressableCount);
   }
   Super::AddView(child, index);
+}
+
+void VirtualTextShadowNode::onDropViewInstance() {
+  AddToPressableCount(-m_pressableCount);
+  Super::onDropViewInstance();
+}
+
+void VirtualTextShadowNode::AddToPressableCount(int count) {
+  m_pressableCount += count;
+  if (auto instance = GetViewManager()->GetReactInstance().lock()) {
+    auto host = instance->NativeUIManager()->getHost();
+    if (m_parent != -1) {
+      const auto parentNode = static_cast<ShadowNodeBase *>(host->FindShadowNodeForTag(m_parent));
+      const auto viewManager = parentNode->GetViewManager();
+      if (!std::strcmp(viewManager->GetName(), "RCTText")) {
+        static_cast<TextViewManager *>(viewManager)->AddToPressableCount(parentNode, count);
+      } else if (!std::strcmp(viewManager->GetName(), "RCTVirtualText")) {
+        static_cast<VirtualTextShadowNode *>(parentNode)->AddToPressableCount(count);
+      }
+    }
+  }
+}
+
+void VirtualTextShadowNode::SetPressable(bool isPressable) {
+  const auto wasPressable = m_isPressable;
+  m_isPressable = isPressable;
+  if (!wasPressable && isPressable) {
+    AddToPressableCount(1);
+  } else if (wasPressable && !isPressable) {
+    AddToPressableCount(-1);
+  }
 }
 
 void VirtualTextShadowNode::ApplyTextTransform(
@@ -85,6 +117,45 @@ void VirtualTextShadowNode::ApplyTextTransform(
   }
 }
 
+xaml::Documents::TextPointer
+VirtualTextShadowNode::HitTest(const ShadowNodeBase &node, const winrt::Point &point, bool hasPressableParent) {
+  const auto viewManager = node.GetViewManager();
+  const auto nodeType = viewManager->GetName();
+  if (!std::strcmp(nodeType, "RCTRawText")) {
+    // Check if the point is within the bounds of the Run
+    const auto run = node.GetView().as<winrt::Run>();
+    return TextHitTestUtils::GetPositionFromPoint(run, point);
+  } else {
+    const auto isVirtualText = !std::strcmp(nodeType, "RCTVirtualText");
+    auto isPressable = hasPressableParent;
+    if (isVirtualText) {
+      const auto &virtualTextNode = static_cast<const VirtualTextShadowNode &>(node);
+      if (virtualTextNode.m_isPressable) {
+        isPressable = true;
+      }
+
+      // If the node is a nested Text component, skip if it has no pressable
+      // descendants and it is not contained inside pressable text.
+      if (!isPressable && virtualTextNode.m_pressableCount == 0) {
+        return nullptr;
+      }
+    }
+
+    if (auto instance = node.GetViewManager()->GetReactInstance().lock()) {
+      auto host = instance->NativeUIManager()->getHost();
+      for (const auto childTag : node.m_children) {
+        const auto childNode = static_cast<ShadowNodeBase *>(host->FindShadowNodeForTag(childTag));
+        const auto textPointer = HitTest(*childNode, point, isPressable);
+        if (textPointer != nullptr) {
+          return textPointer;
+        }
+      }
+    }
+  }
+
+  return nullptr;
+}
+
 VirtualTextViewManager::VirtualTextViewManager(const std::shared_ptr<IReactInstance> &reactInstance)
     : Super(reactInstance) {}
 
@@ -120,6 +191,8 @@ bool VirtualTextViewManager::UpdateProperty(
       static_cast<VirtualTextShadowNode*>(nodeToUpdate)->m_highlightData.color =
           react::uwp::ColorFrom(propertyValue);
     }
+  } else if (propertyName == "isPressable") {
+    static_cast<VirtualTextShadowNode *>(nodeToUpdate)->SetPressable(propertyValue.asBool());
   } else {
     return Super::UpdateProperty(nodeToUpdate, propertyName, propertyValue);
   }
