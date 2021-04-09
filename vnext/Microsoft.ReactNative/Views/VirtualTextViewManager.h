@@ -5,7 +5,7 @@
 
 #include <INativeUIManager.h>
 #include <UI.Xaml.Documents.h>
-#include <Utils/TransformableText.h>
+#include <Utils/TextTransform.h>
 #include <Views/FrameworkElementViewManager.h>
 #include <Views/ShadowNodeBase.h>
 
@@ -13,9 +13,11 @@ namespace react::uwp {
 
 struct VirtualTextShadowNode final : public ShadowNodeBase {
   using Super = ShadowNodeBase;
-  TransformableText transformableText{};
+  TextTransform textTransform{TextTransform::Undefined};
 
   void AddView(ShadowNode &child, int64_t index) override;
+
+  static void ApplyTextTransform(ShadowNodeBase &node, TextTransform transform, bool forceUpdate, bool isRoot);
 
   struct HighlightData {
     std::vector<HighlightData> data;

@@ -5,6 +5,7 @@
 
 #include "RawTextViewManager.h"
 #include "TextViewManager.h"
+#include "VirtualTextViewManager.h"
 
 #include <Views/ShadowNodeBase.h>
 
@@ -46,38 +47,49 @@ bool RawTextViewManager::UpdateProperty(
     return true;
 
   if (propertyName == "text") {
-    run.Text(asHstring(propertyValue));
-
-    if (nodeToUpdate->GetParent() != -1) {
-      if (auto instance = this->m_wkReactInstance.lock()) {
-        const ShadowNodeBase *parent = static_cast<ShadowNodeBase *>(
-            instance->NativeUIManager()->getHost()->FindShadowNodeForTag(nodeToUpdate->GetParent()));
-        if (parent && parent->m_children.size() == 1) {
-          auto view = parent->GetView();
-          auto textBlock = view.try_as<winrt::TextBlock>();
-          if (textBlock != nullptr) {
-            textBlock.Text(run.Text());
-          }
-        }
-
-        NotifyAncestorsTextChanged(instance.operator->(), nodeToUpdate);
-      }
-    }
+    run.Text(react::uwp::asHstring(propertyValue));
+    static_cast<RawTextShadowNode *>(nodeToUpdate)->originalText = winrt::hstring{};
+    NotifyAncestorsTextChanged(nodeToUpdate);
   } else {
     return Super::UpdateProperty(nodeToUpdate, propertyName, propertyValue);
   }
   return true;
 }
 
-void RawTextViewManager::NotifyAncestorsTextChanged(IReactInstance *instance, ShadowNodeBase *nodeToUpdate) {
-  auto host = instance->NativeUIManager()->getHost();
-  ShadowNodeBase *parent = static_cast<ShadowNodeBase *>(host->FindShadowNodeForTag(nodeToUpdate->GetParent()));
-  while (parent) {
-    auto viewManager = parent->GetViewManager();
-    if (!std::strcmp(viewManager->GetName(), "RCTText")) {
-      (static_cast<TextViewManager *>(viewManager))->OnDescendantTextPropertyChanged(parent);
+void RawTextViewManager::NotifyAncestorsTextChanged(ShadowNodeBase *nodeToUpdate) {
+  if (auto instance = this->m_wkReactInstance.lock()) {
+    auto host = instance->NativeUIManager()->getHost();
+    ShadowNodeBase *parent = static_cast<ShadowNodeBase *>(host->FindShadowNodeForTag(nodeToUpdate->GetParent()));
+    TextTransform textTransform = TextTransform::Undefined;
+    while (parent) {
+      auto viewManager = parent->GetViewManager();
+      const auto nodeType = viewManager->GetName();
+      if (!std::strcmp(nodeType, "RCTText")) {
+        const auto textViewManager = static_cast<TextViewManager *>(viewManager);
+        if (textTransform == TextTransform::Undefined) {
+          textTransform = textViewManager->GetTextTransformValue(parent);
+        }
+
+        VirtualTextShadowNode::ApplyTextTransform(
+            *nodeToUpdate, textTransform, /* forceUpdate = */ false, /* isRoot = */ false);
+
+        if (parent->m_children.size() == 1) {
+          auto view = parent->GetView();
+          auto textBlock = view.try_as<winrt::TextBlock>();
+          if (textBlock != nullptr) {
+            const auto run = nodeToUpdate->GetView().try_as<winrt::Run>();
+            if (run != nullptr) {
+              textBlock.Text(run.Text());
+            }
+          }
+        }
+
+        (static_cast<TextViewManager *>(viewManager))->OnDescendantTextPropertyChanged(parent);
+      } else if (!std::strcmp(nodeType, "RCTVirtualText") && textTransform == TextTransform::Undefined) {
+        textTransform = static_cast<VirtualTextShadowNode *>(parent)->textTransform;
+      }
+      parent = static_cast<ShadowNodeBase *>(host->FindShadowNodeForTag(parent->GetParent()));
     }
-    parent = static_cast<ShadowNodeBase *>(host->FindShadowNodeForTag(parent->GetParent()));
   }
 }
 

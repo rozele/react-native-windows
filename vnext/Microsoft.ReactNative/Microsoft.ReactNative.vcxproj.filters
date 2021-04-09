@@ -726,6 +726,9 @@
     <ClInclude Include="Views\HyperlinkTextViewManager.h">
       <Filter>Views</Filter>
     </ClInclude>
+    <ClInclude Include="Utils\TextTransform.h">
+      <Filter>Utils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Midl Include="IJSValueReader.idl" />
