@@ -3,7 +3,6 @@
 
 #pragma once
 #include <IReactInstance.h>
-#include <UI.Xaml.Documents.h>
 #include <folly/dynamic.h>
 #include <winrt/Windows.Devices.Input.h>
 #include <optional>
@@ -14,7 +13,6 @@ namespace winrt {
 using namespace Windows::UI;
 using namespace xaml;
 using namespace xaml::Controls;
-using namespace xaml::Documents;
 using namespace xaml::Input;
 using namespace Windows::Foundation;
 using namespace xaml::Media;
@@ -91,7 +89,6 @@ class TouchEventHandler {
   int64_t m_touchId = 0;
 
   bool TagFromOriginalSource(const winrt::PointerRoutedEventArgs &args, int64_t *pTag, xaml::UIElement *pSourceElement);
-  static winrt::TextPointer GetPositionFromPoint(const winrt::TextBlock &textBlock, const winrt::Point &targetPoint);
 
   XamlView m_xamlView;
   Mso::CntPtr<const Mso::React::IReactContext> m_context;
