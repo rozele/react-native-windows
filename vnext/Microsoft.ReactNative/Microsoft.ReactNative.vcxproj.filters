@@ -278,6 +278,9 @@
     <ClCompile Include="Utils\ResourceBrushUtils.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
+    <ClCompile Include="Utils\TextHitTestUtils.cpp">
+      <Filter>Utils</Filter>
+    </ClCompile>
     <ClCompile Include="Utils\UwpPreparedScriptStore.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
@@ -326,7 +329,7 @@
     </ClCompile>
     <ClCompile Include="Views\Text\TextVisitor.cpp">
       <Filter>Views\Text</Filter>
-    </ClCompile>
+    <ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ABICxxModule.h" />
@@ -683,6 +686,9 @@
     </ClInclude>
     <ClInclude Include="Views\ViewManager.h">
       <Filter>Views</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils\TextHitTestUtils.h">
+      <Filter>Utils</Filter>
     </ClInclude>
     <ClInclude Include="Utils\TextTransform.h">
       <Filter>Utils</Filter>

@@ -28,6 +28,8 @@ class TextViewManager : public FrameworkElementViewManager {
 
   static TextTransform GetTextTransformValue(ShadowNodeBase *node);
 
+  static int64_t GetReactTagAtPoint(ShadowNodeBase *node, const winrt::Point &point);
+
  protected:
   bool UpdateProperty(
       ShadowNodeBase *nodeToUpdate,
