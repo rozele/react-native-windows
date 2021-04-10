@@ -8,6 +8,7 @@
 #include <UI.Xaml.Documents.h>
 #include <Utils/PropertyUtils.h>
 #include <Utils/ShadowNodeTypeUtils.h>
+#include <Utils/TextHitTestUtils.h>
 #include <Utils/TransformableText.h>
 #include <Utils/ValueUtils.h>
 #include <Views/Text/TextVisitors.h>
@@ -63,6 +64,30 @@ void VirtualTextShadowNode::AddToPressableCount(int count) {
       }
     }
   }
+}
+
+xaml::Documents::TextPointer VirtualTextShadowNode::HitTest(const ShadowNodeBase &node, const winrt::Point &point) {
+  const auto viewManager = node.GetViewManager();
+  const auto nodeType = viewManager->GetName();
+  if (!std::wcscmp(nodeType, L"RCTRawText")) {
+    const auto run = node.GetView().as<winrt::Run>();
+    return TextHitTestUtils::GetPositionFromPoint(run, point);
+  } else {
+    const auto isVirtualText = !std::wcscmp(nodeType, L"RCTVirtualText");
+    if (!isVirtualText || static_cast<const VirtualTextShadowNode &>(node).m_pressableCount > 0) {
+      if (auto uiManager = GetNativeUIManager(viewManager->GetReactContext()).lock()) {
+        for (const auto childTag : node.m_children) {
+          const auto childNode = static_cast<ShadowNodeBase *>(uiManager->getHost()->FindShadowNodeForTag(childTag));
+          const auto textPointer = HitTest(*childNode, point);
+          if (textPointer != nullptr) {
+            return textPointer;
+          }
+        }
+      }
+    }
+  }
+
+  return nullptr;
 }
 
 VirtualTextViewManager::VirtualTextViewManager(const Mso::React::IReactContext &context) : Super(context) {}
