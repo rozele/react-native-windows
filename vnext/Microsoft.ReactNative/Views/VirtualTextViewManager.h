@@ -22,6 +22,12 @@ struct VirtualTextShadowNode final : public ShadowNodeBase {
   void AddView(ShadowNode &child, int64_t index) override;
   void RemoveChildAt(int64_t indexToRemove) override;
   void removeAllChildren() override;
+  void onDropViewInstance() override;
+
+  void AddToPressableCount(int pressableCount);
+
+  bool m_isPressable{false};
+  int m_pressableCount{0};
 };
 
 class VirtualTextViewManager : public ViewManagerBase {

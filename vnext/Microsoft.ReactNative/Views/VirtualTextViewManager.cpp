@@ -27,6 +27,7 @@ void VirtualTextShadowNode::AddView(ShadowNode &child, int64_t index) {
   auto propertyChangeType = PropertyChangeType::Text;
   if (IsVirtualTextShadowNode(&childNode)) {
     const auto &childTextNode = static_cast<VirtualTextShadowNode &>(childNode);
+    AddToPressableCount(childTextNode.m_pressableCount);
     propertyChangeType |=
         childTextNode.hasDescendantTextHighlighter ? PropertyChangeType::AddHighlight : PropertyChangeType::None;
   }
@@ -42,6 +43,26 @@ void VirtualTextShadowNode::RemoveChildAt(int64_t indexToRemove) {
 void VirtualTextShadowNode::removeAllChildren() {
   Super::removeAllChildren();
   NotifyAncestorsTextPropertyChanged(this, PropertyChangeType::Text);
+}
+
+void VirtualTextShadowNode::onDropViewInstance() {
+  AddToPressableCount(-m_pressableCount);
+  Super::onDropViewInstance();
+}
+
+void VirtualTextShadowNode::AddToPressableCount(int count) {
+  m_pressableCount += count;
+  if (const auto uiManager = GetNativeUIManager(GetViewManager()->GetReactContext()).lock()) {
+    if (m_parent != -1) {
+      const auto parentNode = static_cast<ShadowNodeBase *>(uiManager->getHost()->FindShadowNodeForTag(m_parent));
+      const auto viewManager = parentNode->GetViewManager();
+      if (!std::wcscmp(viewManager->GetName(), L"RCTText")) {
+        static_cast<TextViewManager *>(viewManager)->AddToPressableCount(parentNode, count);
+      } else if (!std::wcscmp(parentNode->GetViewManager()->GetName(), L"RCTVirtualText")) {
+        static_cast<VirtualTextShadowNode *>(parentNode)->AddToPressableCount(count);
+      }
+    }
+  }
 }
 
 VirtualTextViewManager::VirtualTextViewManager(const Mso::React::IReactContext &context) : Super(context) {}
@@ -86,6 +107,22 @@ bool VirtualTextViewManager::UpdateProperty(
       const auto propertyChangeType =
           node->backgroundColor ? PropertyChangeType::AddHighlight : PropertyChangeType::RemoveHighlight;
       NotifyAncestorsTextPropertyChanged(node, propertyChangeType);
+    }
+  } else if (propertyName == "isPressable") {
+    auto node = static_cast<VirtualTextShadowNode *>(nodeToUpdate);
+    const auto wasPressable = node->m_isPressable;
+    if (propertyValue.Type() == winrt::Microsoft::ReactNative::JSValueType::Boolean) {
+      node->m_isPressable = propertyValue.AsBoolean();
+      if (!wasPressable && node->m_isPressable) {
+        node->AddToPressableCount(1);
+      } else if (wasPressable && !node->m_isPressable) {
+        node->AddToPressableCount(-1);
+      }
+    } else if (propertyValue.IsNull()) {
+      node->m_isPressable = false;
+      if (wasPressable) {
+        node->AddToPressableCount(-1);
+      }
     }
   } else {
     return Super::UpdateProperty(nodeToUpdate, propertyName, propertyValue);
