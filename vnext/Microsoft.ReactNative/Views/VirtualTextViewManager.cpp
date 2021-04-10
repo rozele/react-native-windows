@@ -76,7 +76,8 @@ void VirtualTextShadowNode::SetPressable(bool isPressable) {
   }
 }
 
-xaml::Documents::TextPointer VirtualTextShadowNode::HitTest(const ShadowNodeBase &node, const winrt::Point &point, bool hasPressableParent) {
+xaml::Documents::TextPointer
+VirtualTextShadowNode::HitTest(const ShadowNodeBase &node, const winrt::Point &point, bool hasPressableParent) {
   const auto viewManager = node.GetViewManager();
   const auto nodeType = viewManager->GetName();
   if (!std::wcscmp(nodeType, L"RCTRawText")) {
