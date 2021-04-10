@@ -130,6 +130,115 @@ export class BackgroundColorDemo extends React.Component<{}> {
   }
 }
 
+interface IPressableTextState {
+  count: number;
+  addView: boolean;
+  isPressable: boolean;
+}
+export class PressableTextDemo extends React.Component<{}, IPressableTextState> {
+  constructor(props: any) {
+    super(props);
+    this.state = {
+      count: 0,
+      addView: false,
+      isPressable: true,
+    }
+  }
+  public render() {
+    const pressableStyle = {backgroundColor: 'yellow'};
+    const alternateStyle = {backgroundColor: 'pink'};
+    const increment = () => this.setState({count: this.state.count + 1});
+    const toggledProps = this.state.isPressable
+      ?
+        {
+          onPress: increment,
+          style: alternateStyle,
+        }
+      : {};
+    return (
+      <View>
+        <Text>Pressed: {this.state.count} times.</Text>
+        <Text>
+          This{' '}
+          <Text>
+            line{' '}
+            <Text>
+              has a nested pressable.{' '}
+              <Text onPress={increment} style={pressableStyle}>
+                Click here.
+              </Text>
+            </Text>
+          </Text>
+        </Text>
+        <Text>
+          This pressable has a nested span.{' '}
+          <Text onPress={increment} style={pressableStyle}>
+            <Text>Click here.</Text>
+          </Text>
+        </Text>
+        <Text>
+          This pressable text covers more than one line.
+          <Text onPress={increment} style={pressableStyle}>
+            {"Click here\nor click here."}
+          </Text>
+        </Text>
+        <Text>
+          This RTL text is pressable.
+          <Text onPress={increment} style={pressableStyle}>
+            أحب اللغة العربية
+          </Text>
+        </Text>
+        <Text>
+          This multiline RTL text is pressable.
+          <Text onPress={increment} style={pressableStyle}>
+            {"أحب اللغة\nالعربية"}
+          </Text>
+        </Text>
+        <Text>
+          Mixed LTR and RTL text does not work.
+          <Text onPress={increment} style={pressableStyle}>
+            أحب اللغة العربية hello
+          </Text>
+        </Text>
+        <Text>
+          Adding pressables to the tree works just fine.{' '}
+          <Text onPress={() => this.setState({addView: !this.state.addView})} style={pressableStyle}>
+            Click to add.{' '}
+          </Text>
+          {
+            this.state.addView
+              ?
+                (
+                  <Text onPress={() => this.setState({addView: false})} style={alternateStyle}>
+                    Click to <Text>remove.</Text>
+                  </Text>
+                )
+              : null
+          }
+        </Text>
+        <Text>
+          Disabling pressables is okay too.{' '}
+          <Text onPress={() => this.setState({isPressable: !this.state.isPressable})} style={pressableStyle}>
+            Click to {this.state.isPressable ? 'disable' : 'enable'}.
+          </Text>
+          {' '}
+          <Text {...toggledProps}>
+            Click here.
+          </Text>
+        </Text>
+        <Text>
+          Text wrapping example:
+        </Text>
+        <Text style={{maxWidth: 35}}>
+          <Text onPress={increment} style={pressableStyle}>
+            abcdef
+          </Text>
+        </Text>
+      </View>
+    );
+  }
+}
+
 export class TextExample extends React.Component<
   {},
   {toggle1: boolean; toggle2: boolean; toggle3: boolean}
@@ -725,6 +834,9 @@ export class TextExample extends React.Component<
               normal text.
             </Text>
           </>
+        </RNTesterBlock>
+        <RNTesterBlock title="Pressable edge cases">
+          <PressableTextDemo />
         </RNTesterBlock>
       </RNTesterPage>
     );
