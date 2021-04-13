@@ -56,10 +56,7 @@ class TextShadowNode final : public ShadowNodeBase {
         auto textBlock = this->GetView().as<xaml::Controls::TextBlock>();
         textBlock.Text(run.Text());
         if (m_ColorValue) {
-          AddHighlighter(
-              run.Foreground().try_as<winrt::Windows::UI::Xaml::Media::SolidColorBrush>().Color(),
-              m_ColorValue.value(),
-              textBlock.Text().size());
+          AddHighlighter(m_ColorValue.value(), textBlock.Text().size());
         }
 
         m_prevCursorEnd += textBlock.Text().size();
@@ -69,7 +66,6 @@ class TextShadowNode final : public ShadowNodeBase {
     } else if (index == 1 && m_firstChildNode != nullptr) {
       auto textBlock = this->GetView().as<xaml::Controls::TextBlock>();
       textBlock.ClearValue(xaml::Controls::TextBlock::TextProperty());
-      m_prevCursorEnd = 0;
       Super::AddView(*m_firstChildNode, 0);
       m_firstChildNode = nullptr;
     }
@@ -78,10 +74,7 @@ class TextShadowNode final : public ShadowNodeBase {
 
     if (auto run = static_cast<ShadowNodeBase&>(child).GetView().try_as<winrt::Run>()) {
       if (m_ColorValue) {
-        AddHighlighter(
-            run.Foreground().try_as<winrt::Windows::UI::Xaml::Media::SolidColorBrush>().Color(),
-            m_ColorValue.value(),
-            run.Text().size());
+        AddHighlighter(m_ColorValue.value(), run.Text().size());
       }
       m_prevCursorEnd += run.Text().size();
     } else if (auto span = static_cast<ShadowNodeBase &>(child).GetView().try_as<winrt::Span>()) {
@@ -102,10 +95,7 @@ class TextShadowNode final : public ShadowNodeBase {
     for (const auto& el : span.Inlines()) {
       if (auto run = el.try_as<winrt::Run>()) {
         if (highData.color) {
-          AddHighlighter(
-              run.Foreground().try_as<winrt::Windows::UI::Xaml::Media::SolidColorBrush>().Color(),
-              highData.color.value(),
-              run.Text().size());
+          AddHighlighter(highData.color.value(), run.Text().size());
         }
         m_prevCursorEnd += run.Text().size();
       } else if (auto spanChild = el.try_as<winrt::Span>()) {
@@ -114,12 +104,8 @@ class TextShadowNode final : public ShadowNodeBase {
     }
   }
 
-  void AddHighlighter(
-      const winrt::Windows::UI::Color& foreground,
-      const winrt::Windows::UI::Color& background,
-      size_t runSize) {
+  void AddHighlighter(const winrt::Windows::UI::Color& background, size_t runSize) {
     auto newHigh = winrt::TextHighlighter{};
-    newHigh.Foreground(react::uwp::SolidBrushFromColor(foreground));
     newHigh.Background(react::uwp::SolidBrushFromColor(background));
 
     winrt::TextRange newRange{m_prevCursorEnd, static_cast<int32_t>(runSize)};
@@ -131,8 +117,6 @@ class TextShadowNode final : public ShadowNodeBase {
   void removeAllChildren() override {
     m_firstChildNode = nullptr;
     Super::removeAllChildren();
-    m_prevCursorEnd = 0;
-    this->GetView().as<xaml::Controls::TextBlock>().TextHighlighters().Clear();
   }
 
   void RemoveChildAt(int64_t indexToRemove) override {
@@ -140,8 +124,6 @@ class TextShadowNode final : public ShadowNodeBase {
       m_firstChildNode = nullptr;
     }
     Super::RemoveChildAt(indexToRemove);
-    m_prevCursorEnd = 0;
-    this->GetView().as<xaml::Controls::TextBlock>().TextHighlighters().Clear();
   }
 
   int64_t GetReactTagAtPoint(const winrt::Point &point) {
