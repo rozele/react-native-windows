@@ -15,7 +15,10 @@ class HyperlinkTextViewManager : public VirtualTextViewManager {
 
   const wchar_t *GetName() const override;
   ShadowNode *createShadow() const override {
-    return new VirtualTextShadowNode();
+    auto shadowNode = new VirtualTextShadowNode();
+    // TODO: remove once JS is updated
+    shadowNode->AddToPressableCount(1);
+    return shadowNode;
   }
 
   void GetExportedCustomDirectEventTypeConstants(
