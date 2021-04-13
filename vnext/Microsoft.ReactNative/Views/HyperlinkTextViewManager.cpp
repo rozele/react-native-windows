@@ -4,15 +4,24 @@
 #include "pch.h"
 
 #include "HyperlinkTextViewManager.h"
+#include "KeyboardEventHandler.h"
 
 #include <JSValueWriter.h>
 #include <UI.Xaml.Documents.h>
+#include <UI.Xaml.Input.h>
+#include <winrt/Windows.System.h>
 
 namespace winrt {
 using namespace xaml::Documents;
 } // namespace winrt
 
 namespace Microsoft::ReactNative {
+
+struct KeyPressState {
+  std::optional<winrt::Windows::System::VirtualKey> lastKey;
+  winrt::event_revoker<xaml::IUIElement> keyUpRevoker;
+};
+
 
 HyperlinkTextViewManager::HyperlinkTextViewManager(const Mso::React::IReactContext &context) : Super(context) {}
 
@@ -36,12 +45,34 @@ XamlView HyperlinkTextViewManager::CreateViewCore(
   winrt::Hyperlink hyperlink;
 
   // Underline should be handled by base class using TextDecorations
-  // TODO: should we also override platform defaults for foreground?
   hyperlink.UnderlineStyle(winrt::UnderlineStyle::None);
 
-  hyperlink.Click([=](auto &&, auto &&) {
-    folly::dynamic eventData = folly::dynamic::object("target", tag);
-    GetReactContext().DispatchEvent(tag, "topClick", std::move(eventData));
+  // Pointer click events should be handled by the TouchEventHandler. The only
+  // condition where we want to send "onClick" events is when the user invokes
+  // the hyperlink while it has focus by pressing "Enter" or "Space".
+  const auto keyPressState = std::make_shared<KeyPressState>();
+  hyperlink.GotFocus([=](auto&& sender, auto&&) {
+    const auto hyperlink = sender.as<xaml::Documents::Hyperlink>();
+    const auto textBlock = hyperlink.ContentStart().VisualParent().as<xaml::Controls::TextBlock>();
+    keyPressState->keyUpRevoker = textBlock.KeyUp(
+        winrt::auto_revoke,
+        [=](auto&&, xaml::Input::KeyRoutedEventArgs const &args) {
+          keyPressState->lastKey = args.Key();
+        });
+    });
+
+  hyperlink.LostFocus([=](auto &&...) {
+    keyPressState->keyUpRevoker.revoke();
+    keyPressState->lastKey = std::nullopt;
+  });
+
+  hyperlink.Click([=](auto &&sender, auto&&) {
+    const auto lastKey = keyPressState->lastKey;
+    if (lastKey == winrt::Windows::System::VirtualKey::Enter || lastKey == winrt::Windows::System::VirtualKey::Space) {
+      keyPressState->lastKey = std::nullopt;
+      folly::dynamic eventData = folly::dynamic::object("target", tag)("key", KeyboardHelper::CodeFromVirtualKey(lastKey.value()));
+      GetReactContext().DispatchEvent(tag, "topClick", std::move(eventData));
+    }
   });
 
   return hyperlink;

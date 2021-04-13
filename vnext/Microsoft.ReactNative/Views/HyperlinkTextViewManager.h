@@ -14,6 +14,10 @@ class HyperlinkTextViewManager : public VirtualTextViewManager {
   HyperlinkTextViewManager(const Mso::React::IReactContext &context);
 
   const wchar_t *GetName() const override;
+  ShadowNode *createShadow() const override {
+    return new VirtualTextShadowNode();
+  }
+
   void GetExportedCustomDirectEventTypeConstants(
       const winrt::Microsoft::ReactNative::IJSValueWriter &writer) const override;
 
