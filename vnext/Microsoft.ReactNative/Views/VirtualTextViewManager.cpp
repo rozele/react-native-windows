@@ -126,7 +126,8 @@ VirtualTextShadowNode::HitTest(const ShadowNodeBase &node, const winrt::Point &p
     const auto run = node.GetView().as<winrt::Run>();
     return TextHitTestUtils::GetPositionFromPoint(run, point);
   } else {
-    const auto isVirtualText = !std::strcmp(nodeType, "RCTVirtualText");
+    // ARCHON_RNW_TEXT: Check for Span instead of specific view manager to support RCTHyperlinkText
+    const auto isVirtualText = node.GetView().try_as<winrt::Span>();
     auto isPressable = hasPressableParent;
     if (isVirtualText) {
       const auto &virtualTextNode = static_cast<const VirtualTextShadowNode &>(node);
