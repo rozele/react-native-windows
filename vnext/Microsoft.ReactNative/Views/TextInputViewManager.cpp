@@ -17,6 +17,9 @@
 #include <IReactInstance.h>
 #include <Shared/INativeUIManager.h>
 
+#include <winrt/Windows.ApplicationModel.DataTransfer.h>
+#include <winrt/Windows.UI.Xaml.Controls.Primitives.h>
+
 #ifdef USE_WINUI3
 namespace winrt::Microsoft::UI::Xaml::Controls {
 using IPasswordBox4 = ::xaml::Controls::IPasswordBox;
@@ -25,12 +28,19 @@ using ITextBox6 = ::xaml::Controls::ITextBox;
 #endif
 
 namespace winrt {
+using namespace winrt::Windows::ApplicationModel::DataTransfer;
 using namespace xaml;
 using namespace xaml::Media;
 using namespace xaml::Shapes;
 } // namespace winrt
 
 namespace react::uwp {
+
+// TODO(T89055584): Find a way to lookup the localized version of these strings in WUX
+const auto TextCommandLabelPaste = L"Paste";
+const auto TextCommandDescriptionPaste = L"Insert the contents of the clipboard at the current location";
+const auto TextCommandKeyboardAcceleratorKeyPaste = L"Ctrl+V";
+
 struct Selection {
   int64_t start = -1;
   int64_t end = -1;
@@ -56,6 +66,11 @@ struct json_type_traits<react::uwp::Selection> {
     return selection;
   }
 };
+
+static const std::unordered_map<std::string, winrt::hstring> clipboardFormatTypeMap = {
+  {"text", winrt::StandardDataFormats::Text()},
+  {"image", winrt::StandardDataFormats::Bitmap()},
+  {"files", winrt::StandardDataFormats::StorageItems()}};
 
 static const std::unordered_map<std::string, xaml::Input::InputScopeNameValue> textBoxKeyboardTypeMap = {
     {"default", xaml::Input::InputScopeNameValue::Default},
@@ -121,6 +136,9 @@ class TextInputShadowNode : public ShadowNodeBase {
   void SetText(const folly::dynamic &text);
   void SetSelection(int64_t start, int64_t end);
   winrt::Shape FindCaret(xaml::DependencyObject element);
+  bool ShouldHandlePaste();
+  void OnPaste(winrt::IInspectable const &, xaml::Controls::TextControlPasteEventArgs const &args);
+  void AddPasteOptionIfNeeded(xaml::Controls::TextCommandBarFlyout const& flyout);
 
   bool m_shouldClearTextOnFocus = false;
   bool m_shouldSelectTextOnFocus = false;
@@ -130,6 +148,7 @@ class TextInputShadowNode : public ShadowNodeBase {
   folly::dynamic m_placeholderTextColor;
   bool m_shouldClearTextOnSubmit = false;
   std::vector<HandledKeyboardEvent> m_submitKeyEvents{};
+  std::vector<std::string> m_handledPasteFormats;
 
   // Javascripts is running in a different thread. If the typing is very fast,
   // It's possible that two TextChanged are raised but TextInput just got the
@@ -143,10 +162,12 @@ class TextInputShadowNode : public ShadowNodeBase {
   xaml::Controls::TextBox::TextChanged_revoker m_textBoxTextChangedRevoker{};
   xaml::Controls::TextBox::SelectionChanged_revoker m_textBoxSelectionChangedRevoker{};
   xaml::Controls::TextBox::ContextMenuOpening_revoker m_textBoxContextMenuOpeningRevoker{};
+  xaml::Controls::TextBox::Paste_revoker m_textBoxPasteRevoker{};
 
   xaml::Controls::PasswordBox::PasswordChanging_revoker m_passwordBoxPasswordChangingRevoker{};
   xaml::Controls::PasswordBox::PasswordChanged_revoker m_passwordBoxPasswordChangedRevoker{};
   xaml::Controls::PasswordBox::ContextMenuOpening_revoker m_passwordBoxContextMenuOpeningRevoker{};
+  xaml::Controls::PasswordBox::Paste_revoker m_passwordBoxPasteRevoker{};
 
   xaml::Controls::Control::GotFocus_revoker m_controlGotFocusRevoker{};
   xaml::Controls::Control::LostFocus_revoker m_controlLostFocusRevoker{};
@@ -155,6 +176,7 @@ class TextInputShadowNode : public ShadowNodeBase {
   xaml::Controls::Control::CharacterReceived_revoker m_controlCharacterReceivedRevoker{};
   xaml::Controls::ScrollViewer::ViewChanging_revoker m_scrollViewerViewChangingRevoker{};
   xaml::Controls::Control::Loaded_revoker m_controlLoadedRevoker{};
+  xaml::Controls::Primitives::FlyoutBase::Opening_revoker m_flyoutBaseOpeningRevoker{};
 };
 
 void TextInputShadowNode::createView() {
@@ -233,6 +255,16 @@ void TextInputShadowNode::registerEvents() {
             e.Handled(true);
           }
         });
+  }
+
+  if (m_isTextBox) {
+    m_passwordBoxPasteRevoker = {};
+    auto textBox = control.as<xaml::Controls::TextBox>();
+    m_textBoxPasteRevoker = textBox.Paste(winrt::auto_revoke, {this, &TextInputShadowNode::OnPaste});
+  } else {
+    m_textBoxPasteRevoker = {};
+    auto passwordBox = control.as<xaml::Controls::PasswordBox>();
+    m_passwordBoxPasteRevoker = passwordBox.Paste(winrt::auto_revoke, {this, &TextInputShadowNode::OnPaste});
   }
 
   m_controlGotFocusRevoker = control.GotFocus(winrt::auto_revoke, [=](auto &&, auto &&) {
@@ -319,6 +351,14 @@ void TextInputShadowNode::registerEvents() {
           });
     }
     HideCaretIfNeeded();
+    m_flyoutBaseOpeningRevoker = control.ContextFlyout().Opening(
+        winrt::auto_revoke, [=](winrt::IInspectable const &sender, auto&&) {
+          if (auto const& flyout = sender.try_as<xaml::Controls::TextCommandBarFlyout>()) {
+            if (GetTag(flyout.Target()) == tag) {
+              AddPasteOptionIfNeeded(flyout);
+            }
+          }
+        });
   });
 
   if (control.try_as<xaml::IUIElement7>()) {
@@ -582,6 +622,11 @@ void TextInputShadowNode::updateProperties(const folly::dynamic &&props) {
         m_submitKeyEvents.clear();
     } else if (propertyName == "keyDownEvents") {
       hasKeyDownEvents = !propertyValue.isNull();
+    } else if (propertyName == "handledPasteFormats") {
+      if (propertyValue.isArray())
+        m_handledPasteFormats = json_type_traits<std::vector<std::string>>::parseJson(propertyValue);
+      else if (propertyValue.isNull())
+        m_handledPasteFormats.clear();
     } else {
       if (m_isTextBox) { // Applicable properties for TextBox
         if (TryUpdateTextAlignment(textBox, propertyName, propertyValue)) {
@@ -711,6 +756,62 @@ void TextInputShadowNode::dispatchCommand(const std::string &commandId, const fo
   }
 }
 
+bool TextInputShadowNode::ShouldHandlePaste() {
+  for (const auto format : m_handledPasteFormats) {
+    auto iter = clipboardFormatTypeMap.find(format);
+    if (iter != clipboardFormatTypeMap.end()) {
+      if (winrt::Clipboard::GetContent().Contains(iter->second)) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+void TextInputShadowNode::OnPaste(winrt::IInspectable const& sender, xaml::Controls::TextControlPasteEventArgs const& args) {
+  if (ShouldHandlePaste()) {
+    auto weakInstance = GetViewManager()->GetReactInstance();
+    if (auto instance = weakInstance.lock()) {
+      args.Handled(true);
+      auto tag = GetTag(sender.as<XamlView>());
+      auto eventData = folly::dynamic::object("target", tag);
+      instance->DispatchEvent(tag, "topPaste", std::move(eventData));
+    }
+  }
+}
+
+void TextInputShadowNode::AddPasteOptionIfNeeded(xaml::Controls::TextCommandBarFlyout const &flyout) {
+  const auto &textBox = GetView().as<xaml::Controls::TextBox>();
+  if (!textBox.CanPasteClipboardContent() && ShouldHandlePaste()) {
+    // Paste is either the first option in the context menu, or the third when
+    // text is selected and "Cut" and "Copy" options are presented. Rather than
+    // the offsets of selected text to determine if "Cut"/"Copy" may be shown,
+    // this just checks if the first menu item is "Cut".
+    auto index = 0;
+    if (flyout.SecondaryCommands().Size() > 2) {
+      auto const &appBarButton = flyout.SecondaryCommands().GetAt(0).try_as<xaml::Controls::AppBarButton>();
+      if (appBarButton && !std::wcscmp(appBarButton.Label().c_str(), L"Cut")) {
+        index = 2;
+      }
+    }
+
+    xaml::Controls::AppBarButton pasteButton;
+    xaml::Controls::FontIcon pasteGlyph;
+    pasteGlyph.Glyph(L"\uE77F");
+    pasteButton.Icon(pasteGlyph);
+    pasteButton.KeyboardAcceleratorTextOverride(TextCommandKeyboardAcceleratorKeyPaste);
+    pasteButton.Label(TextCommandLabelPaste);
+    pasteButton.SetValue(xaml::Controls::ToolTipService::ToolTipProperty(), winrt::box_value(TextCommandDescriptionPaste));
+    pasteButton.Click([wpTextBox = winrt::make_weak(textBox)](auto&& ...) {
+      if (auto const &spTextBox = wpTextBox.get()) {
+        spTextBox.PasteFromClipboard();
+      }
+    });
+
+    flyout.SecondaryCommands().InsertAt(index, pasteButton);
+  }
+}
+
 TextInputViewManager::TextInputViewManager(const std::shared_ptr<IReactInstance> &reactInstance)
     : Super(reactInstance) {}
 
@@ -726,7 +827,8 @@ folly::dynamic TextInputViewManager::GetNativeProps() const {
       "placeholderTextColor", "Color")("scrollEnabled", "boolean")("selection", "Map")("selectionColor", "Color")(
       "selectTextOnFocus", "boolean")("spellCheck", "boolean")("text", "string")("mostRecentEventCount", "int")(
       "secureTextEntry", "boolean")("keyboardType", "string")("contextMenuHidden", "boolean")("caretHidden", "boolean")(
-      "autoCapitalize", "string")("clearTextOnSubmit", "boolean")("submitKeyEvents", "array"));
+      "autoCapitalize", "string")("clearTextOnSubmit", "boolean")("submitKeyEvents", "array")(
+      "handledPasteFormats", "array"));
 
   return props;
 }
@@ -742,6 +844,7 @@ folly::dynamic TextInputViewManager::GetExportedCustomDirectEventTypeConstants()
   directEvents["topTextInputKeyPress"] = folly::dynamic::object("registrationName", "onKeyPress");
   directEvents["topTextInputOnScroll"] = folly::dynamic::object("registrationName", "onScroll");
   directEvents["topTextInputSubmitEditing"] = folly::dynamic::object("registrationName", "onSubmitEditing");
+  directEvents["topPaste"] = folly::dynamic::object("registrationName", "onPaste");
 
   return directEvents;
 }
