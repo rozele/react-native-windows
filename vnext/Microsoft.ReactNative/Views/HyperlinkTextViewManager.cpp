@@ -19,7 +19,7 @@ namespace Microsoft::ReactNative {
 
 struct KeyPressState {
   std::optional<winrt::Windows::System::VirtualKey> lastKey;
-  winrt::event_revoker<xaml::IUIElement> keyUpRevoker;
+  xaml::UIElement::PreviewKeyUp_revoker keyUpRevoker;
 };
 
 
@@ -54,7 +54,7 @@ XamlView HyperlinkTextViewManager::CreateViewCore(
   hyperlink.GotFocus([=](auto&& sender, auto&&) {
     const auto hyperlink = sender.as<xaml::Documents::Hyperlink>();
     const auto textBlock = hyperlink.ContentStart().VisualParent().as<xaml::Controls::TextBlock>();
-    keyPressState->keyUpRevoker = textBlock.KeyUp(
+    keyPressState->keyUpRevoker = textBlock.PreviewKeyUp(
         winrt::auto_revoke,
         [=](auto&&, xaml::Input::KeyRoutedEventArgs const &args) {
           keyPressState->lastKey = args.Key();
