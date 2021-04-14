@@ -19,6 +19,8 @@
 #include <Modules/NativeUIManager.h>
 #include <Modules/PaperUIManagerModule.h>
 
+#include <winrt/Windows.ApplicationModel.DataTransfer.h>
+
 #ifdef USE_WINUI3
 namespace winrt::Microsoft::UI::Xaml::Controls {
 using IPasswordBox4 = ::xaml::Controls::IPasswordBox;
@@ -27,6 +29,7 @@ using ITextBox6 = ::xaml::Controls::ITextBox;
 #endif
 
 namespace winrt {
+using namespace winrt::Windows::ApplicationModel::DataTransfer;
 using namespace xaml;
 using namespace xaml::Media;
 using namespace xaml::Shapes;
@@ -131,6 +134,7 @@ class TextInputShadowNode : public ShadowNodeBase {
   void SetText(const winrt::Microsoft::ReactNative::JSValue &text);
   void SetSelection(int64_t start, int64_t end);
   winrt::Shape FindCaret(xaml::DependencyObject element);
+  void OnPaste(winrt::IInspectable const &, xaml::Controls::TextControlPasteEventArgs const &args);
 
   bool m_shouldClearTextOnFocus = false;
   bool m_shouldSelectTextOnFocus = false;
@@ -138,6 +142,7 @@ class TextInputShadowNode : public ShadowNodeBase {
   bool m_hideCaret = false;
   bool m_isTextBox = true;
   winrt::Microsoft::ReactNative::JSValue m_placeholderTextColor;
+  std::vector<std::string> m_handledPasteFormats;
 
   // Javascripts is running in a different thread. If the typing is very fast,
   // It's possible that two TextChanged are raised but TextInput just got the
@@ -151,10 +156,12 @@ class TextInputShadowNode : public ShadowNodeBase {
   xaml::Controls::TextBox::TextChanged_revoker m_textBoxTextChangedRevoker{};
   xaml::Controls::TextBox::SelectionChanged_revoker m_textBoxSelectionChangedRevoker{};
   xaml::Controls::TextBox::ContextMenuOpening_revoker m_textBoxContextMenuOpeningRevoker{};
+  xaml::Controls::TextBox::Paste_revoker m_textBoxPasteRevoker{};
 
   xaml::Controls::PasswordBox::PasswordChanging_revoker m_passwordBoxPasswordChangingRevoker{};
   xaml::Controls::PasswordBox::PasswordChanged_revoker m_passwordBoxPasswordChangedRevoker{};
   xaml::Controls::PasswordBox::ContextMenuOpening_revoker m_passwordBoxContextMenuOpeningRevoker{};
+  xaml::Controls::PasswordBox::Paste_revoker m_passwordBoxPasteRevoker{};
 
   xaml::Controls::Control::GotFocus_revoker m_controlGotFocusRevoker{};
   xaml::Controls::Control::LostFocus_revoker m_controlLostFocusRevoker{};
@@ -236,6 +243,16 @@ void TextInputShadowNode::registerEvents() {
             e.Handled(true);
           }
         });
+  }
+
+  if (m_isTextBox) {
+    m_passwordBoxPasteRevoker = {};
+    auto textBox = control.as<xaml::Controls::TextBox>();
+    m_textBoxPasteRevoker = textBox.Paste(winrt::auto_revoke, {this, &TextInputShadowNode::OnPaste});
+  } else {
+    m_textBoxPasteRevoker = {};
+    auto passwordBox = control.as<xaml::Controls::PasswordBox>();
+    m_passwordBoxPasteRevoker = passwordBox.Paste(winrt::auto_revoke, {this, &TextInputShadowNode::OnPaste});
   }
 
   m_controlGotFocusRevoker = control.GotFocus(winrt::auto_revoke, [=](auto &&, auto &&) {
@@ -544,6 +561,11 @@ void TextInputShadowNode::updateProperties(winrt::Microsoft::ReactNative::JSValu
       } else if (m_isTextBox != true && react::uwp::IsValidColorValue(propertyValue)) {
         setPasswordBoxPlaceholderForeground(passwordBox, propertyValue);
       }
+    } else if (propertyName == "handledPasteFormats") {
+      m_handledPasteFormats.clear();
+      if (propertyValue.Type() == winrt::Microsoft::ReactNative::JSValueType::Array) {
+        m_handledPasteFormats = json_type_traits<std::vector<std::string>>::parseJson(propertyValue);
+      }
     } else {
       if (m_isTextBox) { // Applicable properties for TextBox
         if (TryUpdateTextAlignment(textBox, propertyName, propertyValue)) {
@@ -669,6 +691,11 @@ void TextInputShadowNode::dispatchCommand(
   }
 }
 
+void TextInputShadowNode::OnPaste(winrt::IInspectable const&, xaml::Controls::TextControlPasteEventArgs const& args) {
+
+}
+
+
 TextInputViewManager::TextInputViewManager(const Mso::React::IReactContext &context) : Super(context) {}
 
 const wchar_t *TextInputViewManager::GetName() const {
@@ -697,6 +724,7 @@ void TextInputViewManager::GetNativeProps(const winrt::Microsoft::ReactNative::I
   React::WriteProperty(writer, L"contextMenuHidden", L"boolean");
   React::WriteProperty(writer, L"caretHidden", L"boolean");
   React::WriteProperty(writer, L"autoCapitalize", L"string");
+  React::WriteProperty(writer, L"handledPasteFormats", L"array");
 }
 
 void TextInputViewManager::GetExportedCustomDirectEventTypeConstants(
@@ -711,6 +739,7 @@ void TextInputViewManager::GetExportedCustomDirectEventTypeConstants(
                                L"SelectionChange",
                                L"ContentSizeChange",
                                L"KeyPress",
+                               L"Paste",
                                L"PressIn",
                                L"PressOut",
                                L"Scroll",
