@@ -18,6 +18,7 @@
 #include <Utils/TextHitTestUtils.h>
 #include <Utils/TransformableText.h>
 #include <Utils/ValueUtils.h>
+#include <unordered_map>
 
 namespace winrt {
 using namespace xaml::Documents;
@@ -38,8 +39,9 @@ class TextShadowNode final : public ShadowNodeBase {
  private:
   ShadowNode *m_firstChildNode;
 
+  //TODO: Fix memory leak: T89065327
+  std::unordered_map<int64_t, winrt::Windows::UI::Color> m_colorMap{};
   std::optional<winrt::Windows::UI::Color> m_ColorValue = std::nullopt;
-  int32_t m_prevCursorEnd = 0;
   std::unique_ptr<TouchEventHandler> m_touchEventHandler{nullptr};
   winrt::event_revoker<xaml::Controls::ITextBlock> m_selectionChangedRevoker;
 
@@ -49,6 +51,12 @@ class TextShadowNode final : public ShadowNodeBase {
   };
   bool ImplementsPadding() override {
     return true;
+  }
+
+  void insertIntoMap(winrt::Run& run, winrt::Windows::UI::Color color) {
+    auto tag = GetTag(run);
+    std::pair<int64_t, winrt::Windows::UI::Color> p(tag, color);
+    m_colorMap.insert(p);
   }
 
   void AddView(ShadowNode &child, int64_t index) override {
@@ -63,10 +71,9 @@ class TextShadowNode final : public ShadowNodeBase {
         auto textBlock = this->GetView().as<xaml::Controls::TextBlock>();
         textBlock.Text(run.Text());
         if (m_ColorValue) {
-          AddHighlighter(m_ColorValue.value(), textBlock.Text().size());
+          insertIntoMap(run, m_ColorValue.value());
+          RebuildHighlights();
         }
-
-        m_prevCursorEnd += textBlock.Text().size();
 
         return;
       }
@@ -81,14 +88,20 @@ class TextShadowNode final : public ShadowNodeBase {
 
     if (auto run = static_cast<ShadowNodeBase&>(child).GetView().try_as<winrt::Run>()) {
       if (m_ColorValue) {
-        AddHighlighter(m_ColorValue.value(), run.Text().size());
+        insertIntoMap(run, m_ColorValue.value());
+        RebuildHighlights();
       }
-      m_prevCursorEnd += run.Text().size();
     } else if (auto span = static_cast<ShadowNodeBase &>(child).GetView().try_as<winrt::Span>()) {
       const auto &virtualTextNode = static_cast<VirtualTextShadowNode &>(child);
       AddNestedTextHighlighter(m_ColorValue, span, virtualTextNode.m_highlightData);
+      RebuildHighlights();
       pressableCount += virtualTextNode.m_pressableCount;
     }
+  }
+
+  void TextShadowNode::onDropViewInstance() {
+    m_colorMap.clear();
+    Super::onDropViewInstance();
   }
 
   void AddNestedTextHighlighter(
@@ -102,23 +115,58 @@ class TextShadowNode final : public ShadowNodeBase {
     for (const auto& el : span.Inlines()) {
       if (auto run = el.try_as<winrt::Run>()) {
         if (highData.color) {
-          AddHighlighter(highData.color.value(), run.Text().size());
+          insertIntoMap(run, highData.color.value());
         }
-        m_prevCursorEnd += run.Text().size();
       } else if (auto spanChild = el.try_as<winrt::Span>()) {
         AddNestedTextHighlighter(highData.color, spanChild, highData.data[highData.spanIdx++]);
       }
     }
   }
 
-  void AddHighlighter(const winrt::Windows::UI::Color& background, size_t runSize) {
-    auto newHigh = winrt::TextHighlighter{};
-    newHigh.Background(react::uwp::SolidBrushFromColor(background));
+  void RebuildHighlights() {
+    auto textBlock = this->GetView().as<xaml::Controls::TextBlock>();
+    textBlock.TextHighlighters().Clear();
+    int currentPos = 0;
 
-    winrt::TextRange newRange{m_prevCursorEnd, static_cast<int32_t>(runSize)};
-    newHigh.Ranges().Append(newRange);
+    for (auto inline_ : textBlock.Inlines()) {
+      if (auto run = inline_.try_as<xaml::Documents::Run>()) {
+        SetRunHighLights(textBlock, run, currentPos);
+      } else if (auto span = inline_.try_as<xaml::Documents::Span>()) {
+        SetSpanHighLights(textBlock, span, currentPos);
+      }
+    }
+  }
 
-    this->GetView().as<xaml::Controls::TextBlock>().TextHighlighters().Append(newHigh);
+  void SetRunHighLights(
+      xaml::Controls::TextBlock& textBlock,
+      xaml::Documents::Run run,
+      int& pos) {
+    auto text = run.Text();
+    auto tag = GetTag(run);
+    if (m_colorMap.find(tag) != m_colorMap.end()) {
+      auto color = m_colorMap[tag];
+      auto newHigh = winrt::TextHighlighter{};
+      auto foreground = run.Foreground().try_as<winrt::Windows::UI::Xaml::Media::SolidColorBrush>();
+      newHigh.Background(react::uwp::SolidBrushFromColor(color));
+      newHigh.Foreground(foreground);
+      winrt::TextRange newRange{pos, static_cast<int32_t>(text.size())};
+      newHigh.Ranges().Append(newRange);
+      textBlock.TextHighlighters().Append(newHigh);
+    }
+    pos += text.size();
+  }
+
+  void SetSpanHighLights(
+      xaml::Controls::TextBlock& textBlock,
+      xaml::Documents::Span span,
+      int& pos) {
+    for (auto inline_ : span.Inlines()) {
+      if (auto run = inline_.try_as<xaml::Documents::Run>()) {
+        SetRunHighLights(textBlock, run, pos);
+      } else if (auto span = inline_.try_as<xaml::Documents::Span>()) {
+        SetSpanHighLights(textBlock, span, pos);
+      }
+    }
   }
 
   void ToggleTouchEvents(XamlView xamlView, bool selectable) {
@@ -135,10 +183,10 @@ class TextShadowNode final : public ShadowNodeBase {
       };
 
       m_selectionChangedRevoker = xamlView.as<xaml::Controls::TextBlock>().SelectionChanged(
-          winrt::auto_revoke, [textSelectionState](const auto &sender, auto &&) {
-            const auto textBlock = sender.as<xaml::Controls::TextBlock>();
-            textSelectionState->selectionChanged = textBlock.SelectionStart().Offset() != textBlock.SelectionEnd().Offset();
-          });
+              winrt::auto_revoke, [textSelectionState](const auto &sender, auto &&) {
+                const auto textBlock = sender.as<xaml::Controls::TextBlock>();
+                textSelectionState->selectionChanged = textBlock.SelectionStart().Offset() != textBlock.SelectionEnd().Offset();
+              });
 
       m_touchEventHandler->AddTouchHandlers(xamlView, shouldCancelOnCaptureLost, true);
     } else {
@@ -152,6 +200,7 @@ class TextShadowNode final : public ShadowNodeBase {
   void removeAllChildren() override {
     m_firstChildNode = nullptr;
     Super::removeAllChildren();
+    RebuildHighlights();
   }
 
   void RemoveChildAt(int64_t indexToRemove) override {
@@ -159,6 +208,7 @@ class TextShadowNode final : public ShadowNodeBase {
       m_firstChildNode = nullptr;
     }
     Super::RemoveChildAt(indexToRemove);
+    RebuildHighlights();
   }
 
   int64_t GetReactTagAtPoint(const winrt::Point &point) {
@@ -222,7 +272,7 @@ bool TextViewManager::UpdateProperty(
     auto textNode = static_cast<TextShadowNode *>(nodeToUpdate);
     textNode->textTransform = TransformableText::GetTextTransform(propertyValue);
     VirtualTextShadowNode::ApplyTextTransform(
-        *textNode, textNode->textTransform, /* forceUpdate = */ true, /* isRoot = */ true);
+      *textNode, textNode->textTransform, /* forceUpdate = */ true, /* isRoot = */ true);
   } else if (TryUpdatePadding(nodeToUpdate, textBlock, propertyName, propertyValue)) {
   } else if (TryUpdateTextAlignment(textBlock, propertyName, propertyValue)) {
   } else if (TryUpdateTextTrimming(textBlock, propertyName, propertyValue)) {
