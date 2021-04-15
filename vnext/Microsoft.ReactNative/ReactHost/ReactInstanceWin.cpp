@@ -309,10 +309,13 @@ void ReactInstanceWin::Initialize() noexcept {
             cxxModules.insert(std::end(cxxModules), std::begin(customCxxModules), std::end(customCxxModules));
           }
 
+#if defined(USE_HERMES)
           // ARCHON_HERMES: Set override to use hermes, pass runtime installers
           devSettings->jsiEngineOverride = facebook::react::JSIEngineOverride::Hermes;
+          devSettings->hermesRuntimeConfig = *properties.Get(winrt::Microsoft::ReactNative::HermesRuntimeConfigProperty());
           devSettings->runtimeInstallers = *properties.Get(winrt::Microsoft::ReactNative::JSIRuntimeInstallersProperty());
           auto jsiEngine = react::uwp::JSIEngine::Hermes;
+#endif
 
           if (m_options.UseJsi) {
             std::unique_ptr<facebook::jsi::ScriptStore> scriptStore = nullptr;

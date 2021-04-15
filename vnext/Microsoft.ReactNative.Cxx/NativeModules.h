@@ -18,6 +18,12 @@
 #include <functional>
 #include <type_traits>
 
+#if __has_include(<hermes/hermes.h>)
+namespace hermes::vm {
+struct RuntimeConfig;
+} // namespace hermes::vm
+#endif
+
 namespace facebook::react {
 class Instance;
 }
@@ -160,6 +166,14 @@ static auto AsyncStoragePathProperty() {
   static ReactPropertyId<winrt::hstring> asyncStoragePathProperty{L"ReactNative.AsyncStoragePath"};
   return asyncStoragePathProperty;
 }
+
+#if __has_include(<hermes/hermes.h>)
+// ARCHON_HERMES: For passing our own Hermes RuntimeConfig to adjust heap size.
+static auto HermesRuntimeConfigProperty() {
+  static ReactPropertyId<ReactNonAbiValue<hermes::vm::RuntimeConfig>> hermesRuntimeConfigProperty{L"ReactNative.HermesRuntimeConfig"};
+  return hermesRuntimeConfigProperty;
+}
+#endif
 
 // For installing bindings directly via the C++ JSI API - not ABI-safe
 static auto JSIRuntimeInstallersProperty() {

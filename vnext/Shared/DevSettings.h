@@ -12,6 +12,10 @@
 #include <string>
 #include <vector>
 
+#if defined(USE_HERMES)
+#include <hermes/hermes.h>
+#endif
+
 #define STRING_(s) #s
 #define STRING(s) STRING_(s)
 
@@ -112,6 +116,11 @@ struct DevSettings {
   std::function<void()> showDevMenuCallback;
 
   bool inlineSourceMap{true};
+
+#if defined(USE_HERMES)
+  // ARCHON_HERMES: We need to provide Hermes runtime config to increase heap size.
+  ::hermes::vm::RuntimeConfig hermesRuntimeConfig;
+#endif
 };
 
 } // namespace react
