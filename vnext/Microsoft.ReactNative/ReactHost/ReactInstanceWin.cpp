@@ -58,7 +58,9 @@
 #include "RedBox.h"
 
 #include <tuple>
+#if defined(USE_CHAKRA)
 #include "ChakraRuntimeHolder.h"
+#endif
 
 namespace react::uwp {
 
@@ -334,6 +336,7 @@ void ReactInstanceWin::Initialize() noexcept {
                 break;
 #endif
               case react::uwp::JSIEngine::Chakra:
+#if defined(USE_CHAKRA)
                 if (m_options.EnableByteCodeCaching || !m_options.ByteCodeFileUri.empty()) {
                   scriptStore = std::make_unique<react::uwp::UwpScriptStore>();
                   preparedScriptStore = std::make_unique<react::uwp::UwpPreparedScriptStore>(
@@ -341,6 +344,7 @@ void ReactInstanceWin::Initialize() noexcept {
                 }
                 devSettings->jsiRuntimeHolder = std::make_shared<Microsoft::JSI::ChakraRuntimeHolder>(
                     devSettings, m_jsMessageThread.Load(), std::move(scriptStore), std::move(preparedScriptStore));
+#endif
                 break;
             }
           }

@@ -19,6 +19,7 @@ namespace JSNativeHooks {
 LoggingHook loggingHook = nullptr;
 NowHook nowHook = nullptr;
 
+#if defined(USE_CHAKRA)
 JsValueRef __stdcall nowHookJNF(
     JsValueRef /*function*/,
     bool /*isConstructCall*/,
@@ -31,6 +32,7 @@ JsValueRef __stdcall nowHookJNF(
   CHAKRA_ASSERTDO(JsDoubleToNumber(now, &value));
   return value;
 }
+#endif
 
 } // namespace JSNativeHooks
 

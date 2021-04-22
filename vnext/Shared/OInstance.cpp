@@ -15,9 +15,11 @@
 #include "OInstance.h"
 #include "Unicode.h"
 
+#if defined(USE_CHAKRA)
 #include "Chakra/ChakraExecutor.h"
 #include "Chakra/ChakraHelpers.h"
 #include "Chakra/ChakraUtils.h"
+#endif
 #include "JSI/Shared/RuntimeHolder.h"
 
 #include <cxxreact/MessageQueueThread.h>
@@ -56,7 +58,9 @@
 #endif
 #include <ReactCommon/CallInvoker.h>
 #include <ReactCommon/TurboModuleBinding.h>
+#if defined(USE_CHAKRA)
 #include "ChakraRuntimeHolder.h"
+#endif
 
 #if (defined(_MSC_VER) && !defined(WINRT))
 // Type only available in Desktop.
@@ -431,8 +435,13 @@ InstanceImpl::InstanceImpl(
         case JSIEngineOverride::Chakra:
         case JSIEngineOverride::ChakraCore:
         default: // TODO: Add other engines once supported
+#if defined(USE_CHAKRA)
           m_devSettings->jsiRuntimeHolder =
               std::make_shared<Microsoft::JSI::ChakraRuntimeHolder>(m_devSettings, m_jsThread, nullptr, nullptr);
+#else
+          assert(false); // Chakra is not available in this build, fallthrough
+          [[fallthrough]];
+#endif
           break;
       }
       if (!jsef) {
@@ -443,6 +452,7 @@ InstanceImpl::InstanceImpl(
           m_innerInstance->getJSCallInvoker());
       }
     } else {
+#if defined(USE_CHAKRA)
       // We use the older non-JSI ChakraExecutor pipeline as a fallback as of
       // now. This will go away once we completely move to JSI flow.
       ChakraInstanceArgs instanceArgs;
@@ -479,6 +489,7 @@ InstanceImpl::InstanceImpl(
           : CreateMemoryTracker(std::shared_ptr<MessageQueueThread>{m_nativeQueue});
 
       jsef = std::make_shared<ChakraExecutorFactory>(std::move(instanceArgs));
+#endif // defined(USE_CHAKRA)
     }
   }
 

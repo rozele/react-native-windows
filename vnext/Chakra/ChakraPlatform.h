@@ -13,6 +13,7 @@
 
 #include "Logging.h"
 
+#if defined(USE_CHAKRA)
 #if defined(USE_EDGEMODE_JSRT)
 #include <jsrt.h>
 #else
@@ -30,6 +31,7 @@
     assert(!CHAKRA_FAILED(ec));          \
   } while (false)
 #endif
+#endif // defined(USE_CHAKRA)
 
 namespace facebook {
 namespace react {
@@ -42,12 +44,14 @@ extern LoggingHook loggingHook;
 using NowHook = double (*)();
 extern NowHook nowHook;
 
+#if defined(USE_CHAKRA)
 JsValueRef __stdcall nowHookJNF(
     JsValueRef function,
     bool isConstructCall,
     JsValueRef arguments[],
     unsigned short argumentCount,
     void *callbackState);
+#endif
 
 } // namespace JSNativeHooks
 

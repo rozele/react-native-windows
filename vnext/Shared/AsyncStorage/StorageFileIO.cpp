@@ -4,7 +4,6 @@
 #include "pch.h"
 
 #include <AsyncStorage/StorageFileIO.h>
-#include <Chakra/Utf8DebugExtensions.h>
 
 #ifdef WINRT
 #include <winrt/Windows.Storage.h>
