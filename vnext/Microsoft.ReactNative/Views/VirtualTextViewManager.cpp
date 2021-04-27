@@ -41,9 +41,15 @@ void VirtualTextShadowNode::onDropViewInstance() {
 
 void VirtualTextShadowNode::AddToPressableCount(int count) {
   m_pressableCount += count;
-  if (auto instance = GetViewManager()->GetReactInstance().lock()) {
-    auto host = instance->NativeUIManager()->getHost();
-    if (m_parent != -1) {
+  if (m_parent != -1) {
+    facebook::react::INativeUIManagerHost *host = nullptr;
+    if (auto instance = GetViewManager()->GetReactInstance().lock()) {
+      if (auto uiManager = instance->NativeUIManager()) {
+        host = uiManager->getHost();
+      }
+    }
+
+    if (host != nullptr) {
       const auto parentNode = static_cast<ShadowNodeBase *>(host->FindShadowNodeForTag(m_parent));
       const auto viewManager = parentNode->GetViewManager();
       if (!std::strcmp(viewManager->GetName(), "RCTText")) {
