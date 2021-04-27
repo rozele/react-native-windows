@@ -294,10 +294,13 @@ bool TextViewManager::UpdateProperty(
       textBlock.ClearValue(xaml::Controls::TextBlock::MaxLinesProperty());
     }
   } else if (propertyName == "lineHeight") {
-    if (propertyValue.isNumber())
+    if (propertyValue.isNumber()) {
       textBlock.LineHeight(static_cast<int32_t>(propertyValue.asDouble()));
-    else if (propertyValue.isNull())
+      textBlock.LineStackingStrategy(xaml::LineStackingStrategy::BlockLineHeight);
+    } else if (propertyValue.isNull()) {
       textBlock.ClearValue(xaml::Controls::TextBlock::LineHeightProperty());
+      textBlock.ClearValue(xaml::Controls::TextBlock::LineStackingStrategyProperty());
+    }
   } else if (propertyName == "selectable") {
     if (propertyValue.isBool()) {
       const auto selectable = propertyValue.asBool();
