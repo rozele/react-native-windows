@@ -25,7 +25,7 @@
 
 namespace react::uwp {
 
-std::vector<int64_t> GetTagsForBranch(facebook::react::INativeUIManagerHost *host, int64_t tag);
+std::vector<int64_t> GetTagsForBranch(facebook::react::INativeUIManagerHost *host, int64_t tag, int64_t rootTag);
 
 TouchEventHandler::TouchEventHandler(const std::weak_ptr<IReactInstance> &reactInstance)
     : m_xamlView(nullptr), m_rootView(nullptr), m_wkReactInstance(reactInstance) {}
@@ -310,7 +310,7 @@ void TouchEventHandler::UpdatePointersInViews(
   // Get the branch of views under the pointer in leaf to root order
   std::vector<int64_t> newViews;
   if (tag != -1)
-    newViews = GetTagsForBranch(puiManagerHost, tag);
+    newViews = GetTagsForBranch(puiManagerHost, tag, GetTag(m_xamlView));
 
   // Get the results of the last time we calculated the path
   auto it = m_pointersInViews.find(pointerId);
@@ -505,12 +505,15 @@ bool TouchEventHandler::TagFromOriginalSource(
 // Retreives the path of nodes from an element to the root.
 // The order of the returned list is from child to parent.
 //
-std::vector<int64_t> GetTagsForBranch(facebook::react::INativeUIManagerHost *host, int64_t tag) {
+std::vector<int64_t> GetTagsForBranch(facebook::react::INativeUIManagerHost *host, int64_t tag, int64_t rootTag) {
   std::vector<int64_t> tags;
 
   auto *shadowNode = host->FindShadowNodeForTag(tag);
   while (shadowNode != nullptr && tag != -1) {
     tags.push_back(tag);
+    if (tag == rootTag) {
+      break;
+    }
 
     tag = shadowNode->m_parent;
     shadowNode = host->FindShadowNodeForTag(tag);
