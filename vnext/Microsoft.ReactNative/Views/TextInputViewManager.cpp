@@ -140,6 +140,7 @@ class TextInputShadowNode : public ShadowNodeBase {
   void OnPaste(winrt::IInspectable const &, xaml::Controls::TextControlPasteEventArgs const &args);
   void AddPasteOptionIfNeeded(xaml::Controls::TextCommandBarFlyout const& flyout);
 
+  bool m_autoFocus = false;
   bool m_shouldClearTextOnFocus = false;
   bool m_shouldSelectTextOnFocus = false;
   bool m_contextMenuHidden = false;
@@ -337,6 +338,9 @@ void TextInputShadowNode::registerEvents() {
       });
 
   m_controlLoadedRevoker = control.Loaded(winrt::auto_revoke, [=](auto &&, auto &&) {
+    if (m_autoFocus) {
+      control.Focus(xaml::FocusState::Keyboard);
+    }
     auto textBoxView = control.GetTemplateChild(asHstring("ContentElement")).as<xaml::Controls::ScrollViewer>();
     if (textBoxView) {
       m_scrollViewerViewChangingRevoker = textBoxView.ViewChanging(
@@ -627,6 +631,9 @@ void TextInputShadowNode::updateProperties(const folly::dynamic &&props) {
         m_handledPasteFormats = json_type_traits<std::vector<std::string>>::parseJson(propertyValue);
       else if (propertyValue.isNull())
         m_handledPasteFormats.clear();
+    } else if (propertyName == "autoFocus") {
+      if (propertyValue.isBool())
+        m_autoFocus = propertyValue.asBool();
     } else {
       if (m_isTextBox) { // Applicable properties for TextBox
         if (TryUpdateTextAlignment(textBox, propertyName, propertyValue)) {
@@ -828,7 +835,7 @@ folly::dynamic TextInputViewManager::GetNativeProps() const {
       "selectTextOnFocus", "boolean")("spellCheck", "boolean")("text", "string")("mostRecentEventCount", "int")(
       "secureTextEntry", "boolean")("keyboardType", "string")("contextMenuHidden", "boolean")("caretHidden", "boolean")(
       "autoCapitalize", "string")("clearTextOnSubmit", "boolean")("submitKeyEvents", "array")(
-      "handledPasteFormats", "array"));
+      "handledPasteFormats", "array")("autoFocus", "boolean"));
 
   return props;
 }
