@@ -130,6 +130,13 @@ auto LinkingManagerModule::getMethods() -> std::vector<Method> {
 } // namespace react::uwp
 
 extern "C" __declspec(dllexport) void OpenDeeplinkUri(const wchar_t *uri) noexcept {
-  winrt::Windows::Foundation::Uri winrtUri{uri};
+  winrt::Windows::Foundation::Uri winrtUri{nullptr};
+  try {
+    winrtUri = winrt::Windows::Foundation::Uri(uri);
+  } 
+  catch(...)
+  {
+    return;
+  }
   react::uwp::LinkingManagerModule::OpenUri(winrtUri);
 }
