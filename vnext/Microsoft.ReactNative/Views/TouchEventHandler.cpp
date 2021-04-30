@@ -37,6 +37,7 @@ TouchEventHandler::~TouchEventHandler() {
 void TouchEventHandler::AddTouchHandlers(
     XamlView xamlView,
     std::function<bool()> shouldCancelOnCaptureLost,
+    bool findRoot,
     bool handledEventsToo) {
   auto uiElement(xamlView.as<xaml::UIElement>());
   if (uiElement == nullptr) {
@@ -46,6 +47,7 @@ void TouchEventHandler::AddTouchHandlers(
 
   m_xamlView = xamlView;
   m_shouldCancelOnCaptureLost = shouldCancelOnCaptureLost;
+  m_findRoot = findRoot;
 
   RemoveTouchHandlers();
 
@@ -254,17 +256,19 @@ void TouchEventHandler::UpdateReactPointer(
     xaml::UIElement sourceElement) {
   const auto parentTag = GetTag(m_xamlView);
   auto rootView = m_xamlView;
-  if (!m_rootView) {
-    if (auto instance = m_wkReactInstance.lock()) {
-      auto host = instance->NativeUIManager()->getHost();
-      const auto rootNode = static_cast<ShadowNodeBase *>(host->FindParentRootShadowNode(parentTag));
-      if (rootNode) {
-        m_rootView = rootNode->GetView();
-        rootView = m_rootView;
+  if (m_findRoot) {
+    if (!m_rootView) {
+      if (auto instance = m_wkReactInstance.lock()) {
+        auto host = instance->NativeUIManager()->getHost();
+        const auto rootNode = static_cast<ShadowNodeBase *>(host->FindParentRootShadowNode(parentTag));
+        if (rootNode) {
+          m_rootView = rootNode->GetView();
+          rootView = m_rootView;
+        }
       }
+    } else {
+      rootView = m_rootView;
     }
-  } else {
-    rootView = m_rootView;
   }
 
   auto rootPoint = args.GetCurrentPoint(rootView.as<xaml::FrameworkElement>());

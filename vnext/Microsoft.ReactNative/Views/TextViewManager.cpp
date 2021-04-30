@@ -188,7 +188,7 @@ class TextShadowNode final : public ShadowNodeBase {
                 textSelectionState->selectionChanged = textBlock.SelectionStart().Offset() != textBlock.SelectionEnd().Offset();
               });
 
-      m_touchEventHandler->AddTouchHandlers(xamlView, shouldCancelOnCaptureLost, true);
+      m_touchEventHandler->AddTouchHandlers(xamlView, shouldCancelOnCaptureLost, true, true);
     } else {
       if (m_touchEventHandler != nullptr) {
         m_touchEventHandler->RemoveTouchHandlers();

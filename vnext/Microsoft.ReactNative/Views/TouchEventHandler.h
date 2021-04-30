@@ -28,6 +28,7 @@ class TouchEventHandler {
   void AddTouchHandlers(
       XamlView xamlView,
       std::function<bool()> shouldCancelOnCaptureLost = nullptr,
+      bool findRoot = false,
       bool handledEventsToo = false);
   void RemoveTouchHandlers();
 
@@ -45,6 +46,7 @@ class TouchEventHandler {
   winrt::IInspectable m_exitedHandler;
   winrt::IInspectable m_movedHandler;
   std::function<bool()> m_shouldCancelOnCaptureLost;
+  bool m_findRoot{false};
   bool m_subscribed{false};
 
   struct ReactPointer {
