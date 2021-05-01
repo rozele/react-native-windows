@@ -27,7 +27,7 @@ struct VirtualTextShadowNode final : public ShadowNodeBase {
   void AddToPressableCount(int pressableCount);
   void SetPressable(bool isPressable);
 
-  static xaml::Documents::TextPointer
+  static xaml::DependencyObject
   HitTest(const ShadowNodeBase &node, const winrt::Point &point, bool hasPressableParent);
 
   bool m_isPressable{false};
