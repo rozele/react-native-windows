@@ -20,6 +20,10 @@
 #include <winrt/Windows.ApplicationModel.DataTransfer.h>
 #include <winrt/Windows.UI.Xaml.Controls.Primitives.h>
 
+// ARCHON_RNW_XAMLROOT Need to get XAML root to test focused window
+#include <ReactHost/UwpReactInstanceProxy.h>
+#include <ReactHost/ReactInstanceWin.h>
+
 #ifdef USE_WINUI3
 namespace winrt::Microsoft::UI::Xaml::Controls {
 using IPasswordBox4 = ::xaml::Controls::IPasswordBox;
@@ -339,6 +343,15 @@ void TextInputShadowNode::registerEvents() {
 
   m_controlLoadedRevoker = control.Loaded(winrt::auto_revoke, [=](auto &&, auto &&) {
     if (m_autoFocus) {
+      // ARCHON_RNW_MULTIWIN: If current XAML root does not match control root, window does not have focus
+      if (const auto instance = wkinstance.lock()) {
+        if (const auto reactInstance = static_cast<Mso::React::ReactInstanceWin*>(static_cast<UwpReactInstanceProxy*>(instance.get())->GetReactInstance().Get())) {
+          if (control.XamlRoot() != winrt::Microsoft::ReactNative::XamlUIService::GetXamlRoot(reactInstance->Options().Properties)) {
+            return;
+          }
+        }
+      }
+
       control.Focus(xaml::FocusState::Keyboard);
     }
     auto textBoxView = control.GetTemplateChild(asHstring("ContentElement")).as<xaml::Controls::ScrollViewer>();

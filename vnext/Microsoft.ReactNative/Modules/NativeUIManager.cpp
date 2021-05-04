@@ -1088,7 +1088,20 @@ void NativeUIManager::findSubviewIn(
 
 void NativeUIManager::focus(int64_t reactTag) {
   if (auto shadowNode = static_cast<ShadowNodeBase *>(m_host->FindShadowNodeForTag(reactTag))) {
-    xaml::Input::FocusManager::TryFocusAsync(shadowNode->GetView(), winrt::FocusState::Programmatic);
+    const auto view = shadowNode->GetView();
+
+    // ARCHON_RNW_MULTIWIN: If current XAML root does not match control root, window does not have focus
+    const auto uiElement = view.try_as<xaml::UIElement>();
+    if (uiElement) {
+      const auto properties = React::ReactPropertyBag(m_context->Properties());
+      if (auto xamlRoot = React::XamlUIService::GetXamlRoot(properties.Handle())) {
+        if (uiElement.XamlRoot() != xamlRoot) {
+          return;
+        }
+      }
+    }
+
+    xaml::Input::FocusManager::TryFocusAsync(view, winrt::FocusState::Programmatic);
   }
 }
 
