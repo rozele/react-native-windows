@@ -221,7 +221,15 @@ void FlyoutShadowNode::createView() {
         // its anchor element to prevent cases where focus can land on
         // an outer flyout content and therefore trigger a unexpected flyout
         // dismissal
-        xaml::Input::FocusManager::TryFocusAsync(m_targetElement, winrt::FocusState::Programmatic);
+
+        // ARCHON_RNW_MULTIWIN: If current XAML root does not match control
+        // root, window does not have focus
+        if (const auto reactInstance = static_cast<Mso::React::ReactInstanceWin*>(static_cast<UwpReactInstanceProxy*>(instance.get())->GetReactInstance().Get())) {
+          if (m_targetElement.XamlRoot() == winrt::Microsoft::ReactNative::XamlUIService::GetXamlRoot(reactInstance->Options().Properties)) {
+            xaml::Input::FocusManager::TryFocusAsync(
+                m_targetElement, winrt::FocusState::Programmatic);
+          }
+        }
       }
 
       OnFlyoutClosed(*instance, m_tag, false);
