@@ -52,6 +52,7 @@ class ScrollViewShadowNode : public ShadowNodeBase {
       T defaultValue);
   void SetScrollMode(const winrt::ScrollViewer &scrollViewer);
   void UpdateZoomMode(const winrt::ScrollViewer &scrollViewer);
+  bool UpdateZoomOffsets(const winrt::ScrollViewer &scrollViewer, const float zoomScale);
 
   float m_zoomFactor{1.0f};
   bool m_isScrollingFromInertia = false;
@@ -60,6 +61,7 @@ class ScrollViewShadowNode : public ShadowNodeBase {
   bool m_isScrollingEnabled = true;
   bool m_changeViewAfterLoaded = false;
   bool m_dismissKeyboardOnDrag = false;
+  bool m_zoomFromCenter = false;
 
   std::shared_ptr<SIPEventHandler> m_SIPEventHandler;
 
@@ -183,7 +185,7 @@ void ScrollViewShadowNode::updateProperties(winrt::Microsoft::ReactNative::JSVal
       const auto [valid, zoomScale] = getPropertyAndValidity(propertyValue, 1.0);
       if (valid) {
         m_zoomFactor = static_cast<float>(zoomScale);
-        m_changeViewAfterLoaded = !scrollViewer.ChangeView(nullptr, nullptr, m_zoomFactor);
+        m_changeViewAfterLoaded = !UpdateZoomOffsets(scrollViewer, m_zoomFactor);
       }
     } else if (propertyName == "snapToInterval") {
       const auto [valid, snapToInterval] = getPropertyAndValidity(propertyValue, 0.0);
@@ -228,6 +230,11 @@ void ScrollViewShadowNode::updateProperties(winrt::Microsoft::ReactNative::JSVal
       const auto [valid, pagingEnabled] = getPropertyAndValidity(propertyValue, false);
       if (valid) {
         ScrollViewUWPImplementation(scrollViewer).PagingEnabled(pagingEnabled);
+      }
+    } else if (propertyName == "zoomFromCenter") {
+      const auto [valid, zoomFromCenter] = getPropertyAndValidity(propertyValue, true);
+      if (valid) {
+        m_zoomFromCenter = zoomFromCenter;
       }
     }
   }
@@ -322,7 +329,7 @@ void ScrollViewShadowNode::AddHandlers(const winrt::ScrollViewer &scrollViewer) 
   m_controlLoadedRevoker = scrollViewer.Loaded(winrt::auto_revoke, [this](const auto &sender, const auto &) {
     if (m_changeViewAfterLoaded) {
       const auto scrollViewer = sender.as<winrt::ScrollViewer>();
-      scrollViewer.ChangeView(nullptr, nullptr, static_cast<float>(m_zoomFactor));
+      UpdateZoomOffsets(scrollViewer, m_zoomFactor);
       m_changeViewAfterLoaded = false;
     }
   });
@@ -416,6 +423,46 @@ void ScrollViewShadowNode::UpdateZoomMode(const winrt::ScrollViewer &scrollViewe
                                                                    : winrt::ZoomMode::Disabled);
 }
 
+bool ScrollViewShadowNode::UpdateZoomOffsets(const winrt::ScrollViewer &scrollViewer, const float zoomScale) {
+  // We want to keep a fixed center point. The current center point is given by:
+  // let h = view port height
+  // let y = vertical offset
+  // let z = zoom factor
+  // let z' = target zoom factor
+  //
+  // Calculate the current center
+  // let cy = h / (z * 2) + y
+  //
+  // We want CX and CY to remain unchanged with zoom, so we have to solve for
+  // x' and y' in the following inequalities:
+  // h / (z * 2) + x = h / (z' * 2) + y'
+  //
+  // This gives us:
+  // y' = h / (z * 2) + y - h / (z' * 2)
+  //
+  // In case we are zooming out, we need to truncate X' and Y' to zero.
+  // y' = max(0, h / (z * 2) + y - h / (z' * 2))
+  //
+  // We can calculate x' by following the approach above, substituting "h" for
+  // the view port width and "y" for the horizontal offset.
+  winrt::IReference<double> xOffset = nullptr;
+  winrt::IReference<double> yOffset = nullptr;
+  if (m_zoomFromCenter) {
+    const auto w = scrollViewer.ExtentWidth();
+    const auto h = scrollViewer.ExtentHeight();
+    const auto x = scrollViewer.HorizontalOffset();
+    const auto y = scrollViewer.VerticalOffset();
+    const auto z = scrollViewer.ZoomFactor();
+    const auto zPrime = static_cast<double>(zoomScale);
+    const auto xPrime = std::max(0.0, w / (z * 2) + x - w / (zPrime * 2));
+    const auto yPrime = std::max(0.0, h / (z * 2) + y - h / (zPrime * 2));
+    xOffset = xPrime;
+    yOffset = yPrime;
+  }
+  return scrollViewer.ChangeView(xOffset, yOffset, m_zoomFactor);
+}
+
+
 ScrollViewManager::ScrollViewManager(const Mso::React::IReactContext &context)
     : Super(context), m_batchingEventEmitter{std::make_shared<BatchingEventEmitter>(Mso::CntPtr(&context))} {}
 
@@ -448,6 +495,7 @@ void ScrollViewManager::GetNativeProps(const winrt::Microsoft::ReactNative::IJSV
   winrt::Microsoft::ReactNative::WriteProperty(writer, L"snapToEnd", L"boolean");
   winrt::Microsoft::ReactNative::WriteProperty(writer, L"pagingEnabled", L"boolean");
   winrt::Microsoft::ReactNative::WriteProperty(writer, L"keyboardDismissMode", L"string");
+  winrt::Microsoft::ReactNative::WriteProperty(writer, L"zoomFromCenter", L"boolean");
 }
 
 ShadowNode *ScrollViewManager::createShadow() const {
