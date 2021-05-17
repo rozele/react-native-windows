@@ -41,14 +41,16 @@ class ScrollViewShadowNode : public ShadowNodeBase {
   std::tuple<bool, T> getPropertyAndValidity(folly::dynamic propertyValue, T defaultValue);
   void SetScrollMode(const winrt::ScrollViewer &scrollViewer);
   void UpdateZoomMode(const winrt::ScrollViewer &scrollViewer);
+  bool UpdateZoomScale(const winrt::ScrollViewer &scrollViewer, const double zoomScale);
 
-  float m_zoomFactor{1.0f};
+  double m_zoomFactor{1.0f};
   bool m_isScrollingFromInertia = false;
   bool m_isScrolling = false;
   bool m_isHorizontal = false;
   bool m_isScrollingEnabled = true;
   bool m_changeViewAfterLoaded = false;
   bool m_dismissKeyboardOnDrag = false;
+  bool m_zoomFromCenter = false;
 
   react::uwp::ScrollViewViewChanger m_viewChanger;
 
@@ -188,8 +190,8 @@ void ScrollViewShadowNode::updateProperties(const folly::dynamic &&reactDiffMap)
     } else if (propertyName == "zoomScale") {
       const auto [valid, zoomScale] = getPropertyAndValidity(propertyValue, 1.0);
       if (valid) {
-        m_zoomFactor = static_cast<float>(zoomScale);
-        m_changeViewAfterLoaded = !scrollViewer.ChangeView(nullptr, nullptr, m_zoomFactor);
+        m_zoomFactor = zoomScale;
+        m_changeViewAfterLoaded = !UpdateZoomScale(scrollViewer, m_zoomFactor);
       }
     } else if (propertyName == "snapToInterval") {
       const auto [valid, snapToInterval] = getPropertyAndValidity(propertyValue, 0.0);
@@ -245,6 +247,11 @@ void ScrollViewShadowNode::updateProperties(const folly::dynamic &&reactDiffMap)
           scrollViewer.HorizontalAnchorRatio(0.0);
           scrollViewer.VerticalAnchorRatio(0.0);
         }
+      }
+    } else if (propertyName == "zoomFromCenter") {
+      const auto [valid, zoomFromCenter] = getPropertyAndValidity(propertyValue, true);
+      if (valid) {
+        m_zoomFromCenter = zoomFromCenter;
       }
     }
   }
@@ -341,7 +348,7 @@ void ScrollViewShadowNode::AddHandlers(const winrt::ScrollViewer &scrollViewer) 
   m_controlLoadedRevoker = scrollViewer.Loaded(winrt::auto_revoke, [this](const auto &sender, const auto &) {
     if (m_changeViewAfterLoaded) {
       const auto scrollViewer = sender.as<winrt::ScrollViewer>();
-      scrollViewer.ChangeView(nullptr, nullptr, static_cast<float>(m_zoomFactor));
+      UpdateZoomScale(scrollViewer, m_zoomFactor);
       m_changeViewAfterLoaded = false;
     }
   });
@@ -455,6 +462,39 @@ void ScrollViewShadowNode::UpdateZoomMode(const winrt::ScrollViewer &scrollViewe
                                                                    : winrt::ZoomMode::Disabled);
 }
 
+bool ScrollViewShadowNode::UpdateZoomScale(const winrt::ScrollViewer &scrollViewer, const double zoomScale) {
+  // We want to keep a fixed center point. The current center point is given by:
+  // let h = view port height
+  // let y = scaled vertical offset
+  // let z = zoom factor
+  // h / (z * 2) + y / z
+  //
+  // We want the center point to remain unchanged with zoom, so we have to
+  // solve for y' in the following equality:
+  // let z' = target zoom factor
+  // h / (z * 2) + y / z = h / (z' * 2) + y' / z'
+  //
+  // This gives us:
+  // let r = z' / z
+  // y' = (r - 1) * h / 2 + r * y
+  //
+  // We can calculate x' by following the approach above, substituting "h" for
+  // the view port width and "y" for the scaled horizontal offset.
+  winrt::IReference<double> xOffset = nullptr;
+  winrt::IReference<double> yOffset = nullptr;
+  if (m_zoomFromCenter) {
+    const auto w = scrollViewer.ActualWidth();
+    const auto h = scrollViewer.ActualHeight();
+    const auto x = scrollViewer.HorizontalOffset();
+    const auto y = scrollViewer.VerticalOffset();
+    const auto z = scrollViewer.ZoomFactor();
+    const auto r = zoomScale / z;
+    xOffset = (r - 1) * w / 2 + r * x;
+    yOffset = (r - 1) * h / 2 + r * y;
+  }
+  return scrollViewer.ChangeView(xOffset, yOffset, m_zoomFactor);
+}
+
 ScrollViewManager::ScrollViewManager(const std::shared_ptr<IReactInstance> &reactInstance) : Super(reactInstance) {}
 
 const char *ScrollViewManager::GetName() const {
@@ -475,7 +515,8 @@ folly::dynamic ScrollViewManager::GetNativeProps() const {
       "showsHorizontalScrollIndicator", "boolean")("showsVerticalScrollIndicator", "boolean")(
       "minimumZoomScale", "float")("maximumZoomScale", "float")("zoomScale", "float")("snapToInterval", "float")(
       "snapToOffsets", "array")("snapToAlignment", "number")("snapToStart", "boolean")("snapToEnd", "boolean")(
-      "pagingEnabled", "boolean")("keyboardDismissMode", "string")("nativeInverted", "boolean"));
+      "pagingEnabled", "boolean")("keyboardDismissMode", "string")("nativeInverted", "boolean")(
+      "zoomFromCenter", "boolean"));
 
   return props;
 }
