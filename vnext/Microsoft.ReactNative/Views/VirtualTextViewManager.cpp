@@ -7,6 +7,7 @@
 #include "TextViewManager.h"
 #include "VirtualTextViewManager.h"
 
+#include <Modules/NativeUIManager.h>
 #include <UI.Xaml.Controls.h>
 #include <UI.Xaml.Documents.h>
 #include <Utils/PropertyUtils.h>
@@ -42,13 +43,7 @@ void VirtualTextShadowNode::onDropViewInstance() {
 void VirtualTextShadowNode::AddToPressableCount(int count) {
   m_pressableCount += count;
   if (m_parent != -1) {
-    facebook::react::INativeUIManagerHost *host = nullptr;
-    if (auto instance = GetViewManager()->GetReactInstance().lock()) {
-      if (auto uiManager = instance->NativeUIManager()) {
-        host = uiManager->getHost();
-      }
-    }
-
+    const auto host = GetNativeUIManagerHost(GetViewManager()->GetReactInstance());
     if (host != nullptr) {
       const auto parentNode = static_cast<ShadowNodeBase *>(host->FindShadowNodeForTag(m_parent));
       const auto viewManager = parentNode->GetViewManager();
@@ -112,8 +107,7 @@ void VirtualTextShadowNode::ApplyTextTransform(
         }
       }
 
-      if (auto instance = node.GetViewManager()->GetReactInstance().lock()) {
-        auto host = instance->NativeUIManager()->getHost();
+      if (const auto host = GetNativeUIManagerHost(node.GetViewManager()->GetReactInstance())) {
         for (auto childTag : node.m_children) {
           const auto childNode = static_cast<ShadowNodeBase *>(host->FindShadowNodeForTag(childTag));
           ApplyTextTransform(*childNode, transform, forceUpdate, /* isRoot = */ false);
@@ -148,8 +142,7 @@ VirtualTextShadowNode::HitTest(const ShadowNodeBase &node, const winrt::Point &p
       }
     }
 
-    if (auto instance = node.GetViewManager()->GetReactInstance().lock()) {
-      auto host = instance->NativeUIManager()->getHost();
+    if (const auto host = GetNativeUIManagerHost(node.GetViewManager()->GetReactInstance())) {
       for (const auto childTag : node.m_children) {
         const auto childNode = static_cast<ShadowNodeBase *>(host->FindShadowNodeForTag(childTag));
         const auto textPointer = HitTest(*childNode, point, isPressable);

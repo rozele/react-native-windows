@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include <INativeUIManager.h>
 #include <UI.Xaml.Documents.h>
 #include <Utils/TextTransform.h>
 #include <Views/FrameworkElementViewManager.h>

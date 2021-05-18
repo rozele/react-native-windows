@@ -487,16 +487,13 @@ void ViewViewManager::TryUpdateView(
 
   // If we need to change the root of our view, do it now
   if (oldXamlView != newXamlView) {
-    auto instance = m_wkReactInstance.lock();
-    if (instance == nullptr)
+    const auto host = GetNativeUIManagerHost(m_wkReactInstance);
+    if (host == nullptr)
       return;
-
-    auto pNativeUiManager = static_cast<NativeUIManager *>(instance->NativeUIManager());
 
     // Inform the parent ShadowNode of this change so the hierarchy can be
     // updated
     int64_t parentTag = pViewShadowNode->GetParent();
-    auto host = pNativeUiManager->getHost();
     auto *pParentNode = static_cast<ShadowNodeBase *>(host->FindShadowNodeForTag(parentTag));
     if (pParentNode != nullptr)
       pParentNode->ReplaceChild(oldXamlView, newXamlView);
@@ -507,7 +504,11 @@ void ViewViewManager::TryUpdateView(
 
     // Inform the NativeUIManager of this change so the yoga layout can be
     // updated
-    pNativeUiManager->ReplaceView(*pViewShadowNode);
+    if (const auto instance = m_wkReactInstance.lock()) {
+      if (const auto pNativeUiManager = instance->NativeUIManager()) {
+        pNativeUiManager->ReplaceView(*pViewShadowNode);
+      }
+    }
   }
 
   // Ensure parenting is setup properly

@@ -60,6 +60,15 @@ static int YogaLog(
 }
 #endif
 
+facebook::react::INativeUIManagerHost *GetNativeUIManagerHost(std::weak_ptr<react::uwp::IReactInstance> instance) {
+  if (const auto spInstance = instance.lock()) {
+    if (const auto uiManager = spInstance->NativeUIManager()) {
+      return uiManager->getHost();
+    }
+  }
+  return nullptr;
+}
+
 YGNodeRef NativeUIManager::GetYogaNode(int64_t tag) const {
   auto iter = m_tagsToYogaNodes.find(tag);
   if (iter == m_tagsToYogaNodes.end())

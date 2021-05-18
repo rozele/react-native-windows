@@ -234,19 +234,16 @@ void PopupShadowNode::updateProperties(const folly::dynamic &&props) {
 }
 
 void PopupShadowNode::UpdateLayout() {
-  auto wkinstance = static_cast<PopupViewManager *>(GetViewManager())->m_wkReactInstance;
-  auto instance = wkinstance.lock();
-
-  if (instance == nullptr)
+  const auto host = GetNativeUIManagerHost(GetViewManager()->GetReactInstance());
+  if (host == nullptr)
     return;
 
   auto popup = GetView().as<winrt::Popup>();
 
   // center relative to anchor
   if (m_targetTag > 0) {
-    auto pNativeUIManagerHost = static_cast<NativeUIManager *>(instance->NativeUIManager())->getHost();
     ShadowNodeBase *pShadowNodeChild =
-        static_cast<ShadowNodeBase *>(pNativeUIManagerHost->FindShadowNodeForTag(m_targetTag));
+        static_cast<ShadowNodeBase *>(host->FindShadowNodeForTag(m_targetTag));
 
     if (pShadowNodeChild != nullptr) {
       auto targetView = pShadowNodeChild->GetView();

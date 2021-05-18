@@ -232,12 +232,8 @@ void PropsAnimatedNode::MakeAnimation(int64_t valueNodeTag, FacadeType facadeTyp
 }
 
 ShadowNodeBase *PropsAnimatedNode::GetShadowNodeBase() {
-  if (const auto instance = m_instance.lock()) {
-    if (const auto uiManager = instance->NativeUIManager()) {
-      if (const auto nativeUIManagerHost = static_cast<NativeUIManager *>(uiManager)->getHost()) {
-        return static_cast<ShadowNodeBase *>(nativeUIManagerHost->FindShadowNodeForTag(m_connectedViewTag));
-      }
-    }
+  if (const auto host = GetNativeUIManagerHost(m_instance)) {
+    return static_cast<ShadowNodeBase *>(host->FindShadowNodeForTag(m_connectedViewTag));
   }
   return nullptr;
 }

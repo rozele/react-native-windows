@@ -6,6 +6,8 @@
 #include "TextViewManager.h"
 #include "TouchEventHandler.h"
 
+#include <Modules/NativeUIManager.h>
+
 #include <Views/RawTextViewManager.h>
 #include <Views/ShadowNodeBase.h>
 #include <Views/VirtualTextViewManager.h>
@@ -220,8 +222,7 @@ class TextShadowNode final : public ShadowNodeBase {
       if (textPointer != nullptr) {
         auto inlineTag = GetTag(textPointer.Parent());
         if (inlineTag != -1) {
-          if (auto instance = GetViewManager()->GetReactInstance().lock()) {
-            auto host = instance->NativeUIManager()->getHost();
+          if (const auto host = GetNativeUIManagerHost(GetViewManager()->GetReactInstance())) {
             const auto node = static_cast<ShadowNodeBase *>(host->FindShadowNodeForTag(inlineTag));
             // React Native does not support events targeted to raw text nodes.
             // Get the parent tag instead.

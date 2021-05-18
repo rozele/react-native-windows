@@ -258,8 +258,7 @@ void TouchEventHandler::UpdateReactPointer(
   auto rootView = m_xamlView;
   if (m_findRoot) {
     if (!m_rootView) {
-      if (auto instance = m_wkReactInstance.lock()) {
-        auto host = instance->NativeUIManager()->getHost();
+      if (const auto host = GetNativeUIManagerHost(m_wkReactInstance)) {
         const auto rootNode = static_cast<ShadowNodeBase *>(host->FindParentRootShadowNode(parentTag));
         if (rootNode) {
           m_rootView = rootNode->GetView();
@@ -302,8 +301,10 @@ void TouchEventHandler::UpdatePointersInViews(
     const winrt::PointerRoutedEventArgs &args,
     int64_t tag,
     xaml::UIElement sourceElement) {
-  auto nativeUiManager = static_cast<NativeUIManager *>(instance->NativeUIManager());
-  auto puiManagerHost = nativeUiManager->getHost();
+  const auto host = GetNativeUIManagerHost(instance);
+  if (host == nullptr)
+    return;
+
   int32_t pointerId = args.Pointer().PointerId();
 
   // m_pointers is tracking the pointers that are 'down', for moves we usually
@@ -314,7 +315,7 @@ void TouchEventHandler::UpdatePointersInViews(
   // Get the branch of views under the pointer in leaf to root order
   std::vector<int64_t> newViews;
   if (tag != -1)
-    newViews = GetTagsForBranch(puiManagerHost, tag, GetTag(m_xamlView));
+    newViews = GetTagsForBranch(host, tag, GetTag(m_xamlView));
 
   // Get the results of the last time we calculated the path
   auto it = m_pointersInViews.find(pointerId);
@@ -349,7 +350,7 @@ void TouchEventHandler::UpdatePointersInViews(
         continue;
       }
 
-      ShadowNodeBase *node = static_cast<ShadowNodeBase *>(puiManagerHost->FindShadowNodeForTag(existingTag));
+      ShadowNodeBase *node = static_cast<ShadowNodeBase *>(host->FindShadowNodeForTag(existingTag));
       if (node != nullptr && node->m_onMouseLeaveRegistered)
         instance->DispatchEvent(existingTag, "topMouseLeave", GetPointerJson(pointer, existingTag));
     }
@@ -362,7 +363,7 @@ void TouchEventHandler::UpdatePointersInViews(
       continue;
     }
 
-    ShadowNodeBase *node = static_cast<ShadowNodeBase *>(puiManagerHost->FindShadowNodeForTag(newTag));
+    ShadowNodeBase *node = static_cast<ShadowNodeBase *>(host->FindShadowNodeForTag(newTag));
     if (node != nullptr && node->m_onMouseEnterRegistered)
       instance->DispatchEvent(newTag, "topMouseEnter", GetPointerJson(pointer, newTag));
   }
@@ -479,8 +480,7 @@ bool TouchEventHandler::TagFromOriginalSource(
           break;
         }
 
-        if (auto instance = m_wkReactInstance.lock()) {
-          const auto host = instance->NativeUIManager()->getHost();
+        if (const auto host = GetNativeUIManagerHost(m_wkReactInstance)) {
           const auto node = static_cast<ShadowNodeBase *>(host->FindShadowNodeForTag(tag));
           const auto pointerPos = args.GetCurrentPoint(textBlock).RawPosition();
           tag = TextViewManager::GetReactTagAtPoint(node, pointerPos);

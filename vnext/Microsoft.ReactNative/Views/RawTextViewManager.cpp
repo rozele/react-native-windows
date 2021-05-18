@@ -7,9 +7,10 @@
 #include "TextViewManager.h"
 #include "VirtualTextViewManager.h"
 
+#include <Modules/NativeUIManager.h>
+
 #include <Views/ShadowNodeBase.h>
 
-#include <INativeUIManager.h>
 #include <Utils/ValueUtils.h>
 
 #include <UI.Xaml.Controls.h>
@@ -57,8 +58,7 @@ bool RawTextViewManager::UpdateProperty(
 }
 
 void RawTextViewManager::NotifyAncestorsTextChanged(ShadowNodeBase *nodeToUpdate) {
-  if (auto instance = this->m_wkReactInstance.lock()) {
-    auto host = instance->NativeUIManager()->getHost();
+  if (const auto host = GetNativeUIManagerHost(this->m_wkReactInstance)) {
     ShadowNodeBase *parent = static_cast<ShadowNodeBase *>(host->FindShadowNodeForTag(nodeToUpdate->GetParent()));
     TextTransform textTransform = TextTransform::Undefined;
     auto isNested = false;

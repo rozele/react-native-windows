@@ -451,16 +451,13 @@ void FlyoutShadowNode::OnShowFlyout() {
 }
 
 void FlyoutShadowNode::SetTargetFrameworkElement() {
-  auto wkinstance = GetViewManager()->GetReactInstance();
-  auto instance = wkinstance.lock();
-
-  if (instance == nullptr)
+  const auto host = GetNativeUIManagerHost(GetViewManager()->GetReactInstance());
+  if (host == nullptr)
     return;
 
   if (m_targetTag > 0) {
-    auto pNativeUIManagerHost = static_cast<NativeUIManager *>(instance->NativeUIManager())->getHost();
     ShadowNodeBase *pShadowNodeChild =
-        static_cast<ShadowNodeBase *>(pNativeUIManagerHost->FindShadowNodeForTag(m_targetTag));
+        static_cast<ShadowNodeBase *>(host->FindShadowNodeForTag(m_targetTag));
 
     if (pShadowNodeChild != nullptr) {
       auto targetView = pShadowNodeChild->GetView();

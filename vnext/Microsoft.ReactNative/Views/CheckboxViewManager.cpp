@@ -129,9 +129,9 @@ void CheckBoxViewManager::DispatchCommand(
   if (commandId == "setNativeValue") {
     auto value = commandArgs[0].asBool();
 
-    if (auto instance = GetReactInstance().lock()) {
+    if (const auto host = GetNativeUIManagerHost(GetReactInstance())) {
       auto shadow = static_cast<CheckBoxShadowNode *>(
-          instance->NativeUIManager()->getHost()->FindShadowNodeForTag(GetTag(viewToUpdate)));
+        host->FindShadowNodeForTag(GetTag(viewToUpdate)));
       // we unregister the changed events and then restore them so that we don't fire an
       // onChange event to JS when JS itself is updating the value of the checkbox
       shadow->UnregisterChangedEvents();

@@ -27,6 +27,8 @@ struct YogaNodeDeleter {
 
 typedef std::unique_ptr<YGNode, YogaNodeDeleter> YogaNodePtr;
 
+facebook::react::INativeUIManagerHost *GetNativeUIManagerHost(std::weak_ptr<react::uwp::IReactInstance> instance);
+
 class NativeUIManager final : public facebook::react::INativeUIManager {
  public:
   NativeUIManager(Mso::React::IReactContext *reactContext);
