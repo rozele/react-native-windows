@@ -31,7 +31,11 @@ class TouchEventHandler {
   TouchEventHandler(const Mso::React::IReactContext &context);
   virtual ~TouchEventHandler();
 
-  void AddTouchHandlers(XamlView xamlView);
+  void AddTouchHandlers(
+      XamlView xamlView,
+      std::function<bool()> shouldCancelOnCaptureLost = nullptr,
+      bool findRoot = false,
+      bool handledEventsToo = false);
   void RemoveTouchHandlers();
 
  private:
@@ -41,12 +45,14 @@ class TouchEventHandler {
   void OnPointerCaptureLost(const winrt::IInspectable &, const winrt::PointerRoutedEventArgs &args);
   void OnPointerExited(const winrt::IInspectable &, const winrt::PointerRoutedEventArgs &args);
   void OnPointerMoved(const winrt::IInspectable &, const winrt::PointerRoutedEventArgs &args);
-  winrt::event_revoker<winrt::IUIElement> m_pressedRevoker;
-  winrt::event_revoker<winrt::IUIElement> m_releasedRevoker;
-  winrt::event_revoker<winrt::IUIElement> m_canceledRevoker;
-  winrt::event_revoker<winrt::IUIElement> m_captureLostRevoker;
-  winrt::event_revoker<winrt::IUIElement> m_exitedRevoker;
-  winrt::event_revoker<winrt::IUIElement> m_movedRevoker;
+  winrt::IInspectable m_pressedHandler;
+  winrt::IInspectable m_releasedHandler;
+  winrt::IInspectable m_canceledHandler;
+  winrt::IInspectable m_captureLostHandler;
+  winrt::IInspectable m_exitedHandler;
+  winrt::IInspectable m_movedHandler;
+  std::function<bool()> m_shouldCancelOnCaptureLost;
+  bool m_findRoot{false};
 
   struct ReactPointer {
     int64_t target = 0;
@@ -104,7 +110,9 @@ class TouchEventHandler {
       bool &isHit);
 
   XamlView m_xamlView;
+  XamlView m_rootView;
   Mso::CntPtr<const Mso::React::IReactContext> m_context;
+  bool m_interceptHandledEvents{false};
 };
 
 } // namespace Microsoft::ReactNative
