@@ -136,6 +136,7 @@ class FlyoutShadowNode : public ShadowNodeBase {
   winrt::Flyout m_flyout = nullptr;
   bool m_isLightDismissEnabled = true;
   bool m_isOpen = false;
+  bool m_autoFocus = false;
   int64_t m_targetTag = -1;
   float m_horizontalOffset = 0;
   float m_verticalOffset = 0;
@@ -261,6 +262,20 @@ void FlyoutShadowNode::createView() {
           if (numOpenPopups > 0) {
             winrt::Numerics::float3 translation{0, 0, (float)16 * numOpenPopups};
             flyoutPresenter.Translation(translation);
+          }
+        }
+
+        if (m_autoFocus) {
+          if (const auto content = m_flyout.Content()) {
+            if (const auto elementToFocus = xaml::Input::FocusManager::FindFirstFocusableElement(content)) {
+              if (const auto control = elementToFocus.try_as<xaml::Controls::Control>()) {
+                if (const auto reactInstance = static_cast<Mso::React::ReactInstanceWin*>(static_cast<UwpReactInstanceProxy*>(instance.get())->GetReactInstance().Get())) {
+                  if (control.XamlRoot() == winrt::Microsoft::ReactNative::XamlUIService::GetXamlRoot(reactInstance->Options().Properties)) {
+                    control.Focus(xaml::FocusState::Programmatic);
+                  }
+                }
+              }
+            }
           }
         }
 
@@ -392,6 +407,11 @@ void FlyoutShadowNode::updateProperties(const folly::dynamic &&props) {
       if (m_isFlyoutShowOptionsSupported) {
         m_showOptions.ShowMode(m_showMode);
       }
+    } else if (propertyName == "autoFocus") {
+      if (propertyValue.isBool())
+        m_autoFocus = propertyValue.asBool();
+      else if (propertyValue.isNull())
+        m_autoFocus = false;
     }
   }
 
@@ -534,7 +554,7 @@ folly::dynamic FlyoutViewManager::GetNativeProps() const {
 
   props.update(folly::dynamic::object("horizontalOffset", "number")("isLightDismissEnabled", "boolean")(
       "isOpen", "boolean")("placement", "number")("showMode", "number")("target", "number")("verticalOffset", "number")(
-      "isOverlayEnabled", "boolean")("shouldConstrainToRootBounds", "boolean"));
+      "isOverlayEnabled", "boolean")("shouldConstrainToRootBounds", "boolean")("autoFocus", "boolean"));
 
   return props;
 }
