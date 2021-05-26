@@ -34,6 +34,7 @@ using ITextBox6 = ::xaml::Controls::ITextBox;
 namespace winrt {
 using namespace winrt::Windows::ApplicationModel::DataTransfer;
 using namespace xaml;
+using namespace xaml::Controls;
 using namespace xaml::Media;
 using namespace xaml::Shapes;
 } // namespace winrt
@@ -103,6 +104,30 @@ static xaml::Input::InputScopeNameValue parseKeyboardType(const folly::dynamic &
 }
 
 namespace react::uwp {
+
+// workaround Xaml Islands crash bug: https://github.com/microsoft/microsoft-ui-xaml/issues/3529
+struct CustomAppBarButton : winrt::AppBarButtonT<CustomAppBarButton> {
+  void OnPointerExited(xaml::Input::PointerRoutedEventArgs const &e) {
+    // This method crashes in the superclass, so we purposely don't call super. But the superclass
+    // implementation likely cancels a timer that will show the submenu shortly after pointer enter.
+    // Since we don't have access to that timer, instead we reset the Flyout property, which resets
+    // the timer. This also fixes a crash where you can get a zombie submenu showing if the app
+    // loses focus while this timer is scheduled to show the submenu.
+    if (auto flyout = this->Flyout()) {
+      this->Flyout(nullptr);
+      this->Flyout(flyout);
+    }
+
+    // The superclass implementation resets the button to the normal state, so we do this ourselves.
+    this->SetValue(xaml::Controls::Primitives::ButtonBase::IsPointerOverProperty(), winrt::box_value(false));
+    winrt::VisualStateManager::GoToState(*this, L"Normal", false);
+  }
+
+  void OnPointerPressed(xaml::Input::PointerRoutedEventArgs const &e) {
+    // Clicking AppBarButton by default will dismiss the menu, but since we only use this class for
+    // submenus we override it to be a no-op so it behaves like MenuFlyoutSubItem.
+  }
+};
 
 class TextInputShadowNode : public ShadowNodeBase {
   using Super = ShadowNodeBase;
@@ -371,8 +396,28 @@ void TextInputShadowNode::registerEvents() {
     m_flyoutBaseOpeningRevoker = control.ContextFlyout().Opening(
         winrt::auto_revoke, [=](winrt::IInspectable const &sender, auto&&) {
           if (auto const& flyout = sender.try_as<xaml::Controls::TextCommandBarFlyout>()) {
+            // Add paste option
             if (GetTag(flyout.Target()) == tag) {
               AddPasteOptionIfNeeded(flyout);
+            }
+
+            // Replace proofing option with one that does not crash in XAML Islands
+            const auto commands = flyout.SecondaryCommands();
+            for (auto i = 0; i < commands.Size(); ++i) {
+              if (const auto appBarButton = commands.GetAt(i).try_as<winrt::AppBarButton>()) {
+                if (m_isTextBox && appBarButton.Flyout() == control.as<xaml::Controls::TextBox>().ProofingMenuFlyout()) {
+                  // Replace the AppBarButton for the proofing menu with one that doesn't crash
+                  const auto customAppBarButton = winrt::make<CustomAppBarButton>();
+                  customAppBarButton.Label(appBarButton.Label());
+                  customAppBarButton.Icon(appBarButton.Icon());
+                  customAppBarButton.Flyout(appBarButton.Flyout());
+                  commands.RemoveAt(i);
+                  commands.InsertAt(i, customAppBarButton);
+
+                  // There is only one proofing menu option
+                  break;
+                }
+              }
             }
           }
         });
