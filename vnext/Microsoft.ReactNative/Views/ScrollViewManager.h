@@ -45,8 +45,6 @@ class ScrollViewManager : public ControlViewManager {
 
  private:
   friend class ScrollViewShadowNode;
-
-  std::shared_ptr<BatchingEventEmitter> m_batchingEventEmitter;
 };
 
 } // namespace react::uwp

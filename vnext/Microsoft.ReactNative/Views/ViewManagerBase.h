@@ -8,6 +8,7 @@
 #include <XamlView.h>
 #include <folly/dynamic.h>
 #include <yoga/yoga.h>
+#include "Utils/BatchingEventEmitter.h"
 
 namespace facebook {
 namespace react {
@@ -80,6 +81,11 @@ class REACTWINDOWS_EXPORT ViewManagerBase : public facebook::react::IViewManager
     return m_wkReactInstance;
   }
 
+  void DispatchEvent(
+      int64_t viewTag,
+      winrt::hstring &&eventName,
+      const winrt::Microsoft::ReactNative::JSValueArgWriter &eventDataWriter) const noexcept;
+
   virtual void TransferProperties(const XamlView &oldView, const XamlView &newView);
 
  protected:
@@ -95,6 +101,7 @@ class REACTWINDOWS_EXPORT ViewManagerBase : public facebook::react::IViewManager
 
  protected:
   std::weak_ptr<IReactInstance> m_wkReactInstance;
+  std::shared_ptr<BatchingEventEmitter> m_batchingEventEmitter;
 };
 #pragma warning(pop)
 

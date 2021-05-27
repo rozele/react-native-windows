@@ -554,8 +554,7 @@ bool ScrollViewShadowNode::UpdateZoomScale(const winrt::ScrollViewer &scrollView
   return scrollViewer.ChangeView(xOffset, yOffset, m_zoomFactor);
 }
 
-ScrollViewManager::ScrollViewManager(const std::shared_ptr<IReactInstance> &reactInstance)
-  : Super(reactInstance), m_batchingEventEmitter{std::make_shared<BatchingEventEmitter>(reactInstance)} {}
+ScrollViewManager::ScrollViewManager(const std::shared_ptr<IReactInstance> &reactInstance): Super(reactInstance) {}
 
 const char *ScrollViewManager::GetName() const {
   return "RCTScrollView";

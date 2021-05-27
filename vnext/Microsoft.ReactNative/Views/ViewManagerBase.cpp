@@ -13,6 +13,7 @@
 
 #include <IReactInstance.h>
 #include <IXamlRootView.h>
+#include <JSValueWriter.h>
 #include <TestHook.h>
 #include <Views/ShadowNodeBase.h>
 
@@ -77,7 +78,8 @@ YGSize DefaultYogaSelfMeasureFunc(
 }
 
 ViewManagerBase::ViewManagerBase(const std::shared_ptr<IReactInstance> &reactInstance)
-    : m_wkReactInstance(reactInstance) {}
+    : m_wkReactInstance(reactInstance),
+      m_batchingEventEmitter{std::make_shared<BatchingEventEmitter>(reactInstance)} {}
 
 folly::dynamic ViewManagerBase::GetExportedViewConstants() const {
   return folly::dynamic::object();
@@ -302,13 +304,11 @@ void ViewManagerBase::SetLayoutProps(
   // Fire Events
   if (layoutHasChanged && nodeToUpdate.m_onLayoutRegistered) {
     int64_t tag = GetTag(viewToUpdate);
-    folly::dynamic layout = folly::dynamic::object("x", left)("y", top)("height", height)("width", width);
+    winrt::Microsoft::ReactNative::JSValueObject layout{{"x", left}, {"y", top}, {"height", height}, {"width", width}};
 
-    folly::dynamic eventData = folly::dynamic::object("target", tag)("layout", std::move(layout));
+    winrt::Microsoft::ReactNative::JSValueObject eventData{{"target", tag}, {"layout", std::move(layout)}};
 
-    auto instance = m_wkReactInstance.lock();
-    if (instance != nullptr)
-      instance->DispatchEvent(tag, "topLayout", std::move(eventData));
+    m_batchingEventEmitter->DispatchCoalescingEvent(tag, L"topLayout", winrt::Microsoft::ReactNative::MakeJSValueWriter(std::move(eventData)));
   }
 }
 
@@ -323,4 +323,12 @@ bool ViewManagerBase::RequiresYogaNode() const {
 bool ViewManagerBase::IsNativeControlWithSelfLayout() const {
   return GetYogaCustomMeasureFunc() != nullptr;
 }
+
+void ViewManagerBase::DispatchEvent(
+    int64_t viewTag,
+    winrt::hstring &&eventName,
+    const winrt::Microsoft::ReactNative::JSValueArgWriter &eventDataWriter) const noexcept {
+  m_batchingEventEmitter->DispatchEvent(viewTag, std::move(eventName), eventDataWriter);
+}
+
 } // namespace react::uwp

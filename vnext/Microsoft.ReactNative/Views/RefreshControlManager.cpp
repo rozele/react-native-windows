@@ -5,6 +5,7 @@
 
 #include "RefreshControlManager.h"
 
+#include <JSValueWriter.h>
 #include <UI.Xaml.Controls.h>
 #include <Utils/Helpers.h>
 #include <Views/ShadowNodeBase.h>
@@ -35,12 +36,9 @@ void RefreshControlShadowNode::createView() {
   if (auto refreshContainer = GetView().try_as<winrt::RefreshContainer>()) {
     m_refreshRequestedRevoker =
         refreshContainer.RefreshRequested(winrt::auto_revoke, [this](auto &&, winrt::RefreshRequestedEventArgs args) {
-          auto wkinstance = GetViewManager()->GetReactInstance();
-          if (auto instance = wkinstance.lock()) {
-            m_refreshDeferral = args.GetDeferral();
-            folly::dynamic eventData = folly::dynamic::object();
-            instance->DispatchEvent(m_tag, "topOnRefresh", std::move(eventData));
-          }
+          m_refreshDeferral = args.GetDeferral();
+          winrt::Microsoft::ReactNative::JSValueObject eventData{};
+          GetViewManager()->DispatchEvent(m_tag, L"topOnRefresh", winrt::Microsoft::ReactNative::MakeJSValueArgWriter(std::move(eventData)));
         });
   }
 }
