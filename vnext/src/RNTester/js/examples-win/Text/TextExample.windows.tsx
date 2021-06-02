@@ -831,33 +831,6 @@ export class TextExample extends React.Component<
             make text look slightly misaligned when centered vertically.
           </Text>
         </RNTesterBlock>
-        <RNTesterBlock title="Text With Border">
-          <>
-            <Text style={styles.borderedTextSimple}>
-              Sample bordered text with default styling.
-            </Text>
-
-            <Text style={styles.borderedText}>
-              Some more bordered text + a tad of CSS.{'\n'}
-              <Text style={{borderColor: 'red', borderWidth: 5}}>
-                1st nested - border specifcied but ignored.{'\n'}
-                <Text style={{borderColor: 'yellow', borderWidth: 4}}>
-                  2nd Inside text!
-                </Text>
-              </Text>
-            </Text>
-
-            <Text>
-              This text is{' '}
-              <Text
-                style={{color: 'red', borderWidth: 1, borderColor: 'black'}}>
-                outlined{' '}
-              </Text>
-              and laid out within the normal text run, so will wrap etc as
-              normal text.
-            </Text>
-          </>
-        </RNTesterBlock>
         <RNTesterBlock title="Pressable edge cases">
           <PressableTextDemo />
         </RNTesterBlock>
