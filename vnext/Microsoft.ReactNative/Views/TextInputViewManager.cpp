@@ -476,6 +476,8 @@ void TextInputShadowNode::registerPreviewKeyDown() {
                   "text", HstringToDynamic(control.as<xaml::Controls::PasswordBox>().Password()));
             }
 
+            instance->DispatchEvent(tag, "topTextInputSubmitEditing", std::move(eventDataSubmitEditing));
+
             if (m_shouldClearTextOnSubmit) {
               if (m_isTextBox) {
                 control.as<xaml::Controls::TextBox>().ClearValue(xaml::Controls::TextBox::TextProperty());
@@ -483,8 +485,6 @@ void TextInputShadowNode::registerPreviewKeyDown() {
                 control.as<xaml::Controls::PasswordBox>().ClearValue(xaml::Controls::PasswordBox::PasswordProperty());
               }
             }
-
-            instance->DispatchEvent(tag, "topTextInputSubmitEditing", std::move(eventDataSubmitEditing));
 
             // For multi-line TextInput, we have to mark the PreviewKeyDown event as
             // handled to prevent the TextInput from adding a newline character
