@@ -41,10 +41,13 @@ using namespace xaml::Shapes;
 
 namespace react::uwp {
 
-// TODO(T89055584): Find a way to lookup the localized version of these strings in WUX
-const auto TextCommandLabelPaste = L"Paste";
-const auto TextCommandDescriptionPaste = L"Insert the contents of the clipboard at the current location";
 const auto TextCommandKeyboardAcceleratorKeyPaste = L"Ctrl+V";
+
+struct PasteOptions {
+  std::vector<std::string> formats;
+  winrt::hstring label = L"Paste";
+  winrt::hstring description = L"Insert the contents of the clipboard at the current location";
+};
 
 struct Selection {
   int64_t start = -1;
@@ -69,6 +72,26 @@ struct json_type_traits<react::uwp::Selection> {
       }
     }
     return selection;
+  }
+};
+
+template <>
+struct json_type_traits<react::uwp::PasteOptions> {
+  static react::uwp::PasteOptions parseJson(const folly::dynamic &json) {
+    react::uwp::PasteOptions pasteOptions;
+    for (auto &item : json.items()) {
+      if (item.first == "formats") {
+        if (item.second.isArray())
+          pasteOptions.formats = json_type_traits<std::vector<std::string>>::parseJson(item.second);
+      } else if (item.first == "label") {
+        if (item.second.isString())
+          pasteOptions.label = winrt::to_hstring(item.second.asString());
+      } else if (item.first == "description") {
+        if (item.second.isString())
+          pasteOptions.description = winrt::to_hstring(item.second.asString());
+      }
+    }
+    return pasteOptions;
   }
 };
 
@@ -178,7 +201,7 @@ class TextInputShadowNode : public ShadowNodeBase {
   folly::dynamic m_placeholderTextColor;
   bool m_shouldClearTextOnSubmit = false;
   std::vector<HandledKeyboardEvent> m_submitKeyEvents{};
-  std::vector<std::string> m_handledPasteFormats;
+  PasteOptions m_pasteOptions;
 
   // Javascripts is running in a different thread. If the typing is very fast,
   // It's possible that two TextChanged are raised but TextInput just got the
@@ -676,11 +699,11 @@ void TextInputShadowNode::updateProperties(const folly::dynamic &&props) {
         m_submitKeyEvents.clear();
     } else if (propertyName == "keyDownEvents") {
       hasKeyDownEvents = !propertyValue.isNull();
-    } else if (propertyName == "handledPasteFormats") {
-      if (propertyValue.isArray())
-        m_handledPasteFormats = json_type_traits<std::vector<std::string>>::parseJson(propertyValue);
+    } else if (propertyName == "pasteOptions") {
+      if (propertyValue.isObject())
+        m_pasteOptions = json_type_traits<PasteOptions>::parseJson(propertyValue);
       else if (propertyValue.isNull())
-        m_handledPasteFormats.clear();
+        m_pasteOptions = {};
     } else if (propertyName == "autoFocus") {
       if (propertyValue.isBool())
         m_autoFocus = propertyValue.asBool();
@@ -814,7 +837,7 @@ void TextInputShadowNode::dispatchCommand(const std::string &commandId, const fo
 }
 
 bool TextInputShadowNode::ShouldHandlePaste() {
-  for (const auto format : m_handledPasteFormats) {
+  for (const auto format : m_pasteOptions.formats) {
     auto iter = clipboardFormatTypeMap.find(format);
     if (iter != clipboardFormatTypeMap.end()) {
       if (winrt::Clipboard::GetContent().Contains(iter->second)) {
@@ -857,8 +880,8 @@ void TextInputShadowNode::AddPasteOptionIfNeeded(xaml::Controls::TextCommandBarF
     pasteGlyph.Glyph(L"\uE77F");
     pasteButton.Icon(pasteGlyph);
     pasteButton.KeyboardAcceleratorTextOverride(TextCommandKeyboardAcceleratorKeyPaste);
-    pasteButton.Label(TextCommandLabelPaste);
-    pasteButton.SetValue(xaml::Controls::ToolTipService::ToolTipProperty(), winrt::box_value(TextCommandDescriptionPaste));
+    pasteButton.Label(m_pasteOptions.label);
+    pasteButton.SetValue(xaml::Controls::ToolTipService::ToolTipProperty(), winrt::box_value(m_pasteOptions.description));
     pasteButton.Click([wpTextBox = winrt::make_weak(textBox)](auto&& ...) {
       if (auto const &spTextBox = wpTextBox.get()) {
         spTextBox.PasteFromClipboard();
@@ -884,8 +907,8 @@ folly::dynamic TextInputViewManager::GetNativeProps() const {
       "placeholderTextColor", "Color")("scrollEnabled", "boolean")("selection", "Map")("selectionColor", "Color")(
       "selectTextOnFocus", "boolean")("spellCheck", "boolean")("text", "string")("mostRecentEventCount", "int")(
       "secureTextEntry", "boolean")("keyboardType", "string")("contextMenuHidden", "boolean")("caretHidden", "boolean")(
-      "autoCapitalize", "string")("clearTextOnSubmit", "boolean")("submitKeyEvents", "array")(
-      "handledPasteFormats", "array")("autoFocus", "boolean"));
+      "autoCapitalize", "string")("clearTextOnSubmit", "boolean")("submitKeyEvents", "array")("pasteOptions", "Map")(
+      "autoFocus", "boolean"));
 
   return props;
 }
