@@ -20,6 +20,7 @@ static constexpr auto EVENT_PHASE = "handledEventPhase";
 static constexpr auto KEY = "key";
 static constexpr auto TARGET = "target";
 static constexpr auto CODE = "code";
+static constexpr auto TIMESTAMP = "timestamp";
 
 using namespace react::uwp;
 
@@ -58,7 +59,7 @@ std::vector<HandledKeyboardEvent> KeyboardHelper::FromJS(folly::dynamic const &o
 
 static folly::dynamic ToEventData(ReactKeyboardEvent event) {
   return folly::dynamic::object(TARGET, event.target)(ALT_KEY, event.altKey)(CTRL_KEY, event.ctrlKey)(KEY, event.key)(
-      META_KEY, event.metaKey)(SHIFT_KEY, event.shiftKey)(CODE, event.code);
+      META_KEY, event.metaKey)(SHIFT_KEY, event.shiftKey)(CODE, event.code)(TIMESTAMP, GetTickCount64());
 }
 
 KeyboardEventBaseHandler::KeyboardEventBaseHandler(KeyboardEventCallback &&keyDown, KeyboardEventCallback &&keyUp)
