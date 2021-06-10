@@ -6,6 +6,7 @@
 #include <DynamicReader.h>
 #include <JSValueWriter.h>
 #include <JsiWriter.h>
+#include <Modules/NativeUIManager.h>
 #include <Views/SIPEventHandler.h>
 #include <Views/ShadowNodeBase.h>
 #include "Impl/ScrollViewUWPImplementation.h"
@@ -36,6 +37,7 @@ class ScrollViewShadowNode : public ShadowNodeBase {
   void createView() override;
   void updateProperties(const folly::dynamic &&props) override;
   bool IsInverted() const;
+  void SetScrollViewerContentTabFocusNavigationIfNeeded(const winrt::ScrollViewer &scrollViewer);
 
  private:
   void AddHandlers(const winrt::ScrollViewer &scrollViewer);
@@ -62,6 +64,7 @@ class ScrollViewShadowNode : public ShadowNodeBase {
   bool m_changeViewAfterLoaded = false;
   bool m_dismissKeyboardOnDrag = false;
   bool m_zoomFromCenter = false;
+  bool m_hasSetTabFocusNavigation = false;
 
   react::uwp::ScrollViewViewChanger m_viewChanger;
 
@@ -146,6 +149,33 @@ void ScrollViewShadowNode::createView() {
           EmitOnScrollEvent(scrollViewer);
         }
       });
+}
+
+void ScrollViewShadowNode::SetScrollViewerContentTabFocusNavigationIfNeeded(const winrt::ScrollViewer &scrollViewer) {
+  // Xaml has a bug where if TabFocusNavigation is set to Once it doesn't propagate to ScrollViewer.
+  // If we detect that property set toOnce on any parent views, we set it on the ScrollViewer.
+
+  if (m_hasSetTabFocusNavigation) {
+    return;
+  }
+  m_hasSetTabFocusNavigation = true;
+
+  auto host = GetNativeUIManagerHost(GetViewManager()->GetReactInstance());
+  if (!host) {
+    return;
+  }
+
+  ShadowNodeBase *parent = static_cast<ShadowNodeBase *>(host->FindShadowNodeForTag(this->GetParent()));
+  while (parent) {
+    if (auto parentView = parent->GetView().try_as<xaml::UIElement>()) {
+      if (parentView.TabFocusNavigation() == xaml::Input::KeyboardNavigationMode::Once) {
+        scrollViewer.Content().as<winrt::ContentControl>().TabFocusNavigation(
+            xaml::Input::KeyboardNavigationMode::Once);
+        return;
+      }
+    }
+    parent = static_cast<ShadowNodeBase *>(host->FindShadowNodeForTag(parent->GetParent()));
+  }
 }
 
 void ScrollViewShadowNode::updateProperties(const folly::dynamic &&reactDiffMap) {
@@ -594,6 +624,9 @@ void ScrollViewManager::SetLayoutProps(
   if (static_cast<ScrollViewShadowNode&>(nodeToUpdate).IsInverted()) {
     viewToUpdate.as<xaml::UIElement>().InvalidateArrange();
   }
+
+  static_cast<ScrollViewShadowNode&>(nodeToUpdate)
+      .SetScrollViewerContentTabFocusNavigationIfNeeded(viewToUpdate.as<winrt::ScrollViewer>());
 
   Super::SetLayoutProps(nodeToUpdate, viewToUpdate, left, top, width, height);
 }
