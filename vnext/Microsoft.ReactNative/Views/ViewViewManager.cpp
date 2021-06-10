@@ -98,6 +98,9 @@ bool ViewShadowNode::IsFocusable() const {
 }
 void ViewShadowNode::IsFocusable(bool isFocusable) {
   m_isFocusable = isFocusable;
+
+  if (IsControl())
+    GetControl().IsTabStop(m_isFocusable);
 }
 
 bool ViewShadowNode::IsHitTestBrushRequired() const {
@@ -164,6 +167,7 @@ void ViewShadowNode::RefreshProperties() {
   // shadow node to the view
   EnableFocusRing(EnableFocusRing());
   TabIndex(TabIndex());
+  IsFocusable(IsFocusable());
   static_cast<FrameworkElementViewManager *>(GetViewManager())->RefreshTransformMatrix(this);
 }
 
