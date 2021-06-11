@@ -258,7 +258,8 @@ void UIManager::createView(
     std::string &&className,
     int64_t /*rootViewTag*/,
     folly::dynamic && /*ReadableMap*/ props) {
-  try {
+  // ARCHON_RNW_CRASHPAD: Raise original exception for crashpad dumps
+  // try {
     m_nativeUIManager->ensureInBatch();
     auto viewManager = GetViewManager(className);
     auto node = viewManager->createShadow();
@@ -273,9 +274,9 @@ void UIManager::createView(
 
     if (!props.isNull())
       node->updateProperties(std::move(props));
-  } catch (winrt::hresult_error &hr) {
-    throw hresult_exception(hr);
-  }
+  // } catch (winrt::hresult_error &hr) {
+  //   throw hresult_exception(hr);
+  // }
 }
 
 void UIManager::setChildren(int64_t viewTag, folly::dynamic &&childrenTags) {
@@ -287,6 +288,8 @@ void UIManager::setChildren(int64_t viewTag, folly::dynamic &&childrenTags) {
     auto &childNode = m_nodeRegistry.getNode(tag);
     childNode.m_parent = parent.m_tag;
     parent.m_children.push_back(tag);
+    // ARCHON_RNW_CRASHPAD: Since we want to ignore E_NOINTERFACE below, we'll
+    // not change the catch/rethrow, which makes this the top frame in dumps.
     try {
       if (!parent.m_zombie)
         parent.AddView(childNode, index);
