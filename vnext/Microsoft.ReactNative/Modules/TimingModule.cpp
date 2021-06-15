@@ -24,11 +24,19 @@ using namespace facebook::xplat;
 using namespace folly;
 namespace winrt {
 using namespace Windows::Foundation;
+using namespace Windows::System;
 using namespace xaml::Media;
 } // namespace winrt
 using namespace std;
 
 namespace react::uwp {
+
+//
+// IsAnimationFrameRequest
+//
+static bool IsAnimationFrameRequest(TTimeSpan period, bool repeat) {
+  return !repeat && period == std::chrono::milliseconds(1);
+}
 
 //
 // TimerQueue
@@ -75,7 +83,7 @@ Timing::Timing(TimingModule *parent) : m_parent(parent) {}
 
 void Timing::Disconnect() {
   m_parent = nullptr;
-  m_rendering.revoke();
+  StopTicks();
 }
 
 std::weak_ptr<facebook::react::Instance> Timing::getInstance() noexcept {
@@ -85,10 +93,11 @@ std::weak_ptr<facebook::react::Instance> Timing::getInstance() noexcept {
   return m_parent->getInstance();
 }
 
-void Timing::OnRendering() {
+void Timing::OnTick() {
   std::vector<int64_t> readyTimers;
-  auto now = winrt::DateTime::clock::now();
+  auto now = TDateTime::clock::now();
 
+  auto emittedAnimationFrame = false;
   while (!m_timerQueue.IsEmpty() && m_timerQueue.Front().TargetTime < now) {
     // Pop first timer from the queue and add it to list of timers ready to fire
     Timer next = m_timerQueue.Front();
@@ -98,9 +107,18 @@ void Timing::OnRendering() {
     // If timer is repeating push it back onto the queue for the next repetition
     if (next.Repeat)
       m_timerQueue.Push(next.Id, now + next.Period, next.Period, true);
+    else if (IsAnimationFrameRequest(next.Period, next.Repeat))
+      emittedAnimationFrame = true;
+  }
 
-    if (m_timerQueue.IsEmpty())
-      m_rendering.revoke();
+  if (m_timerQueue.IsEmpty()) {
+    StopTicks();
+  } else if (!m_usingRendering || !emittedAnimationFrame) {
+    // If we're using a rendering callback, check if any animation frame
+    // requests were emitted in this tick. If not, start the dispatcher timer.
+    // This extra frame gives JS a chance to enqueue an additional animation
+    // frame request before switching tick schedulers.
+    StartDispatcherTimer();
   }
 
   if (!readyTimers.empty()) {
@@ -116,6 +134,52 @@ void Timing::OnRendering() {
   }
 }
 
+winrt::DispatcherQueueTimer Timing::EnsureDispatcherTimer() {
+  if (!m_dispatcherQueueTimer) {
+    winrt::DispatcherQueue queue = winrt::DispatcherQueue::GetForCurrentThread();
+    m_dispatcherQueueTimer = queue.CreateTimer();
+    m_dispatcherQueueTimer.Tick([wkThis = std::weak_ptr(this->shared_from_this())](auto &&...) {
+      if (auto pThis = wkThis.lock()) {
+        pThis->OnTick();
+      }
+    });
+  }
+
+  return m_dispatcherQueueTimer;
+}
+
+void Timing::StartRendering() {
+  if (m_dispatcherQueueTimer)
+    m_dispatcherQueueTimer.Stop();
+
+  m_rendering.revoke();
+  m_usingRendering = true;
+  m_rendering = xaml::Media::CompositionTarget::Rendering(
+      winrt::auto_revoke,
+      [wkThis = std::weak_ptr(this->shared_from_this())](
+          const winrt::IInspectable &, const winrt::IInspectable & /*args*/) {
+        if (auto pThis = wkThis.lock()) {
+          pThis->OnTick();
+        }
+      });
+}
+
+void Timing::StartDispatcherTimer() {
+  const auto &nextTimer = m_timerQueue.Front();
+  m_rendering.revoke();
+  m_usingRendering = false;
+  auto timer = EnsureDispatcherTimer();
+  timer.Interval(std::max(nextTimer.TargetTime - TDateTime::clock::now(), TTimeSpan::zero()));
+  timer.Start();
+}
+
+void Timing::StopTicks() {
+  m_rendering.revoke();
+  m_usingRendering = false;
+  if (m_dispatcherQueueTimer)
+    m_dispatcherQueueTimer.Stop();
+}
+
 void Timing::createTimer(int64_t id, double duration, double jsSchedulingTime, bool repeat) {
   if (duration == 0 && !repeat) {
     if (auto instance = getInstance().lock()) {
@@ -126,33 +190,26 @@ void Timing::createTimer(int64_t id, double duration, double jsSchedulingTime, b
     return;
   }
 
-  if (m_timerQueue.IsEmpty()) {
-    m_rendering.revoke();
-    m_rendering = xaml::Media::CompositionTarget::Rendering(
-        winrt::auto_revoke,
-        [wkThis = std::weak_ptr(this->shared_from_this())](
-            const winrt::IInspectable &, const winrt::IInspectable & /*args*/) {
-          if (auto pThis = wkThis.lock()) {
-            pThis->OnRendering();
-          }
-        });
-  }
-
   // Convert double duration in ms to TimeSpan
   // Make sure duration is always larger than 16ms to avoid unnecessary wakeups.
   auto period = TimeSpanFromMs(std::max(duration, 16.0));
   const int64_t msFrom1601to1970 = 11644473600000;
-  winrt::DateTime scheduledTime(TimeSpanFromMs(jsSchedulingTime + msFrom1601to1970));
+  TDateTime scheduledTime(TimeSpanFromMs(jsSchedulingTime + msFrom1601to1970));
   auto initialTargetTime = scheduledTime + period;
-
   m_timerQueue.Push(id, initialTargetTime, period, repeat);
+  if (!m_usingRendering) {
+    if (IsAnimationFrameRequest(period, repeat)) {
+      StartRendering();
+    } else if (initialTargetTime <= m_timerQueue.Front().TargetTime) {
+      StartDispatcherTimer();
+    }
+  }
 }
 
 void Timing::deleteTimer(int64_t id) {
   m_timerQueue.Remove(id);
-
   if (m_timerQueue.IsEmpty())
-    m_rendering.revoke();
+    StopTicks();
 }
 
 void Timing::setSendIdleEvents(bool /*sendIdleEvents*/) {

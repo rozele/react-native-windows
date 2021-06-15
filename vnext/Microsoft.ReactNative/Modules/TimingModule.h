@@ -11,6 +11,7 @@
 #include <vector>
 
 #include <winrt/Windows.Foundation.h>
+#include <winrt/Windows.System.h>
 namespace react::uwp {
 
 typedef winrt::Windows::Foundation::DateTime TDateTime;
@@ -66,12 +67,18 @@ class Timing : public std::enable_shared_from_this<Timing> {
 
  private:
   std::weak_ptr<facebook::react::Instance> getInstance() noexcept;
-  void OnRendering();
+  void OnTick();
+  winrt::Windows::System::DispatcherQueueTimer EnsureDispatcherTimer();
+  void StartRendering();
+  void StartDispatcherTimer();
+  void StopTicks();
 
  private:
   TimingModule *m_parent;
   TimerQueue m_timerQueue;
   xaml::Media::CompositionTarget::Rendering_revoker m_rendering;
+  winrt::Windows::System::DispatcherQueueTimer m_dispatcherQueueTimer{nullptr};
+  bool m_usingRendering{false};
 };
 
 class TimingModule : public facebook::xplat::module::CxxModule {
