@@ -11,12 +11,15 @@ using namespace std;
 
 #include <Threading/MessageDispatchQueue.h>
 #include <unicode.h>
+#include "RootViewManager.h"
 #include "ShadowNode.h"
+#include "ShadowNodeBase.h"
 #include "ShadowNodeRegistry.h"
 #include "UIManagerModule.h"
 
 #include <IReactRootView.h>
 #include <cdebug.h>
+#include <winrt/Windows.UI.Core.h>
 #include <winrt/base.h>
 
 using namespace facebook::xplat;
@@ -457,6 +460,23 @@ UIManagerModule::UIManagerModule(
     : m_manager{std::move(manager)}, m_uiQueue{std::move(uiQueue)} {}
 
 UIManagerModule::~UIManagerModule() noexcept {
+  const auto uiManager = static_cast<UIManager *>(m_manager.get());
+  if (uiManager) {
+    const auto &rootTags = uiManager->GetAllRootTags();
+    const auto iter = rootTags.begin();
+    if (iter != rootTags.end()) {
+      const auto rootShadowNode = static_cast<::react::uwp::ShadowNodeBase *>(uiManager->FindShadowNodeForTag(*iter));
+      if (rootShadowNode) {
+        const auto rootView = rootShadowNode->GetView();
+        if (rootView) {
+          winrt::DispatchedHandler callback = [manager = std::move(m_manager)]() noexcept {};
+          rootView.Dispatcher().RunAsync(winrt::CoreDispatcherPriority::Normal, callback);
+          return;
+        }
+      }
+    }
+  }
+
   if (m_uiQueue) {
     // To make sure that we destroy UI components in UI thread.
     // We cannot use the m_uiQueue->runOnQueue directly because
