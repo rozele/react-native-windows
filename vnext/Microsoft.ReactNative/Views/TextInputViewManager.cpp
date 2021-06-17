@@ -849,7 +849,16 @@ bool TextInputShadowNode::ShouldHandlePaste() {
 }
 
 void TextInputShadowNode::OnPaste(winrt::IInspectable const& sender, xaml::Controls::TextControlPasteEventArgs const& args) {
-  if (!sender.as<xaml::Controls::TextBox>().CanPasteClipboardContent() && ShouldHandlePaste()) {
+  auto canPasteClipboardContent = false;
+  if (auto textBox = sender.try_as<xaml::Controls::TextBox>()) {
+    canPasteClipboardContent = textBox.CanPasteClipboardContent();
+  } else if (auto passwordBox = sender.try_as<xaml::Controls::PasswordBox>()) {
+    canPasteClipboardContent = passwordBox.CanPasteClipboardContent();
+  } else {
+    return;
+  }
+
+  if (!canPasteClipboardContent && ShouldHandlePaste()) {
     auto weakInstance = GetViewManager()->GetReactInstance();
     if (auto instance = weakInstance.lock()) {
       args.Handled(true);
