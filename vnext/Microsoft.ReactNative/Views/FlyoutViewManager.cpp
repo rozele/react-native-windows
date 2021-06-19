@@ -131,6 +131,7 @@ class FlyoutShadowNode : public ShadowNodeBase {
   winrt::Popup GetFlyoutParentPopup() const;
   winrt::FlyoutPresenter GetFlyoutPresenter() const;
   void OnShowFlyout();
+  void LogErrorAndClose(const string &error);
 
   xaml::FrameworkElement m_targetElement = nullptr;
   winrt::Flyout m_flyout = nullptr;
@@ -460,13 +461,27 @@ void FlyoutShadowNode::OnShowFlyout() {
         m_flyout.OverlayInputPassThroughElement(current);
       }
     }
-    m_flyout.ShowAt(m_targetElement, m_showOptions);
+
+    if (!m_targetElement && m_targetTag > 0) {
+      LogErrorAndClose("The target view unmounted before flyout could be shown.");
+    } else if (m_targetElement && m_flyout.XamlRoot() != m_targetElement.XamlRoot()) {
+      LogErrorAndClose("The target view window lost focus before flyout could be shown.");
+    } else {
+      m_flyout.ShowAt(m_targetElement, m_showOptions);
+    }
   } else {
     winrt::FlyoutBase::ShowAttachedFlyout(m_targetElement);
   }
 
   if (auto popup = GetFlyoutParentPopup()) {
     popup.IsLightDismissEnabled(m_isLightDismissEnabled);
+  }
+}
+
+void FlyoutShadowNode::LogErrorAndClose(const std::string &error) {
+  if (const auto instance = GetViewManager()->GetReactInstance().lock()) {
+    instance->CallJsFunction("RCTLog", "logToConsole", folly::dynamic::array("error", error));
+    OnFlyoutClosed(*instance, m_tag, false);
   }
 }
 
