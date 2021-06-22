@@ -38,12 +38,6 @@ struct Selection {
   int64_t start = -1;
   int64_t end = -1;
 };
-
-struct StringDiff {
-  size_t start;
-  size_t selectionLength;
-  winrt::hstring replacement;
-};
 } // namespace Microsoft::ReactNative
 
 // Such code is better to move to a seperate parser layer
@@ -139,7 +133,6 @@ class TextInputShadowNode : public ShadowNodeBase {
   void SetText(const winrt::Microsoft::ReactNative::JSValue &text);
   void SetSelection(int64_t start, int64_t end);
   winrt::Shape FindCaret(xaml::DependencyObject element);
-  static StringDiff DiffText(winrt::hstring const &oldValue, winrt::hstring const &newValue);
 
   bool m_initialUpdateComplete = false;
   bool m_autoFocus = false;
@@ -694,9 +687,8 @@ void TextInputShadowNode::SetText(const winrt::Microsoft::ReactNative::JSValue &
         const auto newValue = asHstring(text);
         if (oldValue != newValue) {
           if (!textBox.IsReadOnly()) {
-            const auto stringDiff = DiffText(oldValue, newValue);
-            textBox.Select(stringDiff.start, stringDiff.selectionLength);
-            textBox.SelectedText(stringDiff.replacement);
+            textBox.Select(0, oldValue.size());
+            textBox.SelectedText(newValue);
           } else {
             textBox.Text(newValue);
           }
@@ -749,25 +741,6 @@ void TextInputShadowNode::dispatchCommand(
   } else {
     Super::dispatchCommand(commandId, std::move(commandArgs));
   }
-}
-
-StringDiff TextInputShadowNode::DiffText(winrt::hstring const &oldValue, winrt::hstring const &newValue) {
-  const auto textAdded = newValue.size() > oldValue.size();
-  // Find start index of string diff
-  size_t start = 0;
-  while (start < oldValue.size() && start < newValue.size() && oldValue[start] == newValue[start]) {
-    ++start;
-  }
-  // Find end index of string diff
-  size_t end = 1;
-  while (end <= oldValue.size() && end <= newValue.size() && oldValue[oldValue.size() - end] == newValue[newValue.size() - end]) {
-    ++end;
-  }
-  // Calculate selection length and replacement string
-  const auto selectionLength = oldValue.size() - end - start + 1;
-  const auto replacementLength = newValue.size() - end - start + 1;
-  const winrt::hstring replacement{newValue.begin() + start, replacementLength};
-  return {start, selectionLength, replacement};
 }
 
 TextInputViewManager::TextInputViewManager(const Mso::React::IReactContext &context) : Super(context) {}
