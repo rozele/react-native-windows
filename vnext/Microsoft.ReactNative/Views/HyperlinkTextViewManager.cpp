@@ -44,17 +44,19 @@ XamlView HyperlinkTextViewManager::CreateViewCore(int64_t tag) {
   // condition where we want to send "onClick" events is when the user invokes
   // the hyperlink while it has focus by pressing "Enter" or "Space".
   const auto keyPressState = std::make_shared<KeyPressState>();
-  hyperlink.GotFocus([=](auto&& sender, auto&&) {
+  hyperlink.GotFocus([keyPressState](auto&& sender, auto&&) {
     const auto hyperlink = sender.as<xaml::Documents::Hyperlink>();
-    const auto textBlock = hyperlink.ContentStart().VisualParent().as<xaml::Controls::TextBlock>();
-    keyPressState->keyUpRevoker = textBlock.PreviewKeyUp(
-        winrt::auto_revoke,
-        [=](auto&&, xaml::Input::KeyRoutedEventArgs const &args) {
-          keyPressState->lastKey = args.Key();
-        });
-    });
+    const auto textBlock = hyperlink.ContentStart().VisualParent().try_as<xaml::Controls::TextBlock>();
+    if (textBlock) {
+      keyPressState->keyUpRevoker = textBlock.PreviewKeyUp(
+          winrt::auto_revoke,
+          [keyPressState](auto&&, xaml::Input::KeyRoutedEventArgs const &args) {
+            keyPressState->lastKey = args.Key();
+          });
+    }
+  });
 
-  hyperlink.LostFocus([=](auto &&...) {
+  hyperlink.LostFocus([keyPressState](auto &&...) {
     keyPressState->keyUpRevoker.revoke();
     keyPressState->lastKey = std::nullopt;
   });
