@@ -188,9 +188,9 @@ class TextInputShadowNode : public ShadowNodeBase {
   void SetText(const folly::dynamic &text);
   void SetSelection(int64_t start, int64_t end);
   winrt::Shape FindCaret(xaml::DependencyObject element);
-  bool ShouldHandlePaste();
+  static bool ShouldHandlePaste(PasteOptions const& pasteOptions);
   void OnPaste(winrt::IInspectable const &, xaml::Controls::TextControlPasteEventArgs const &args);
-  void AddPasteOptionIfNeeded(xaml::Controls::TextCommandBarFlyout const& flyout);
+  static void AddPasteOptionIfNeeded(xaml::Controls::TextCommandBarFlyout const& flyout, PasteOptions const& pasteOptions);
 
   bool m_autoFocus = false;
   bool m_shouldClearTextOnFocus = false;
@@ -409,18 +409,31 @@ void TextInputShadowNode::registerEvents() {
     }
     HideCaretIfNeeded();
     m_flyoutBaseOpeningRevoker = control.ContextFlyout().Opening(
-        winrt::auto_revoke, [=](winrt::IInspectable const &sender, auto&&) {
+        winrt::auto_revoke, [tag, isTextBox = m_isTextBox, pasteOptions = m_pasteOptions](winrt::IInspectable const &sender, auto&&) {
           if (auto const& flyout = sender.try_as<xaml::Controls::TextCommandBarFlyout>()) {
-            // Add paste option
-            if (GetTag(flyout.Target()) == tag) {
-              AddPasteOptionIfNeeded(flyout);
+            const auto control = flyout.Target();
+
+            // TextBox.ContextFlyout is a singleton so we have to make sure we're opening it for the TextBox that corresponds to the current TextInputShadowNode.
+            if (GetTag(control) != tag) {
+              return;
             }
 
-            // Replace proofing option with one that does not crash in XAML Islands
+            if (isTextBox) {
+              AddPasteOptionIfNeeded(flyout, pasteOptions);
+            }
+
+            auto theme = xaml::ElementTheme::Default;
+            if (const auto xamlRootContentAsFrameworkElement = control.XamlRoot().Content().try_as<winrt::FrameworkElement>()) {
+              theme = xamlRootContentAsFrameworkElement.ActualTheme();
+            }
+
             const auto commands = flyout.SecondaryCommands();
             for (auto i = 0; i < commands.Size(); ++i) {
               if (const auto appBarButton = commands.GetAt(i).try_as<winrt::AppBarButton>()) {
-                if (m_isTextBox && appBarButton.Flyout() == control.as<xaml::Controls::TextBox>().ProofingMenuFlyout()) {
+
+                auto appBarButtonToFixTheme = appBarButton;
+
+                if (isTextBox && appBarButton.Flyout() == control.as<xaml::Controls::TextBox>().ProofingMenuFlyout()) {
                   // Replace the AppBarButton for the proofing menu with one that doesn't crash
                   const auto customAppBarButton = winrt::make<CustomAppBarButton>();
                   customAppBarButton.Label(appBarButton.Label());
@@ -428,10 +441,12 @@ void TextInputShadowNode::registerEvents() {
                   customAppBarButton.Flyout(appBarButton.Flyout());
                   commands.RemoveAt(i);
                   commands.InsertAt(i, customAppBarButton);
-
-                  // There is only one proofing menu option
-                  break;
+                  appBarButtonToFixTheme = customAppBarButton;
                 }
+
+                // Workaround Xaml Islands bug with dark theme and CommandBarFlyout:
+                // https://github.com/microsoft/microsoft-ui-xaml/issues/5320
+                appBarButtonToFixTheme.RequestedTheme(theme);
               }
             }
           }
@@ -836,8 +851,8 @@ void TextInputShadowNode::dispatchCommand(const std::string &commandId, const fo
   }
 }
 
-bool TextInputShadowNode::ShouldHandlePaste() {
-  for (const auto format : m_pasteOptions.formats) {
+/*static*/ bool TextInputShadowNode::ShouldHandlePaste(PasteOptions const& pasteOptions) {
+  for (const auto format : pasteOptions.formats) {
     auto iter = clipboardFormatTypeMap.find(format);
     if (iter != clipboardFormatTypeMap.end()) {
       if (winrt::Clipboard::GetContent().Contains(iter->second)) {
@@ -858,7 +873,7 @@ void TextInputShadowNode::OnPaste(winrt::IInspectable const& sender, xaml::Contr
     return;
   }
 
-  if (!canPasteClipboardContent && ShouldHandlePaste()) {
+  if (!canPasteClipboardContent && ShouldHandlePaste(m_pasteOptions)) {
     auto weakInstance = GetViewManager()->GetReactInstance();
     if (auto instance = weakInstance.lock()) {
       args.Handled(true);
@@ -869,9 +884,9 @@ void TextInputShadowNode::OnPaste(winrt::IInspectable const& sender, xaml::Contr
   }
 }
 
-void TextInputShadowNode::AddPasteOptionIfNeeded(xaml::Controls::TextCommandBarFlyout const &flyout) {
-  const auto &textBox = GetView().as<xaml::Controls::TextBox>();
-  if (!textBox.CanPasteClipboardContent() && ShouldHandlePaste()) {
+/*static*/ void TextInputShadowNode::AddPasteOptionIfNeeded(xaml::Controls::TextCommandBarFlyout const &flyout, PasteOptions const& pasteOptions) {
+  const auto &textBox = flyout.Target().as<xaml::Controls::TextBox>();
+  if (!textBox.CanPasteClipboardContent() && ShouldHandlePaste(pasteOptions)) {
     // Paste is either the first option in the context menu, or the third when
     // text is selected and "Cut" and "Copy" options are presented. Rather than
     // the offsets of selected text to determine if "Cut"/"Copy" may be shown,
@@ -889,8 +904,8 @@ void TextInputShadowNode::AddPasteOptionIfNeeded(xaml::Controls::TextCommandBarF
     pasteGlyph.Glyph(L"\uE77F");
     pasteButton.Icon(pasteGlyph);
     pasteButton.KeyboardAcceleratorTextOverride(TextCommandKeyboardAcceleratorKeyPaste);
-    pasteButton.Label(m_pasteOptions.label);
-    pasteButton.SetValue(xaml::Controls::ToolTipService::ToolTipProperty(), winrt::box_value(m_pasteOptions.description));
+    pasteButton.Label(pasteOptions.label);
+    pasteButton.SetValue(xaml::Controls::ToolTipService::ToolTipProperty(), winrt::box_value(pasteOptions.description));
     pasteButton.Click([wpTextBox = winrt::make_weak(textBox)](auto&& ...) {
       if (auto const &spTextBox = wpTextBox.get()) {
         spTextBox.PasteFromClipboard();

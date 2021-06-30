@@ -16,11 +16,14 @@
 #include <UI.Xaml.Automation.h>
 #include <UI.Xaml.Controls.h>
 #include <UI.Xaml.Documents.h>
+#include <Utils/Helpers.h>
 #include <Utils/PropertyUtils.h>
 #include <Utils/TextHitTestUtils.h>
 #include <Utils/TransformableText.h>
 #include <Utils/ValueUtils.h>
 #include <unordered_map>
+
+#include <winrt/Windows.UI.Xaml.Controls.Primitives.h>
 
 namespace winrt {
 using namespace xaml::Documents;
@@ -46,6 +49,7 @@ class TextShadowNode final : public ShadowNodeBase {
   std::optional<winrt::Windows::UI::Color> m_ColorValue = std::nullopt;
   std::unique_ptr<TouchEventHandler> m_touchEventHandler{nullptr};
   winrt::event_revoker<xaml::Controls::ITextBlock> m_selectionChangedRevoker;
+  xaml::Controls::Primitives::FlyoutBase::Opening_revoker m_contextFlyoutOpeningRevoker{};
 
  public:
   TextShadowNode() {
@@ -191,10 +195,37 @@ class TextShadowNode final : public ShadowNodeBase {
               });
 
       m_touchEventHandler->AddTouchHandlers(xamlView, shouldCancelOnCaptureLost, true, true);
+
+      if (react::uwp::IsXamlIsland()) {
+        m_contextFlyoutOpeningRevoker = xamlView.as<xaml::Controls::TextBlock>().ContextFlyout().Opening(winrt::auto_revoke, [tag=m_tag](winrt::IInspectable const &sender, auto&&) {
+          if (auto const& flyout = sender.try_as<xaml::Controls::TextCommandBarFlyout>()) {
+            const auto control = flyout.Target();
+            // TextBlock.ContextFlyout is a singleton so we have to make sure we're opening it for the TextBlock that corresponds to the current TextShadowNode.
+            if (GetTag(control) != tag) {
+              return;
+            }
+
+            auto theme = xaml::ElementTheme::Default;
+            if (const auto xamlRootContentAsFrameworkElement = control.XamlRoot().Content().try_as<winrt::FrameworkElement>()) {
+              theme = xamlRootContentAsFrameworkElement.ActualTheme();
+            }
+
+            const auto commands = flyout.SecondaryCommands();
+            for (auto i = 0; i < commands.Size(); ++i) {
+              if (const auto appBarButton = commands.GetAt(i).try_as<winrt::AppBarButton>()) {
+                // Workaround Xaml Islands bug with dark theme and CommandBarFlyout:
+                // https://github.com/microsoft/microsoft-ui-xaml/issues/5320
+                appBarButton.RequestedTheme(theme);
+              }
+            }
+          }
+        });
+      }
     } else {
       if (m_touchEventHandler != nullptr) {
         m_touchEventHandler->RemoveTouchHandlers();
         m_selectionChangedRevoker.revoke();
+        m_contextFlyoutOpeningRevoker.revoke();
       }
     }
   }
