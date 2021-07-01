@@ -49,7 +49,6 @@ comp::Compositor GetCompositor() {
   if (!react::uwp::IsXamlIsland()) {
     return xaml::Window::Current().Compositor();
   }
-  comp::Compositor compositor;
   assert(tlsCompositor != nullptr);
   return tlsCompositor;
 }
