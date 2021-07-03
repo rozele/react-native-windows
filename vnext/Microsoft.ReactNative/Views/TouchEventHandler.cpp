@@ -43,7 +43,6 @@ TouchEventHandler::~TouchEventHandler() {
 
 void TouchEventHandler::AddTouchHandlers(
     XamlView xamlView,
-    std::function<bool()> shouldCancelOnCaptureLost,
     bool findRoot,
     bool handledEventsToo) {
   auto uiElement(xamlView.as<xaml::UIElement>());
@@ -55,7 +54,6 @@ void TouchEventHandler::AddTouchHandlers(
   RemoveTouchHandlers();
 
   m_xamlView = xamlView;
-  m_shouldCancelOnCaptureLost = shouldCancelOnCaptureLost;
   m_findRoot = findRoot;
 
   m_pressedHandler = winrt::box_value(winrt::PointerEventHandler{this, &TouchEventHandler::OnPointerPressed});
@@ -88,9 +86,16 @@ void TouchEventHandler::RemoveTouchHandlers() {
     m_exitedHandler = nullptr;
     m_movedHandler = nullptr;
     m_findRoot = false;
-    m_shouldCancelOnCaptureLost = nullptr;
     m_xamlView = nullptr;
   }
+}
+
+winrt::event_token TouchEventHandler::OnCaptureLost(const winrt::delegate<CaptureLostEventArgs> &handler) {
+  return m_captureLostEvent.add(handler);
+}
+
+void TouchEventHandler::OnCaptureLost(const winrt::event_token &token) noexcept {
+  m_captureLostEvent.remove(token);
 }
 
 void TouchEventHandler::OnPointerPressed(
@@ -148,7 +153,9 @@ void TouchEventHandler::OnPointerCanceled(
 void TouchEventHandler::OnPointerCaptureLost(
     const winrt::IInspectable & /*sender*/,
     const winrt::PointerRoutedEventArgs &args) {
-  if (m_shouldCancelOnCaptureLost == nullptr || m_shouldCancelOnCaptureLost()) {
+  const CaptureLostEventArgs captureLostArgs;
+  m_captureLostEvent(captureLostArgs);
+  if (captureLostArgs.ShouldCancel()) {
     OnPointerConcluded(TouchEventType::Cancel, args);
   }
 }

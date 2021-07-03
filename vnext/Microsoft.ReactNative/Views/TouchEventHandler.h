@@ -26,6 +26,17 @@ using namespace xaml::Media;
 
 namespace Microsoft::ReactNative {
 
+struct CaptureLostEventArgs {
+  void PreventCancel() const {
+    *m_shouldCancel = false;
+  }
+  bool ShouldCancel() const {
+    return *m_shouldCancel;
+  }
+ private :
+  std::shared_ptr<bool> m_shouldCancel = std::make_shared<bool>(true);
+};
+
 class TouchEventHandler {
  public:
   TouchEventHandler(const Mso::React::IReactContext &context);
@@ -33,10 +44,11 @@ class TouchEventHandler {
 
   void AddTouchHandlers(
       XamlView xamlView,
-      std::function<bool()> shouldCancelOnCaptureLost = nullptr,
       bool findRoot = false,
       bool handledEventsToo = false);
   void RemoveTouchHandlers();
+  winrt::event_token OnCaptureLost(const winrt::delegate<CaptureLostEventArgs> &args);
+  void OnCaptureLost(const winrt::event_token &token) noexcept;
 
  private:
   void OnPointerPressed(const winrt::IInspectable &, const winrt::PointerRoutedEventArgs &args);
@@ -51,8 +63,8 @@ class TouchEventHandler {
   winrt::IInspectable m_captureLostHandler;
   winrt::IInspectable m_exitedHandler;
   winrt::IInspectable m_movedHandler;
-  std::function<bool()> m_shouldCancelOnCaptureLost;
   bool m_findRoot{false};
+  winrt::event<winrt::delegate<CaptureLostEventArgs>> m_captureLostEvent;
 
   struct ReactPointer {
     int64_t target = 0;
