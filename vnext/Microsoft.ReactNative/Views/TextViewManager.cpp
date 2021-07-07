@@ -5,6 +5,7 @@
 
 #include "TextViewManager.h"
 #include "TouchEventHandler.h"
+#include "Utils/Helpers.h"
 
 #include <Modules/NativeUIManager.h>
 
@@ -15,6 +16,7 @@
 #include <UI.Xaml.Automation.Peers.h>
 #include <UI.Xaml.Automation.h>
 #include <UI.Xaml.Controls.h>
+#include <UI.Xaml.Controls.Primitives.h>
 #include <UI.Xaml.Documents.h>
 #include <Utils/Helpers.h>
 #include <Utils/PropertyUtils.h>
@@ -287,6 +289,16 @@ const char *TextViewManager::GetName() const {
 XamlView TextViewManager::CreateViewCore(int64_t /*tag*/) {
   auto textBlock = xaml::Controls::TextBlock();
   textBlock.TextWrapping(xaml::TextWrapping::Wrap); // Default behavior in React Native
+  // This works around a XAML Islands bug where the XamlRoot of the first
+  // window the flyout is shown on takes ownership of the flyout and attempts
+  // to show the flyout on other windows cause the first window to get focus.
+  // https://github.com/microsoft/microsoft-ui-xaml/issues/5341
+  if (IsXamlIsland()) {
+    winrt::TextCommandBarFlyout flyout;
+    flyout.Placement(xaml::Controls::Primitives::FlyoutPlacementMode::BottomEdgeAlignedLeft);
+    textBlock.ContextFlyout(flyout);
+    textBlock.SelectionFlyout(flyout);
+  }
   return textBlock;
 }
 

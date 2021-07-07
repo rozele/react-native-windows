@@ -6,6 +6,7 @@
 #include "TextInputViewManager.h"
 
 #include "Unicode.h"
+#include "Utils/Helpers.h"
 
 #include <UI.Xaml.Controls.h>
 #include <UI.Xaml.Input.h>
@@ -35,6 +36,7 @@ namespace winrt {
 using namespace winrt::Windows::ApplicationModel::DataTransfer;
 using namespace xaml;
 using namespace xaml::Controls;
+using namespace xaml::Controls::Primitives;
 using namespace xaml::Media;
 using namespace xaml::Shapes;
 } // namespace winrt
@@ -959,6 +961,16 @@ facebook::react::ShadowNode *TextInputViewManager::createShadow() const {
 
 XamlView TextInputViewManager::CreateViewCore(int64_t /*tag*/) {
   xaml::Controls::TextBox textBox;
+  // This works around a XAML Islands bug where the XamlRoot of the first
+  // window the flyout is shown on takes ownership of the flyout and attempts
+  // to show the flyout on other windows cause the first window to get focus.
+  // https://github.com/microsoft/microsoft-ui-xaml/issues/5341
+  if (IsXamlIsland()) {
+    winrt::TextCommandBarFlyout flyout;
+    flyout.Placement(winrt::FlyoutPlacementMode::BottomEdgeAlignedLeft);
+    textBox.ContextFlyout(flyout);
+    textBox.SelectionFlyout(flyout);
+  }
   return textBox;
 }
 
