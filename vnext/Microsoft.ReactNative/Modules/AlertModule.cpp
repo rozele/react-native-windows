@@ -10,6 +10,7 @@
 #include "Utils/Helpers.h"
 
 #include <UI.Xaml.Controls.h>
+#include <UI.Xaml.Media.h>
 
 namespace Microsoft::ReactNative {
 
@@ -36,6 +37,19 @@ void Alert::showAlert(ShowAlertArgs const &args, std::function<void(std::string)
         if (auto xamlRoot = React::XamlUIService::GetXamlRoot(strongThis->m_context.Properties().Handle())) {
           dialog.XamlRoot(xamlRoot);
         }
+
+        // Workaround XAML bug with ContentDialog and dark theme:
+        // https://github.com/microsoft/microsoft-ui-xaml/issues/2331
+        dialog.Opened([](winrt::IInspectable const &sender, auto &&) {
+          auto contentDialog = sender.as<xaml::Controls::ContentDialog>();
+          auto popups = xaml::Media::VisualTreeHelper::GetOpenPopupsForXamlRoot(contentDialog.XamlRoot());
+          auto xamlRootContentAsFrameworkElement = contentDialog.XamlRoot().Content().try_as<xaml::FrameworkElement>();
+          if (xamlRootContentAsFrameworkElement) {
+            for (auto i = 0; i < popups.Size(); i++) {
+              popups.GetAt(i).RequestedTheme(xamlRootContentAsFrameworkElement.ActualTheme());
+            }
+          }
+        });
       }
 
       auto asyncOp = dialog.ShowAsync();
