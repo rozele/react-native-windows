@@ -28,7 +28,8 @@ void ScrollContentViewManager::AddView(const XamlView &parent, const XamlView &c
   // All top-level children of inverted ScrollView content will be anchor candidates, unless scrolled to the top.
   auto childElement = child.as<xaml::UIElement>();
   auto scrollViewContentControl = parent.as<xaml::FrameworkElement>().Parent().as<SnapPointManagingContentControl>();
-  if (scrollViewContentControl && scrollViewContentControl->IsInverted() && !scrollViewContentControl->IsScrolledToTop()) {
+  if (scrollViewContentControl && scrollViewContentControl->IsInverted() &&
+      scrollViewContentControl->IsContentAnchoringEnabled()) {
     childElement.CanBeScrollAnchor(true);
   }
 

@@ -25,7 +25,7 @@ class ScrollViewUWPImplementation {
 
   void SetHorizontal(bool isHorizontal);
   void SetInverted(bool isInverted);
-  void SetScrolledToTop(bool isScrolledToTop);
+  void SetContentAnchoringEnabled(bool enabled);
   void SnapToInterval(float interval);
   void SnapToStart(bool snapToStart);
   void SnapToEnd(bool snapToEnd);

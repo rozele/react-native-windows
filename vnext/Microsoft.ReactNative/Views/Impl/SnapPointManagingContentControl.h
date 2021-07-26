@@ -50,7 +50,7 @@ class SnapPointManagingContentControl
   // Helpers
   void SetHorizontal(bool horizontal);
   void SetInverted(bool inverted);
-  void SetScrolledToTop(bool scrolledToTop);
+  void SetContentAnchoringEnabled(bool enabled);
   void SetHeightBounds(float startHeight, float endHeight);
   void SetWidthBounds(float startWidth, float endWidth);
   void SetViewportSize(float scaledViewportWidth, float scaledviewportHeight);
@@ -63,8 +63,8 @@ class SnapPointManagingContentControl
     return m_inverted;
   }
 
-  bool IsScrolledToTop() {
-    return m_scrolledToTop;
+  bool IsContentAnchoringEnabled() {
+    return m_contentAnchoringEnabled;
   }
 
  private:
@@ -78,7 +78,7 @@ class SnapPointManagingContentControl
 
   bool m_horizontal{false};
   bool m_inverted{false};
-  bool m_scrolledToTop{false};
+  bool m_contentAnchoringEnabled{false};
   float m_startHeight{0};
   float m_startWidth{0};
   float m_endHeight{INFINITY};

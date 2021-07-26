@@ -128,8 +128,8 @@ void SnapPointManagingContentControl::SetInverted(bool inverted) {
   m_inverted = inverted;
 }
 
-void SnapPointManagingContentControl::SetScrolledToTop(bool scrolledToTop) {
-  m_scrolledToTop = scrolledToTop;
+void SnapPointManagingContentControl::SetContentAnchoringEnabled(bool enabled) {
+  m_contentAnchoringEnabled = enabled;
 }
 
 void SnapPointManagingContentControl::SetWidthBounds(float startWidth, float endWidth) {

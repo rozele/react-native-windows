@@ -383,7 +383,9 @@ class VirtualizedList extends React.PureComponent<Props, State> {
   scrollToEnd(params?: ?{animated?: ?boolean, ...}) {
     const animated = params ? params.animated : true;
     const veryLast = this.props.getItemCount(this.props.data) - 1;
-    const frame = this._getFrameMetricsApprox(veryLast);
+    // [Windows
+    const frame = this._getFrameMetricsApprox(veryLast, /*useRawMetrics*/ true);
+    // Windows]
     const offset = Math.max(
       0,
       frame.offset +
@@ -436,7 +438,9 @@ class VirtualizedList extends React.PureComponent<Props, State> {
       });
       return;
     }
-    const frame = this._getFrameMetricsApprox(index);
+    // [Windows
+    const frame = this._getFrameMetricsApprox(index, /*useRawMetrics*/ true);
+    // Windows]
     const offset =
       Math.max(
         0,
@@ -695,7 +699,28 @@ class VirtualizedList extends React.PureComponent<Props, State> {
   }
 
   _getScrollMetrics = () => {
-    return this._scrollMetrics;
+    // [Windows
+    // Windows-only: Invert scroll metrics when inverted prop is
+    // set to retain monotonically increasing layout assumptions
+    // in the direction of increasing scroll offsets.
+    let scrollMetrics = this._scrollMetrics;
+    if (this.props.inverted) {
+      const {
+        contentLength,
+        dOffset,
+        offset,
+        velocity,
+        visibleLength,
+      } = scrollMetrics;
+      scrollMetrics = {
+        ...scrollMetrics,
+        dOffset: dOffset * -1,
+        offset: contentLength - offset - visibleLength,
+        velocity: velocity * -1,
+      };
+    }
+    return scrollMetrics;
+    // Windows]
   };
 
   hasMore(): boolean {
@@ -955,6 +980,14 @@ class VirtualizedList extends React.PureComponent<Props, State> {
     } = this.props;
     const {data, horizontal} = this.props;
     const isVirtualizationDisabled = this._isVirtualizationDisabled();
+    // [Windows
+    // Windows-only: Reverse the layout of items via flex
+    const containerInversionStyle = this.props.inverted
+      ? this.props.horizontal
+        ? styles.horizontallyReversed
+        : styles.verticallyReversed
+      : null;
+    // Windows]
     const inversionStyle = this.props.inverted
       ? this.props.horizontal
         ? styles.horizontallyInverted
@@ -1148,6 +1181,13 @@ class VirtualizedList extends React.PureComponent<Props, State> {
     }
     const scrollProps = {
       ...this.props,
+      // [Windows
+      // Windows-only: Pass through inverted container styles
+      contentContainerStyle: StyleSheet.compose(
+        containerInversionStyle,
+        this.props.contentContainerStyle,
+      ),
+      // Windows]
       onContentSizeChange: this._onContentSizeChange,
       onLayout: this._onLayout,
       onScroll: this._onScroll,
@@ -1262,7 +1302,9 @@ class VirtualizedList extends React.PureComponent<Props, State> {
     this._fillRateHelper.computeBlankness(
       this.props,
       this.state,
-      this._scrollMetrics,
+      // [Windows
+      this._getScrollMetrics(),
+      // Windows]
     );
   }
 
@@ -1429,6 +1471,12 @@ class VirtualizedList extends React.PureComponent<Props, State> {
   };
 
   _renderDebugOverlay() {
+    // [Windows
+    // Windows-only: this is not supported for inverted lists
+    if (this.props.inverted) {
+      console.warn('Debug overlay is not yet supported for inverted lists.');
+    }
+    // Windows]
     const normalize =
       this._scrollMetrics.visibleLength /
       (this._scrollMetrics.contentLength || 1);
@@ -1515,7 +1563,9 @@ class VirtualizedList extends React.PureComponent<Props, State> {
       onEndReached,
       onEndReachedThreshold,
     } = this.props;
-    const {contentLength, visibleLength, offset} = this._scrollMetrics;
+    // [Windows
+    const {contentLength, visibleLength, offset} = this._getScrollMetrics();
+    // Windows]
     const distanceFromEnd = contentLength - visibleLength - offset;
     const threshold = onEndReachedThreshold
       ? onEndReachedThreshold * visibleLength
@@ -1653,7 +1703,9 @@ class VirtualizedList extends React.PureComponent<Props, State> {
 
   _scheduleCellsToRenderUpdate() {
     const {first, last} = this.state;
-    const {offset, visibleLength, velocity} = this._scrollMetrics;
+    // [Windows
+    const {offset, visibleLength, velocity} = this._getScrollMetrics();
+    // Windows]
     const itemCount = this.props.getItemCount(this.props.data);
     let hiPri = false;
     const scrollingThreshold =
@@ -1736,7 +1788,9 @@ class VirtualizedList extends React.PureComponent<Props, State> {
     }
     this.setState(state => {
       let newState;
-      const {contentLength, offset, visibleLength} = this._scrollMetrics;
+      // [Windows
+      const {contentLength, offset, visibleLength} = this._getScrollMetrics();
+      // Windows]
       if (!isVirtualizationDisabled) {
         // If we run this with bogus data, we'll force-render window {first: 0, last: 0},
         // and wipe out the initialNumToRender rendered elements.
@@ -1747,12 +1801,16 @@ class VirtualizedList extends React.PureComponent<Props, State> {
           // we'll wipe out the initialNumToRender rendered elements starting at initialScrollIndex.
           // So let's wait until we've scrolled the view to the right place. And until then,
           // we will trust the initialScrollIndex suggestion.
-          if (!this.props.initialScrollIndex || this._scrollMetrics.offset) {
+          // [Windows
+          if (!this.props.initialScrollIndex || offset) {
+            // Windows]
             newState = computeWindowedRenderLimits(
               this.props,
               state,
               this._getFrameMetricsApprox,
-              this._scrollMetrics,
+              // [Windows
+              this._getScrollMetrics(),
+              // Windows]
             );
           }
         }
@@ -1819,6 +1877,9 @@ class VirtualizedList extends React.PureComponent<Props, State> {
 
   _getFrameMetricsApprox = (
     index: number,
+    // [Windows
+    useRawMetrics?: boolean,
+    // Windows]
   ): {
     length: number,
     offset: number,
@@ -1827,17 +1888,43 @@ class VirtualizedList extends React.PureComponent<Props, State> {
     const frame = this._getFrameMetrics(index);
     if (frame && frame.index === index) {
       // check for invalid frames due to row re-ordering
-      return frame;
+      // [Windows
+      // Windows-only: Raw metrics are requested for scroll commands. Metrics
+      // returned from _getFrameMetrics are assumed to be inverted. To convert back
+      // to raw metrics, subtract the offset and length from the content length.
+      return this.props.inverted && useRawMetrics
+        ? {
+            ...frame,
+            offset: Math.max(
+              0,
+              this._scrollMetrics.contentLength - frame.offset - frame.length,
+            ),
+          }
+        : frame;
+      // Windows]
     } else {
       const {getItemLayout} = this.props;
       invariant(
         !getItemLayout,
         'Should not have to estimate frames when a measurement metrics function is provided',
       );
+      // [Windows
+      // Windows-only: Raw metrics are requested for scroll commands. Metrics
+      // returned from _getFrameMetrics are assumed to be inverted. To compute
+      // approximate raw metrics, subtract the computed average offset from
+      // the content length.
+      const offset =
+        this.props.inverted && useRawMetrics
+          ? Math.max(
+              0,
+              this._scrollMetrics - this._averageCellLength * (index + 1),
+            )
+          : this._averageCellLength * index;
       return {
         length: this._averageCellLength,
-        offset: this._averageCellLength * index,
+        offset,
       };
+      // Windows]
     }
   };
 
@@ -1863,6 +1950,15 @@ class VirtualizedList extends React.PureComponent<Props, State> {
     );
     const item = getItem(data, index);
     let frame = item && this._frames[keyExtractor(item, index)];
+    // [Windows
+    // Windows-only: Convert to inverted offsets from raw layout
+    if (frame && this.props.inverted) {
+      frame = {
+        ...frame,
+        offset: this._scrollMetrics.contentLength - frame.offset - frame.length,
+      };
+    }
+    // Windows]
     if (!frame || frame.index !== index) {
       if (getItemLayout) {
         frame = getItemLayout(data, index);
@@ -1893,7 +1989,9 @@ class VirtualizedList extends React.PureComponent<Props, State> {
     this._viewabilityTuples.forEach(tuple => {
       tuple.viewabilityHelper.onUpdate(
         getItemCount(data),
-        this._scrollMetrics.offset,
+        // [Windows
+        this._getScrollMetrics().offset,
+        // Windows]
         this._scrollMetrics.visibleLength,
         this._getFrameMetrics,
         this._createViewToken,
@@ -2159,12 +2257,20 @@ function describeNestedLists(childList: {
 }
 
 const styles = StyleSheet.create({
+  // [Windows
   verticallyInverted: {
-    transform: [{scaleY: -1}],
+    /* Windows-only: do not use transform-based inversion */
   },
   horizontallyInverted: {
-    transform: [{scaleX: -1}],
+    /* Windows-only: do not use transform-based inversion */
   },
+  verticallyReversed: {
+    flexDirection: 'column-reverse',
+  },
+  horizontallyReversed: {
+    flexDirection: 'row-reverse',
+  },
+  // Windows]
   row: {
     flexDirection: 'row',
   },

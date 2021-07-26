@@ -23,8 +23,8 @@ void ScrollViewUWPImplementation::SetInverted(bool inverted) {
   ScrollViewerSnapPointManager()->SetInverted(inverted);
 }
 
-void ScrollViewUWPImplementation::SetScrolledToTop(bool scrolledToTop) {
-  ScrollViewerSnapPointManager()->SetScrolledToTop(scrolledToTop);
+void ScrollViewUWPImplementation::SetContentAnchoringEnabled(bool enabled) {
+  ScrollViewerSnapPointManager()->SetContentAnchoringEnabled(enabled);
 }
 
 void ScrollViewUWPImplementation::SnapToInterval(float interval) {
