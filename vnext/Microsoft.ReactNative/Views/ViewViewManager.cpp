@@ -5,6 +5,7 @@
 #include "ViewViewManager.h"
 #include <cdebug.h>
 
+#include "Impl/ScrollViewViewChanger.h"
 #include "ViewControl.h"
 
 #include <UI.Xaml.Automation.Peers.h>
@@ -23,7 +24,6 @@
 #include <inspectable.h>
 #include <unicode.h>
 #include <winrt/Windows.System.h>
-#include <winrt/Windows.UI.Xaml.Interop.h>
 #include <winstring.h>
 
 #if defined(_DEBUG)
@@ -289,6 +289,7 @@ void ViewViewManager::GetNativeProps(const winrt::Microsoft::ReactNative::IJSVal
   winrt::Microsoft::ReactNative::WriteProperty(writer, L"focusable", L"boolean");
   winrt::Microsoft::ReactNative::WriteProperty(writer, L"enableFocusRing", L"boolean");
   winrt::Microsoft::ReactNative::WriteProperty(writer, L"tabIndex", L"number");
+  winrt::Microsoft::ReactNative::WriteProperty(writer, L"overflowAnchor", L"string");
 }
 
 bool ViewViewManager::UpdateProperty(
@@ -339,6 +340,19 @@ bool ViewViewManager::UpdateProperty(
       if (resetTabIndex) {
         pViewShadowNode->TabIndex(std::numeric_limits<std::int32_t>::max());
       }
+    } else if (propertyName == "overflowAnchor") {
+#ifndef USE_WINUI3
+      if (propertyValue.Type() == React::JSValueType::String) {
+        if (propertyValue.AsString() == "none") {
+          pViewShadowNode->GetView().SetValue(
+              ScrollViewViewChanger::CanBeScrollAnchorProperty(), winrt::box_value(false));
+        } else {
+          pViewShadowNode->GetView().ClearValue(ScrollViewViewChanger::CanBeScrollAnchorProperty());
+        }
+      } else if (propertyValue.IsNull()) {
+        pViewShadowNode->GetView().ClearValue(ScrollViewViewChanger::CanBeScrollAnchorProperty());
+      }
+#endif
     } else {
       if (propertyName == "accessible") {
         pViewShadowNode->IsAccessible(propertyValue.AsBoolean());
