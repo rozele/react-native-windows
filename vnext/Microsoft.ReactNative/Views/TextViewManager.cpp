@@ -347,7 +347,7 @@ void TextViewManager::OnDescendantTextPropertyChanged(ShadowNodeBase *node, Prop
 
     // If a property change added a background color to the text tree, update
     // the flag to signal recursive highlighter updates are required.
-    if ((propertyChangeType & PropertyChangeType::AddBackgroundColor) == PropertyChangeType::AddBackgroundColor) {
+    if ((propertyChangeType & PropertyChangeType::Highlight) == PropertyChangeType::Highlight) {
       textNode->m_hasDescendantBackgroundColor = true;
     }
 

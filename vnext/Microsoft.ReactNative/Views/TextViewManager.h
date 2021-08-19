@@ -11,7 +11,7 @@ namespace Microsoft::ReactNative {
 enum class PropertyChangeType : std::uint_fast8_t {
   None = 0,
   Text = 1 << 0,
-  AddBackgroundColor = 1 << 1,
+  Highlight = 1 << 1,
 };
 
 DEFINE_ENUM_FLAG_OPERATORS(PropertyChangeType);

@@ -32,8 +32,7 @@ void VirtualTextShadowNode::AddView(ShadowNode &child, int64_t index) {
   if (IsVirtualTextShadowNode(&childNode)) {
     const auto &childTextNode = static_cast<VirtualTextShadowNode &>(childNode);
     m_hasDescendantBackgroundColor |= childTextNode.m_hasDescendantBackgroundColor;
-    propertyChangeType |=
-        childTextNode.m_backgroundColor ? PropertyChangeType::AddBackgroundColor : PropertyChangeType::None;
+    propertyChangeType |= childTextNode.m_backgroundColor ? PropertyChangeType::Highlight : PropertyChangeType::None;
   }
   Super::AddView(child, index);
   NotifyAncestorsTextPropertyChanged(propertyChangeType);
@@ -145,7 +144,7 @@ bool VirtualTextViewManager::UpdateProperty(
       node->m_foregroundColor = OptionalColorFrom(propertyValue);
       node->m_hasDescendantBackgroundColor |= node->m_foregroundColor.has_value();
       const auto propertyChangeType =
-          node->m_foregroundColor ? PropertyChangeType::AddBackgroundColor : PropertyChangeType::None;
+          node->m_foregroundColor ? PropertyChangeType::Highlight : PropertyChangeType::None;
       node->NotifyAncestorsTextPropertyChanged(propertyChangeType);
     }
   } else if (TryUpdateFontProperties<winrt::TextElement>(span, propertyName, propertyValue)) {
@@ -162,7 +161,7 @@ bool VirtualTextViewManager::UpdateProperty(
       node->m_backgroundColor = OptionalColorFrom(propertyValue);
       node->m_hasDescendantBackgroundColor |= node->m_backgroundColor.has_value();
       const auto propertyChangeType =
-          node->m_backgroundColor ? PropertyChangeType::AddBackgroundColor : PropertyChangeType::None;
+          node->m_backgroundColor ? PropertyChangeType::Highlight : PropertyChangeType::None;
       node->NotifyAncestorsTextPropertyChanged(propertyChangeType);
     }
   } else {
