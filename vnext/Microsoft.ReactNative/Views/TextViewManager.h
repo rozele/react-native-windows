@@ -25,11 +25,8 @@ class TextViewManager : public FrameworkElementViewManager {
   YGMeasureFunc GetYogaCustomMeasureFunc() const override;
 
   static void UpdateTextHighlighters(ShadowNodeBase *node, bool highlightAdded);
-
   static TextTransform GetTextTransformValue(ShadowNodeBase *node);
-
-  void AddToPressableCount(ShadowNodeBase *node, int pressableCount);
-
+  static void AddPressableDescendant(ShadowNodeBase *node);
   static int64_t GetReactTagAtPoint(ShadowNodeBase *node, const winrt::Point &point);
 
  protected:

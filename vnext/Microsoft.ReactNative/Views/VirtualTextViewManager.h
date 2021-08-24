@@ -15,6 +15,8 @@ namespace Microsoft::ReactNative {
 struct VirtualTextShadowNode final : public ShadowNodeBase {
   using Super = ShadowNodeBase;
   TextTransform textTransform{TextTransform::Undefined};
+  bool isPressable{false};
+  bool hasDescendantPressable{false};
   bool hasDescendantTextHighlighter{false};
   std::optional<winrt::Windows::UI::Color> backgroundColor;
   std::optional<winrt::Windows::UI::Color> foregroundColor;
@@ -22,15 +24,6 @@ struct VirtualTextShadowNode final : public ShadowNodeBase {
   void AddView(ShadowNode &child, int64_t index) override;
   void RemoveChildAt(int64_t indexToRemove) override;
   void removeAllChildren() override;
-  void onDropViewInstance() override;
-
-  void AddToPressableCount(int pressableCount);
-  void SetPressable(bool isPressable);
-
-  static xaml::DependencyObject HitTest(const ShadowNodeBase &node, const winrt::Point &point, bool hasPressableParent);
-
-  bool m_isPressable{false};
-  int m_pressableCount{0};
 };
 
 class VirtualTextViewManager : public ViewManagerBase {

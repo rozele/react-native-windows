@@ -4,6 +4,7 @@
 #pragma once
 
 #include "TextHighlighterVisitor.h"
+#include "TextHitTestVisitor.h"
 #include "TextPropertyChangedParentVisitor.h"
 #include "TextTransformParentVisitor.h"
 #include "TextTransformVisitor.h"
@@ -35,6 +36,12 @@ static inline void UpdateTextTransformForChildren(ShadowNode *node) {
 static inline void NotifyAncestorsTextPropertyChanged(ShadowNode *node, PropertyChangeType type) {
   TextPropertyChangedParentVisitor visitor{type};
   visitor.Visit(node);
+}
+
+static inline std::tuple<xaml::DependencyObject, int64_t> HitTest(ShadowNode *node, winrt::Point const &point) {
+  TextHitTestVisitor visitor{point};
+  visitor.Visit(node);
+  return std::make_tuple(visitor.targetView, visitor.pressableCount);
 }
 
 } // namespace Microsoft::ReactNative

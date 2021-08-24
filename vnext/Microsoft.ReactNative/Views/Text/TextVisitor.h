@@ -15,6 +15,8 @@ class TextVisitor {
   void Visit(ShadowNode *node);
 
  protected:
+  virtual void VisitChildren(ShadowNodeBase *node);
+
   virtual void VisitExtensionText(ShadowNodeBase *node);
 
   virtual void VisitRawText(ShadowNodeBase *node) {}
@@ -28,7 +30,6 @@ class TextVisitor {
  private:
   std::shared_ptr<NativeUIManager> m_uiManager;
 
-  void VisitChildren(ShadowNodeBase *node);
   std::shared_ptr<NativeUIManager> EnsureNativeUIManager(ShadowNode *node);
 };
 

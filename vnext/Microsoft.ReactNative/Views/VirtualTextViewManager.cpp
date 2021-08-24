@@ -28,9 +28,10 @@ void VirtualTextShadowNode::AddView(ShadowNode &child, int64_t index) {
   auto propertyChangeType = PropertyChangeType::Text;
   if (IsVirtualTextShadowNode(&childNode)) {
     const auto &childTextNode = static_cast<VirtualTextShadowNode &>(childNode);
-    AddToPressableCount(childTextNode.m_pressableCount);
     propertyChangeType |=
         childTextNode.hasDescendantTextHighlighter ? PropertyChangeType::AddHighlight : PropertyChangeType::None;
+    propertyChangeType |=
+        childTextNode.hasDescendantPressable ? PropertyChangeType::AddPressable : PropertyChangeType::None;
   }
   Super::AddView(child, index);
   NotifyAncestorsTextPropertyChanged(this, propertyChangeType);
@@ -44,72 +45,6 @@ void VirtualTextShadowNode::RemoveChildAt(int64_t indexToRemove) {
 void VirtualTextShadowNode::removeAllChildren() {
   Super::removeAllChildren();
   NotifyAncestorsTextPropertyChanged(this, PropertyChangeType::Text);
-}
-
-void VirtualTextShadowNode::onDropViewInstance() {
-  AddToPressableCount(-m_pressableCount);
-  Super::onDropViewInstance();
-}
-
-void VirtualTextShadowNode::AddToPressableCount(int count) {
-  m_pressableCount += count;
-  if (const auto uiManager = GetNativeUIManager(GetViewManager()->GetReactContext()).lock()) {
-    if (m_parent != -1) {
-      const auto parentNode = static_cast<ShadowNodeBase *>(uiManager->getHost()->FindShadowNodeForTag(m_parent));
-      const auto viewManager = parentNode->GetViewManager();
-      if (IsTextShadowNode(parentNode)) {
-        static_cast<TextViewManager *>(viewManager)->AddToPressableCount(parentNode, count);
-      } else if (IsVirtualTextShadowNode(parentNode)) {
-        static_cast<VirtualTextShadowNode *>(parentNode)->AddToPressableCount(count);
-      }
-    }
-  }
-}
-
-void VirtualTextShadowNode::SetPressable(bool isPressable) {
-  const auto wasPressable = m_isPressable;
-  m_isPressable = isPressable;
-  if (!wasPressable && isPressable) {
-    AddToPressableCount(1);
-  } else if (wasPressable && !isPressable) {
-    AddToPressableCount(-1);
-  }
-}
-
-xaml::DependencyObject
-VirtualTextShadowNode::HitTest(const ShadowNodeBase &node, const winrt::Point &point, bool hasPressableParent) {
-  const auto viewManager = node.GetViewManager();
-  if (IsRawTextShadowNode(&node)) {
-    // Check if the point is within the bounds of the Run
-    const auto run = node.GetView().as<winrt::Run>();
-    return TextHitTestUtils::HitTest(run, point) ? run : nullptr;
-  } else {
-    auto isPressable = hasPressableParent;
-    if (IsVirtualTextShadowNode(&node)) {
-      const auto &virtualTextNode = static_cast<const VirtualTextShadowNode &>(node);
-      if (virtualTextNode.m_isPressable) {
-        isPressable = true;
-      }
-
-      // If the node is a nested Text component, skip if it has no pressable
-      // descendants and it is not contained inside pressable text.
-      if (!isPressable && virtualTextNode.m_pressableCount == 0) {
-        return nullptr;
-      }
-    }
-
-    if (auto uiManager = GetNativeUIManager(viewManager->GetReactContext()).lock()) {
-      for (const auto childTag : node.m_children) {
-        const auto childNode = static_cast<ShadowNodeBase *>(uiManager->getHost()->FindShadowNodeForTag(childTag));
-        const auto hitTarget = HitTest(*childNode, point, isPressable);
-        if (hitTarget != nullptr) {
-          return hitTarget;
-        }
-      }
-    }
-  }
-
-  return nullptr;
 }
 
 VirtualTextViewManager::VirtualTextViewManager(const Mso::React::IReactContext &context) : Super(context) {}
@@ -156,7 +91,10 @@ bool VirtualTextViewManager::UpdateProperty(
       NotifyAncestorsTextPropertyChanged(node, propertyChangeType);
     }
   } else if (propertyName == "isPressable") {
-    static_cast<VirtualTextShadowNode *>(nodeToUpdate)->SetPressable(propertyValue.AsBoolean());
+    auto node = static_cast<VirtualTextShadowNode *>(nodeToUpdate);
+    node->isPressable = propertyValue.AsBoolean();
+    const auto propertyChangeType = node->isPressable ? PropertyChangeType::AddPressable : PropertyChangeType::None;
+    NotifyAncestorsTextPropertyChanged(node, propertyChangeType);
   } else {
     return Super::UpdateProperty(nodeToUpdate, propertyName, propertyValue);
   }
