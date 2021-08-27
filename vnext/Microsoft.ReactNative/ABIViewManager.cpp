@@ -25,7 +25,8 @@ ABIViewManager::ABIViewManager(
       m_viewManagerWithNativeProperties{viewManager.try_as<IViewManagerWithNativeProperties>()},
       m_viewManagerWithCommands{viewManager.try_as<IViewManagerWithCommands>()},
       m_viewManagerWithExportedEventTypeConstants{viewManager.try_as<IViewManagerWithExportedEventTypeConstants>()},
-      m_viewManagerWithChildren{viewManager.try_as<IViewManagerWithChildren>()} {
+      m_viewManagerWithChildren{viewManager.try_as<IViewManagerWithChildren>()},
+      m_viewManagerWithPointerEvents{viewManager.try_as<IViewManagerWithPointerEvents>()} {
   if (m_viewManagerWithReactContext) {
     m_viewManagerWithReactContext.ReactContext(winrt::make<implementation::ReactContext>(Mso::Copy(reactContext)));
   }
@@ -220,6 +221,14 @@ void ABIViewManager::ReplaceChild(
   } else {
     Super::ReplaceChild(parent, oldChild, newChild);
   }
+}
+
+void ABIViewManager::OnPointerEvent(react::uwp::ShadowNodeBase *node, const ReactPointerEventArgs &args) {
+  if (m_viewManagerWithPointerEvents) {
+    m_viewManagerWithPointerEvents.OnPointerEvent(node->GetView(), args);
+  }
+  // Call the base method to handle `pointerEvents` behavior
+  Super::OnPointerEvent(node, args);
 }
 
 } // namespace winrt::Microsoft::ReactNative

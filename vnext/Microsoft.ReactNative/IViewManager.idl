@@ -3,6 +3,7 @@
 
 import "IReactModuleBuilder.idl";
 import "IReactContext.idl";
+import "ReactPointerEventArgs.idl";
 
 #include "NamespaceRedirect.h"
 
@@ -74,4 +75,9 @@ namespace Microsoft.ReactNative
 
     void ReplaceChild(XAML_NAMESPACE.FrameworkElement parent, XAML_NAMESPACE.UIElement oldChild, XAML_NAMESPACE.UIElement newChild);
   }
+
+  [webhosthidden]
+  interface IViewManagerWithPointerEvents {
+    void OnPointerEvent(Object view, ReactPointerEventArgs args);
+  };
 } // namespace Microsoft.ReactNative

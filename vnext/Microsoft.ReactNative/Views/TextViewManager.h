@@ -24,6 +24,8 @@ class TextViewManager : public FrameworkElementViewManager {
 
   YGMeasureFunc GetYogaCustomMeasureFunc() const override;
 
+  void OnPointerEvent(ShadowNodeBase *node, const winrt::Microsoft::ReactNative::ReactPointerEventArgs &args) override;
+
   void OnDescendantTextPropertyChanged(ShadowNodeBase *node);
 
   TextTransform GetTextTransformValue(ShadowNodeBase *node);

@@ -343,6 +343,7 @@
     <ClCompile Include="Utils\BatchingEventEmitter.cpp">
       <Filter>Utils</Filter>
     </ClCompile>
+    <ClCompile Include="ReactPointerEventArgs.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ABICxxModule.h" />
@@ -739,6 +740,7 @@
     <ClInclude Include="Utils\BatchingEventEmitter.h">
       <Filter>Utils</Filter>
     </ClInclude>
+    <ClInclude Include="ReactPointerEventArgs.h" />
   </ItemGroup>
   <ItemGroup>
     <Midl Include="IJSValueReader.idl" />
@@ -772,6 +774,7 @@
     <Midl Include="Views\cppwinrt\Effects.idl">
       <Filter>Views\cppwinrt</Filter>
     </Midl>
+    <Midl Include="ReactPointerEventArgs.idl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="microsoft.reactnative.def" />

@@ -77,6 +77,10 @@ class REACTWINDOWS_EXPORT ViewManagerBase : public facebook::react::IViewManager
   virtual bool RequiresYogaNode() const;
   bool IsNativeControlWithSelfLayout() const;
 
+  virtual void OnPointerEvent(
+      ShadowNodeBase * /*node*/,
+      const winrt::Microsoft::ReactNative::ReactPointerEventArgs & /*args*/) {}
+
   std::weak_ptr<IReactInstance> GetReactInstance() const {
     return m_wkReactInstance;
   }

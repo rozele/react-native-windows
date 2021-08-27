@@ -55,6 +55,8 @@ class ABIViewManager : public react::uwp::FrameworkElementViewManager {
       const xaml::DependencyObject &oldChild,
       const xaml::DependencyObject &newChild) override;
 
+  void OnPointerEvent(react::uwp::ShadowNodeBase *node, const ReactPointerEventArgs &args) override;
+
  protected:
   xaml::DependencyObject CreateViewCore(int64_t) override;
 
@@ -66,6 +68,7 @@ class ABIViewManager : public react::uwp::FrameworkElementViewManager {
   IViewManagerWithCommands m_viewManagerWithCommands;
   IViewManagerWithExportedEventTypeConstants m_viewManagerWithExportedEventTypeConstants;
   IViewManagerWithChildren m_viewManagerWithChildren;
+  IViewManagerWithPointerEvents m_viewManagerWithPointerEvents;
 
   winrt::Windows::Foundation::Collections::IMapView<winrt::hstring, ViewManagerPropertyType> m_nativeProps;
 };

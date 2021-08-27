@@ -4,6 +4,7 @@
 #pragma once
 #include <IReactInstance.h>
 #include <JSValue.h>
+#include <ReactPointerEventArgs.h>
 #include <winrt/Windows.Devices.Input.h>
 #include <optional>
 #include <set>
@@ -26,11 +27,7 @@ class TouchEventHandler {
   TouchEventHandler(const std::weak_ptr<IReactInstance> &reactInstance);
   virtual ~TouchEventHandler();
 
-  void AddTouchHandlers(
-      XamlView xamlView,
-      std::function<bool()> shouldCancelOnCaptureLost = nullptr,
-      bool findRoot = false,
-      bool handledEventsToo = false);
+  void AddTouchHandlers(XamlView xamlView, bool findRoot = false, bool handledEventsToo = false);
   void RemoveTouchHandlers();
   BatchingEventEmitter &BatchingEmitter() noexcept;
 
@@ -47,7 +44,6 @@ class TouchEventHandler {
   winrt::IInspectable m_captureLostHandler;
   winrt::IInspectable m_exitedHandler;
   winrt::IInspectable m_movedHandler;
-  std::function<bool()> m_shouldCancelOnCaptureLost;
   bool m_findRoot{false};
   bool m_subscribed{false};
 
@@ -79,14 +75,15 @@ class TouchEventHandler {
   void UpdatePointersInViews(
       std::shared_ptr<IReactInstance> instance,
       const winrt::PointerRoutedEventArgs &args,
-      int64_t tag,
-      xaml::UIElement sourceElement);
+      xaml::UIElement sourceElement,
+      std::vector<int64_t> &&newViews);
 
-  enum class TouchEventType { Start = 0, End, Move, Cancel, PointerEntered, PointerExited, PointerMove };
+  enum class TouchEventType { Start = 0, End, Move, Cancel, CaptureLost, PointerEntered, PointerExited, PointerMove };
   void OnPointerConcluded(TouchEventType eventType, const winrt::PointerRoutedEventArgs &args);
   void DispatchTouchEvent(TouchEventType eventType, size_t pointerIndex);
   bool DispatchBackEvent();
   const char *GetPointerDeviceTypeName(winrt::Windows::Devices::Input::PointerDeviceType deviceType) noexcept;
+  winrt::Microsoft::ReactNative::PointerEventKind GetPointerEventKind(TouchEventType eventType) noexcept;
   const wchar_t *GetTouchEventTypeName(TouchEventType eventType) noexcept;
 
   std::optional<size_t> IndexOfPointerWithId(uint32_t pointerId);
@@ -101,7 +98,12 @@ class TouchEventHandler {
   std::unordered_map<uint32_t /*pointerId*/, TagSet /*tags*/> m_pointersInViews;
   int64_t m_touchId = 0;
 
-  bool TagFromOriginalSource(const winrt::PointerRoutedEventArgs &args, int64_t *pTag, xaml::UIElement *pSourceElement);
+  bool PropagatePointerEventAndFindReactTarget(
+      std::shared_ptr<IReactInstance> instance,
+      const winrt::Microsoft::ReactNative::ReactPointerEventArgs &args,
+      std::vector<int64_t> *pTagsForBranch,
+      xaml::UIElement *pSourceElement);
+  bool IsPointerCaptured(uint32_t pointerId);
 
   XamlView m_xamlView;
   XamlView m_rootView;

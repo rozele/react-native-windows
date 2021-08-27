@@ -1,0 +1,33 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+#include "NamespaceRedirect.h"
+
+namespace Microsoft.ReactNative {
+  [webhosthidden]
+  enum PointerEventKind {
+    None,
+    Start,
+    End,
+    Move,
+    Cancel,
+    CaptureLost,
+  };
+
+  [webhosthidden]
+  runtimeclass ReactPointerEventArgs {
+    XAML_NAMESPACE.Input.PointerRoutedEventArgs Args {
+      get;
+    };
+    PointerEventKind Kind {
+      get;
+      set;
+    };
+    Object Target {
+      get;
+      set;
+    };
+    void PreventDefault();
+    void AllowUncaptured();
+  }
+} // namespace Microsoft.ReactNative

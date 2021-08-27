@@ -35,10 +35,6 @@ using namespace xaml::Automation::Peers;
 
 namespace react::uwp {
 
-struct TextSelectionState {
-  bool selectionChanged{false};
-};
-
 class TextShadowNode final : public ShadowNodeBase {
   using Super = ShadowNodeBase;
   friend TextViewManager;
@@ -183,20 +179,13 @@ class TextShadowNode final : public ShadowNodeBase {
         m_touchEventHandler = std::make_unique<TouchEventHandler>(GetViewManager()->GetReactInstance());
       }
 
-      const auto textSelectionState = std::make_shared<TextSelectionState>();
-      std::function<bool()> shouldCancelOnCaptureLost = [textSelectionState]() {
-        const auto wasSelectionChanged = textSelectionState->selectionChanged;
-        textSelectionState->selectionChanged = false;
-        return wasSelectionChanged;
-      };
-
       m_selectionChangedRevoker = xamlView.as<xaml::Controls::TextBlock>().SelectionChanged(
-              winrt::auto_revoke, [textSelectionState](const auto &sender, auto &&) {
-                const auto textBlock = sender.as<xaml::Controls::TextBlock>();
-                textSelectionState->selectionChanged = textBlock.SelectionStart().Offset() != textBlock.SelectionEnd().Offset();
-              });
+          winrt::auto_revoke, [selectionChanged = this->selectionChanged](const auto &sender, auto &&) {
+            const auto textBlock = sender.as<xaml::Controls::TextBlock>();
+            *selectionChanged |= textBlock.SelectionStart().Offset() != textBlock.SelectionEnd().Offset();
+          });
 
-      m_touchEventHandler->AddTouchHandlers(xamlView, shouldCancelOnCaptureLost, true, true);
+      m_touchEventHandler->AddTouchHandlers(xamlView, true, true);
 
       if (react::uwp::IsXamlIsland()) {
         m_contextFlyoutOpeningRevoker = xamlView.as<xaml::Controls::TextBlock>().ContextFlyout().Opening(winrt::auto_revoke, [tag=m_tag](winrt::IInspectable const &sender, auto&&) {
@@ -274,6 +263,7 @@ class TextShadowNode final : public ShadowNodeBase {
   TextTransform textTransform{TextTransform::Undefined};
   int pressableCount{0};
   bool useBlockHitTest{false};
+  std::shared_ptr<bool> selectionChanged = std::make_shared<bool>(false);
 };
 
 TextViewManager::TextViewManager(const std::shared_ptr<IReactInstance> &reactInstance) : Super(reactInstance) {}
@@ -400,6 +390,18 @@ void TextViewManager::RemoveChildAt(const XamlView &parent, int64_t index) {
 
 YGMeasureFunc TextViewManager::GetYogaCustomMeasureFunc() const {
   return DefaultYogaSelfMeasureFunc;
+}
+
+void TextViewManager::OnPointerEvent(
+    ShadowNodeBase *node,
+    const winrt::Microsoft::ReactNative::ReactPointerEventArgs &args) {
+  if (args.Kind() == winrt::Microsoft::ReactNative::PointerEventKind::CaptureLost) {
+    const auto textNode = static_cast<TextShadowNode *>(node);
+    if (!*textNode->selectionChanged) {
+      args.Kind(winrt::Microsoft::ReactNative::PointerEventKind::End);
+    }
+    *textNode->selectionChanged = false;
+  }
 }
 
 void TextViewManager::OnDescendantTextPropertyChanged(ShadowNodeBase *node) {

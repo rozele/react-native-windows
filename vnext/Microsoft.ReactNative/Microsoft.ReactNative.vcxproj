@@ -381,6 +381,10 @@
       <SubType>Code</SubType>
     </ClInclude>
     <ClInclude Include="XamlView.h" />
+    <ClInclude Include="ReactPointerEventArgs.h">
+      <DependentUpon>ReactPointerEventArgs.idl</DependentUpon>
+      <SubType>Code</SubType>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ABICxxModule.cpp" />
@@ -455,6 +459,10 @@
     <ClCompile Include="Polyester\ContentControlViewManager.cpp" />
     <ClCompile Include="Polyester\HyperlinkViewManager.cpp" />
     <ClCompile Include="Polyester\IconViewManager.cpp" />
+    <ClCompile Include="ReactPointerEventArgs.cpp">
+      <DependentUpon>ReactPointerEventArgs.idl</DependentUpon>
+      <SubType>Code</SubType>
+    </ClCompile>
     <ClCompile Include="RedBoxErrorInfo.cpp" />
     <ClCompile Include="RedBoxErrorFrameInfo.cpp" />
     <ClCompile Include="TurboModulesProvider.cpp" />
@@ -609,6 +617,7 @@
       <SubType>Designer</SubType>
     </Midl>
     <Midl Include="XamlHelper.idl" />
+    <Midl Include="ReactPointerEventArgs.idl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
