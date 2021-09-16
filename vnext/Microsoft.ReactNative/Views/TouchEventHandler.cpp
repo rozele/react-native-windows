@@ -225,15 +225,13 @@ void TouchEventHandler::OnPointerConcluded(TouchEventType eventType, const winrt
   if (PropagatePointerEventAndFindReactTarget(instance, reactArgs, &tagsForBranch, &sourceElement))
     UpdateReactPointer(m_pointers[*optPointerIndex], args, sourceElement);
 
-  if (m_pointers[*optPointerIndex].isLeftButton) {
-    if (eventType == TouchEventType::CaptureLost && argsImpl->UncapturedAllowed()) {
-      return;
-    } else {
-      const auto modifiedEventType = argsImpl->DefaultPrevented()
-          ? TouchEventType::Cancel
-          : reactArgs.Kind() == winrt::Microsoft::ReactNative::PointerEventKind::End ? TouchEventType::End : eventType;
-      DispatchTouchEvent(modifiedEventType, *optPointerIndex);
-    }
+  if (eventType == TouchEventType::CaptureLost && argsImpl->UncapturedAllowed()) {
+    return;
+  } else {
+    const auto modifiedEventType = argsImpl->DefaultPrevented()
+        ? TouchEventType::Cancel
+        : reactArgs.Kind() == winrt::Microsoft::ReactNative::PointerEventKind::End ? TouchEventType::End : eventType;
+    DispatchTouchEvent(modifiedEventType, *optPointerIndex);
   }
 
   m_pointers.erase(cbegin(m_pointers) + *optPointerIndex);
