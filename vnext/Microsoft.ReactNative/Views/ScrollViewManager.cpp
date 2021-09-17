@@ -13,6 +13,10 @@
 #include "Impl/ScrollViewViewChanger.h"
 #include "ScrollViewManager.h"
 
+// ARCHON_RNW_SCROLL: For collection of data on users impacted by scroll issues
+#include <ReactHost/UwpReactInstanceProxy.h>
+#include <ReactHost/ReactInstanceWin.h>
+
 using namespace winrt::Microsoft::ReactNative;
 
 namespace react::uwp {
@@ -41,6 +45,8 @@ class ScrollViewShadowNode : public ShadowNodeBase {
 
  private:
   void AddHandlers(const winrt::ScrollViewer &scrollViewer);
+  // ARCHON_RNW_SCROLL: For collection of data on users impacted by scroll issues
+  void OnCreateScrollViewer(const winrt::ScrollViewer &scrollViewer);
   void EmitScrollEvent(
       const winrt::ScrollViewer &scrollViewer,
       int64_t tag,
@@ -111,6 +117,8 @@ void ScrollViewShadowNode::createView() {
   scrollViewUWPImplementation.ScrollViewerSnapPointManager();
 
   AddHandlers(scrollViewer);
+  // ARCHON_RNW_SCROLL: For collection of data on users impacted by scroll issues
+  OnCreateScrollViewer(scrollViewer);
 
   m_scrollViewerSizeChangedRevoker = scrollViewer.SizeChanged(
       winrt::auto_revoke, [this, scrollViewUWPImplementation](const auto &sender, const auto &) {
@@ -535,6 +543,25 @@ bool ScrollViewShadowNode::UpdateZoomScale(const winrt::ScrollViewer &scrollView
     yOffset = (r - 1) * h / 2 + r * y;
   }
   return scrollViewer.ChangeView(xOffset, yOffset, m_zoomFactor);
+}
+
+// ARCHON_RNW_SCROLL: For collection of data on users impacted by scroll issues
+void ScrollViewShadowNode::OnCreateScrollViewer(const winrt::ScrollViewer &scrollViewer) {
+  static ReactPropertyId<ReactNonAbiValue<std::function<void(const winrt::ScrollViewer&)>>> onCreateScrollViewerProperty{
+      L"ReactNative.OnCreateScrollViewer"};
+  ReactPropertyBag properties = nullptr;
+  if (const auto instance = GetViewManager()->GetReactInstance().lock()) {
+    if (const auto reactInstance = static_cast<Mso::React::ReactInstanceWin*>(static_cast<UwpReactInstanceProxy*>(instance.get())->GetReactInstance().Get())) {
+      properties = ReactPropertyBag(reactInstance->Options().Properties);
+    }
+  }
+
+  if (!properties)
+    return;
+
+  if (const auto callback = properties.Get(onCreateScrollViewerProperty)) {
+    callback(scrollViewer);
+  }
 }
 
 ScrollViewManager::ScrollViewManager(const std::shared_ptr<IReactInstance> &reactInstance) : Super(reactInstance) {}
