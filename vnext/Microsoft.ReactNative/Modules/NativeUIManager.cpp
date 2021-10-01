@@ -184,10 +184,19 @@ struct RootShadowNode final : public ShadowNodeBase {
 
 void NativeUIManager::setHost(facebook::react::INativeUIManagerHost *host) {
   m_host = host;
+  m_layoutAnimator->SetHost(host);
 }
 
 facebook::react::ShadowNode *NativeUIManager::createRootShadowNode(facebook::react::IReactRootView *pReactRootView) {
   return new RootShadowNode(pReactRootView, m_host);
+}
+
+void NativeUIManager::configureNextLayoutAnimation(
+    folly::dynamic &&config,
+    facebook::xplat::module::CxxModule::Callback /*success*/,
+    facebook::xplat::module::CxxModule::Callback /*error*/) {
+  // TODO(T102475063): support animation callbacks
+  m_layoutAnimator->ConfigureLayoutAnimation(std::move(config));
 }
 
 void NativeUIManager::destroyRootShadowNode(facebook::react::ShadowNode *node) {
@@ -237,6 +246,8 @@ void NativeUIManager::onBatchComplete() {
     for (const auto &callback : callbacks) {
       callback.operator()();
     }
+
+    m_layoutAnimator->Reset();
   }
 }
 
@@ -896,7 +907,11 @@ void NativeUIManager::DoLayout() {
     ShadowNodeBase &shadowNode = static_cast<ShadowNodeBase &>(m_host->GetShadowNodeForTag(tag));
     auto view = shadowNode.GetView();
     auto pViewManager = shadowNode.GetViewManager();
-    pViewManager->SetLayoutProps(shadowNode, view, left, top, width, height);
+    if (m_layoutAnimator->ShouldAnimateLayout(view)) {
+      m_layoutAnimator->AnimateLayoutProps(shadowNode, left, top, width, height);
+    } else {
+      pViewManager->SetLayoutProps(shadowNode, view, left, top, width, height);
+    }
   }
 }
 

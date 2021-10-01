@@ -183,6 +183,9 @@
     <ClInclude Include="Base\CxxReactIncludes.h" />
     <ClInclude Include="Base\FollyIncludes.h" />
     <ClInclude Include="Utils\TextHitTestUtils.h" />
+    <ClInclude Include="Modules\LayoutAnimation\PaperLayoutAnimation.h" />
+    <ClInclude Include="Modules\LayoutAnimation\PaperLayoutAnimationController.h" />
+    <ClInclude Include="Modules\LayoutAnimation\PaperUpdateLayoutAnimation.h" />
     <ClInclude Include="Utils\BatchingEventEmitter.h" />
     <ClInclude Include="DynamicReader.h">
       <DependentUpon>IJSValueReader.idl</DependentUpon>
@@ -391,6 +394,9 @@
     <ClCompile Include="ABIViewManager.cpp" />
     <ClCompile Include="Base\CoreNativeModules.cpp" />
     <ClCompile Include="Base\CoreUIManagers.cpp" />
+    <ClCompile Include="Modules\LayoutAnimation\PaperLayoutAnimation.cpp" />
+    <ClCompile Include="Modules\LayoutAnimation\PaperLayoutAnimationController.cpp" />
+    <ClCompile Include="Modules\LayoutAnimation\PaperUpdateLayoutAnimation.cpp" />
     <ClCompile Include="Utils\TextHitTestUtils.cpp" />
     <ClCompile Include="Utils\BatchingEventEmitter.cpp" />
     <ClCompile Include="CxxReactUWP\JSBigString.cpp" />

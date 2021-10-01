@@ -176,6 +176,15 @@
     <ClCompile Include="Modules\WebSocketModuleUwp.cpp">
       <Filter>Modules</Filter>
     </ClCompile>
+    <ClCompile Include="Modules\LayoutAnimation\PaperLayoutAnimationController.cpp">
+      <Filter>Modules\LayoutAnimation</Filter>
+    </ClCompile>
+    <ClCompile Include="Modules\LayoutAnimation\PaperLayoutAnimation.cpp">
+      <Filter>Modules\LayoutAnimation</Filter>
+    </ClCompile>
+    <ClCompile Include="Modules\LayoutAnimation\PaperUpdateLayoutAnimation.cpp">
+      <Filter>Modules\LayoutAnimation</Filter>
+    </ClCompile>
     <ClCompile Include="Polyester\ButtonContentViewManager.cpp">
       <Filter>Polyester</Filter>
     </ClCompile>
@@ -543,6 +552,15 @@
     <ClInclude Include="Modules\WebSocketModuleUwp.h">
       <Filter>Modules</Filter>
     </ClInclude>
+    <ClInclude Include="Modules\LayoutAnimation\PaperLayoutAnimationController.h">
+      <Filter>Modules\LayoutAnimation</Filter>
+    </ClInclude>
+    <ClInclude Include="Modules\LayoutAnimation\PaperLayoutAnimation.h">
+      <Filter>Modules\LayoutAnimation</Filter>
+    </ClInclude>
+    <ClInclude Include="Modules\LayoutAnimation\PaperUpdateLayoutAnimation.h">
+      <Filter>Modules\LayoutAnimation</Filter>
+    </ClInclude>
     <ClInclude Include="Polyester\ButtonContentViewManager.h">
       <Filter>Polyester</Filter>
     </ClInclude>
@@ -796,6 +814,9 @@
     </Filter>
     <Filter Include="Modules\Animated">
       <UniqueIdentifier>{1fe62423-356b-44a9-a97c-79950d299afe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Modules\LayoutAnimation">
+      <UniqueIdentifier>{afe30ed2-bd8a-48b0-bb12-bbb27f1afca8}</UniqueIdentifier>
     </Filter>
     <Filter Include="Pch">
       <UniqueIdentifier>{cabb286d-fae0-4cfa-b793-79d13f559b41}</UniqueIdentifier>

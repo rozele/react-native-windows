@@ -5,6 +5,7 @@
 
 #include <INativeUIManager.h>
 #include <IReactRootView.h>
+#include <Modules/LayoutAnimation/PaperLayoutAnimationController.h>
 #include <Views/ViewManagerBase.h>
 
 #include <folly/dynamic.h>
@@ -38,7 +39,7 @@ class NativeUIManager final : public facebook::react::INativeUIManager {
   void configureNextLayoutAnimation(
       folly::dynamic && /*config*/,
       facebook::xplat::module::CxxModule::Callback /*success*/,
-      facebook::xplat::module::CxxModule::Callback /*error*/) override{};
+      facebook::xplat::module::CxxModule::Callback /*error*/) override;
   void destroy() override;
   void destroyRootShadowNode(facebook::react::ShadowNode *) override;
   void removeRootView(facebook::react::ShadowNode &rootshadow) override;
@@ -111,6 +112,7 @@ class NativeUIManager final : public facebook::react::INativeUIManager {
   std::vector<int64_t> m_extraLayoutNodes;
 
   std::map<int64_t, std::weak_ptr<IXamlReactControl>> m_tagsToXamlReactControl;
+  std::shared_ptr<PaperLayoutAnimationController> m_layoutAnimator{std::make_shared<PaperLayoutAnimationController>()};
 };
 
 } // namespace react::uwp
