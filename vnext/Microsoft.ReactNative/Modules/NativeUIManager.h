@@ -5,6 +5,7 @@
 
 #include <INativeUIManager.h>
 #include <IReactRootView.h>
+#include <Modules/LayoutAnimation/PaperLayoutAnimationController.h>
 #include <Views/ViewManagerBase.h>
 
 #include <folly/dynamic.h>
@@ -38,9 +39,9 @@ class NativeUIManager final : public INativeUIManager {
   // INativeUIManager
   ShadowNode *createRootShadowNode(facebook::react::IReactRootView *rootView) override;
   void configureNextLayoutAnimation(
-      winrt::Microsoft::ReactNative::JSValueObject && /*config*/,
+      winrt::Microsoft::ReactNative::JSValueObject &&config,
       std::function<void()> && /*callback*/,
-      std::function<void(winrt::Microsoft::ReactNative::JSValue const &)> && /*errorCallback*/) override{};
+      std::function<void(winrt::Microsoft::ReactNative::JSValue const &)> && /*errorCallback*/) override;
   void destroyRootShadowNode(ShadowNode *) override;
   void removeRootView(ShadowNode &rootshadow) override;
   void setHost(INativeUIManagerHost *host) override;
@@ -119,6 +120,9 @@ class NativeUIManager final : public INativeUIManager {
   std::vector<int64_t> m_extraLayoutNodes;
 
   std::map<int64_t, winrt::weak_ref<winrt::Microsoft::ReactNative::ReactRootView>> m_tagsToXamlReactControl;
+
+  std::shared_ptr<PaperLayoutAnimationController> m_layoutAnimator{
+      std::make_shared<PaperLayoutAnimationController>()};
 };
 
 } // namespace Microsoft::ReactNative

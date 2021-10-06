@@ -237,11 +237,11 @@ const APIs: Array<RNTesterModuleInfo> = [
     category: 'Basic',
     module: require('../examples/Linking/LinkingExample'),
   },
-  // {
-  //   key: 'LayoutAnimationExample',
-  //   category: 'UI',
-  //   module: require('../examples/Layout/LayoutAnimationExample'),
-  // },
+  {
+    key: 'LayoutAnimationExample',
+    category: 'UI',
+    module: require('../examples/Layout/LayoutAnimationExample'),
+  },
   {
     key: 'LayoutExample',
     category: 'UI',
