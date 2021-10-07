@@ -51,6 +51,10 @@ class AnimationDriver : std::enable_shared_from_this<AnimationDriver> {
     return std::vector<double>();
   }
 
+  comp::AnimationController Controller() const {
+    return m_controller;
+  }
+
   void DoCallback(bool value);
 
  private:
@@ -68,6 +72,7 @@ class AnimationDriver : std::enable_shared_from_this<AnimationDriver> {
   folly::dynamic m_config{};
   std::weak_ptr<NativeAnimatedNodeManager> m_manager{};
 
+  comp::AnimationController m_controller{nullptr};
   comp::CompositionAnimation m_animation{nullptr};
   comp::CompositionScopedBatch m_scopedBatch{nullptr};
   // auto revoker for scopedBatch.Completed is broken, tracked by internal bug

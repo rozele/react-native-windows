@@ -50,6 +50,9 @@ void AnimationDriver::StartAnimation() {
     auto const offsetValue = animatedValue->Offset();
 
     animatedValue->PropertySet().StartAnimation(ValueAnimatedNode::s_offsetName, animation);
+    m_controller = animatedValue->PropertySet().TryGetAnimationController(ValueAnimatedNode::s_offsetName);
+    m_controller.Pause();
+    m_controller.Resume();
     animatedValue->AddActiveAnimation(m_id);
   }
   scopedBatch.End();
@@ -58,6 +61,7 @@ void AnimationDriver::StartAnimation() {
       [weakSelf = weak_from_this(), weakManager = m_manager, id = m_id, tag = m_animatedValueTag](auto sender, auto) {
         if (const auto strongSelf = weakSelf.lock()) {
           strongSelf->DoCallback(true);
+          const auto progress = strongSelf->Controller().Progress();
         }
 
         if (auto manager = weakManager.lock()) {
@@ -75,6 +79,8 @@ void AnimationDriver::StartAnimation() {
 
 void AnimationDriver::StopAnimation(bool ignoreCompletedHandlers) {
   if (const auto animatedValue = GetAnimatedValue()) {
+    m_controller.Pause();
+    const auto progress = m_controller.Progress();
     animatedValue->PropertySet().StopAnimation(ValueAnimatedNode::s_offsetName);
     if (!ignoreCompletedHandlers) {
       animatedValue->RemoveActiveAnimation(m_id);
