@@ -79,9 +79,11 @@ void AnimationDriver::StartAnimation() {
 
 void AnimationDriver::StopAnimation(bool ignoreCompletedHandlers) {
   if (const auto animatedValue = GetAnimatedValue()) {
+    auto prePauseOffset = animatedValue->Offset();
     m_controller.Pause();
-    const auto progress = m_controller.Progress();
+    auto previousOffset = animatedValue->Offset();
     animatedValue->PropertySet().StopAnimation(ValueAnimatedNode::s_offsetName);
+    auto postStopOffset = animatedValue->Offset();
     if (!ignoreCompletedHandlers) {
       animatedValue->RemoveActiveAnimation(m_id);
 
