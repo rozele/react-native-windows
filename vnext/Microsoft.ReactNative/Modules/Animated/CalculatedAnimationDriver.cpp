@@ -12,9 +12,11 @@ std::tuple<comp::CompositionAnimation, comp::CompositionScopedBatch> CalculatedA
     const folly::dynamic & /*config*/) {
   const auto [scopedBatch, animation, easingFunction] = []() {
     const auto compositor = Microsoft::ReactNative::GetCompositor();
+    const auto animation = compositor.CreateScalarKeyFrameAnimation();
+    const auto behavior = animation.StopBehavior();
     return std::make_tuple(
         compositor.CreateScopedBatch(comp::CompositionBatchTypes::AllAnimations),
-        compositor.CreateScalarKeyFrameAnimation(),
+        animation,
         compositor.CreateLinearEasingFunction());
   }();
 

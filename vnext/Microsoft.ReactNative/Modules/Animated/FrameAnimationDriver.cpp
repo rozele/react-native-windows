@@ -37,6 +37,7 @@ std::tuple<comp::CompositionAnimation, comp::CompositionScopedBatch> FrameAnimat
 
   auto normalizedProgress = 0.0f;
   auto step = 1.0f / m_frames.size();
+  GetAnimatedValue()->FlattenOffset();
   auto fromValue = GetAnimatedValue()->RawValue();
   for (auto frame : m_frames) {
     normalizedProgress = std::min(normalizedProgress += step, 1.0f);
