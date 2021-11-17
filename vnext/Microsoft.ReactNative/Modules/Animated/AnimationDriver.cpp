@@ -42,48 +42,60 @@ AnimationDriver::~AnimationDriver() {
 }
 
 void AnimationDriver::StartAnimation() {
-  const auto [animation, scopedBatch] = MakeAnimation(m_config);
+  if (m_useComposition) {
+    const auto [animation, scopedBatch] = MakeAnimation(m_config);
 
-  if (auto const animatedValue = GetAnimatedValue()) {
-    auto const previousValue = animatedValue->Value();
-    auto const rawValue = animatedValue->RawValue();
-    auto const offsetValue = animatedValue->Offset();
+    if (auto const animatedValue = GetAnimatedValue()) {
+      auto const previousValue = animatedValue->Value();
+      auto const rawValue = animatedValue->RawValue();
+      auto const offsetValue = animatedValue->Offset();
 
-    animatedValue->PropertySet().StartAnimation(ValueAnimatedNode::s_offsetName, animation);
-    animatedValue->AddActiveAnimation(m_id);
-  }
-  scopedBatch.End();
+      animatedValue->PropertySet().StartAnimation(ValueAnimatedNode::s_offsetName, animation);
+      animatedValue->AddActiveAnimation(m_id);
+    }
+    scopedBatch.End();
 
-  m_scopedBatchCompletedToken = scopedBatch.Completed(
-      [weakSelf = weak_from_this(), weakManager = m_manager, id = m_id, tag = m_animatedValueTag](auto sender, auto) {
-        if (const auto strongSelf = weakSelf.lock()) {
-          strongSelf->DoCallback(true);
-        }
-
-        if (auto manager = weakManager.lock()) {
-          if (auto const animatedValue = manager->GetValueAnimatedNode(tag)) {
-            animatedValue->RemoveActiveAnimation(id);
-            animatedValue->FlattenOffset();
+    m_scopedBatchCompletedToken = scopedBatch.Completed(
+        [weakSelf = weak_from_this(), weakManager = m_manager, id = m_id, tag = m_animatedValueTag](auto sender, auto) {
+          if (const auto strongSelf = weakSelf.lock()) {
+            strongSelf->DoCallback(true);
           }
-          manager->RemoveActiveAnimation(id);
-        }
-      });
 
-  m_animation = animation;
-  m_scopedBatch = scopedBatch;
+          if (auto manager = weakManager.lock()) {
+            if (auto const animatedValue = manager->GetValueAnimatedNode(tag)) {
+              animatedValue->RemoveActiveAnimation(id);
+              animatedValue->FlattenOffset();
+            }
+            manager->RemoveActiveAnimation(id);
+          }
+        });
+
+    m_animation = animation;
+    m_scopedBatch = scopedBatch;
+  } else {
+    if (const auto manager = m_manager.lock()) {
+      manager->AnimationManager()->StartAnimation(weak_from_this());
+    }
+  }
 }
 
 void AnimationDriver::StopAnimation(bool ignoreCompletedHandlers) {
-  if (const auto animatedValue = GetAnimatedValue()) {
-    animatedValue->PropertySet().StopAnimation(ValueAnimatedNode::s_offsetName);
-    if (!ignoreCompletedHandlers) {
-      animatedValue->RemoveActiveAnimation(m_id);
+  if (m_useComposition) {
+    if (const auto animatedValue = GetAnimatedValue()) {
+      animatedValue->PropertySet().StopAnimation(ValueAnimatedNode::s_offsetName);
+      if (!ignoreCompletedHandlers) {
+        animatedValue->RemoveActiveAnimation(m_id);
 
-      if (m_scopedBatch) {
-        DoCallback(false);
-        m_scopedBatch.Completed(m_scopedBatchCompletedToken);
-        m_scopedBatch = nullptr;
+        if (m_scopedBatch) {
+          DoCallback(false);
+          m_scopedBatch.Completed(m_scopedBatchCompletedToken);
+          m_scopedBatch = nullptr;
+        }
       }
+    }
+  } else {
+    if (const auto manager = m_manager.lock()) {
+      manager->AnimationManager()->StopAnimation(m_id);
     }
   }
 }

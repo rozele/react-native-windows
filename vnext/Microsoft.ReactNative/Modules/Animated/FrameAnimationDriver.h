@@ -25,6 +25,11 @@ class FrameAnimationDriver : public AnimationDriver {
     return m_frames;
   }
 
+ protected:
+  std::tuple<float, double> GetValueAndVelocityForTime(double time) override;
+
+  bool IsAnimationDone(double currentValue, double currentVelocity) override;
+
  private:
   std::vector<double> m_frames{};
   double m_toValue{0};

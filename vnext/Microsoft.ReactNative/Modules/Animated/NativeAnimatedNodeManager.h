@@ -9,6 +9,7 @@
 #include <folly/dynamic.h>
 #include "AnimatedNode.h"
 #include "AnimationDriver.h"
+#include "ControlledAnimationManager.h"
 #include "EventAnimationDriver.h"
 #include "PropsAnimatedNode.h"
 #include "StyleAnimatedNode.h"
@@ -37,6 +38,7 @@ class TransformAnimatedNode;
 class TrackingAnimatedNode;
 class AnimationDriver;
 class EventAnimationDriver;
+class ControlledAnimationManager;
 class NativeAnimatedNodeManager {
  public:
   void CreateAnimatedNode(
@@ -90,6 +92,10 @@ class NativeAnimatedNodeManager {
   TrackingAnimatedNode *GetTrackingAnimatedNode(int64_t tag);
   void RemoveActiveAnimation(int64_t tag);
 
+  std::shared_ptr<ControlledAnimationManager> AnimationManager() const {
+    return m_controlledAnimationDriver;
+  }
+
  private:
   std::unordered_map<int64_t, std::unique_ptr<ValueAnimatedNode>> m_valueNodes{};
   std::unordered_map<int64_t, std::unique_ptr<PropsAnimatedNode>> m_propsNodes{};
@@ -101,6 +107,8 @@ class NativeAnimatedNodeManager {
   std::unordered_map<int64_t, std::shared_ptr<AnimationDriver>> m_activeAnimations{};
   std::vector<std::tuple<int64_t, int64_t>> m_trackingAndLeadNodeTags{};
   std::vector<int64_t> m_delayedPropsNodes{};
+  std::shared_ptr<ControlledAnimationManager> m_controlledAnimationDriver =
+      std::make_shared<ControlledAnimationManager>();
 
   static constexpr std::string_view s_toValueIdName{"toValue"};
   static constexpr std::string_view s_framesName{"frames"};

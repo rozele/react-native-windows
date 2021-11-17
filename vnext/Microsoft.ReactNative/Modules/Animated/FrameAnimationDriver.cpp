@@ -7,6 +7,9 @@
 #include "Utils/Helpers.h"
 
 namespace Microsoft::ReactNative {
+
+const double FRAME_TIME_MILLISECONDS = 1000.0 / 60.0;
+
 FrameAnimationDriver::FrameAnimationDriver(
     int64_t id,
     int64_t animatedValueTag,
@@ -32,7 +35,7 @@ std::tuple<comp::CompositionAnimation, comp::CompositionScopedBatch> FrameAnimat
 
   // Frames contains 60 values per second of duration of the animation, convert
   // the size of frames to duration in ms.
-  std::chrono::milliseconds duration(static_cast<int>(m_frames.size() * 1000.0 / 60.0));
+  std::chrono::milliseconds duration(static_cast<int>(m_frames.size() * FRAME_TIME_MILLISECONDS));
   animation.Duration(duration);
 
   auto normalizedProgress = 0.0f;
@@ -55,6 +58,23 @@ std::tuple<comp::CompositionAnimation, comp::CompositionScopedBatch> FrameAnimat
 
 double FrameAnimationDriver::ToValue() {
   return m_toValue;
+}
+
+std::tuple<float, double> FrameAnimationDriver::GetValueAndVelocityForTime(double time) {
+  assert(time >= 0);
+  const auto frameIndex = static_cast<int>(time / FRAME_TIME_MILLISECONDS);
+  if (frameIndex >= m_frames.size()) {
+    return std::make_tuple(static_cast<float>(m_toValue), 0.0);
+  }
+
+  const auto fromValue = GetAnimatedValue()->RawValue();
+  const auto value = fromValue + m_frames[frameIndex] * (m_toValue - fromValue);
+  return std::make_tuple(static_cast<float>(value), 0.0);
+}
+
+bool FrameAnimationDriver::IsAnimationDone(double currentValue, double currentVelocity) {
+  // Use float epsilon since the value is converted from double to float
+  return std::abs(currentValue - m_toValue) <= std::numeric_limits<float>().epsilon();
 }
 
 } // namespace Microsoft::ReactNative

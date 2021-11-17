@@ -60,7 +60,13 @@ class AnimationDriver : public std::enable_shared_from_this<AnimationDriver> {
 #endif // DEBUG
 
  protected:
+  friend class ControlledAnimationManager;
+
   ValueAnimatedNode *GetAnimatedValue();
+
+  virtual std::tuple<float, double> GetValueAndVelocityForTime(double time) = 0;
+
+  virtual bool IsAnimationDone(double currentValue, double currentVelocity) = 0;
 
   int64_t m_id{0};
   int64_t m_animatedValueTag{};
@@ -73,5 +79,7 @@ class AnimationDriver : public std::enable_shared_from_this<AnimationDriver> {
   // auto revoker for scopedBatch.Completed is broken, tracked by internal bug
   // #22399779
   winrt::event_token m_scopedBatchCompletedToken{};
+
+  bool m_useComposition{false};
 };
 } // namespace Microsoft::ReactNative
