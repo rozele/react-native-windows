@@ -14,7 +14,7 @@ const char *NativeAnimatedModule::name{"NativeAnimatedModule"};
 
 NativeAnimatedModule::NativeAnimatedModule(Mso::CntPtr<Mso::React::IReactContext> &&context)
     : m_context(std::move(context)) {
-  m_nodesManager = std::make_shared<NativeAnimatedNodeManager>(NativeAnimatedNodeManager());
+  m_nodesManager = std::make_shared<DependentNativeAnimatedNodeManager>(DependentNativeAnimatedNodeManager());
 }
 
 NativeAnimatedModule::~NativeAnimatedModule() {
@@ -171,6 +171,7 @@ void NativeAnimatedModule::ConnectAnimatedNodeToView(int64_t animatedNodeTag, in
 }
 
 void NativeAnimatedModule::DisconnectAnimatedNodeFromView(int64_t animatedNodeTag, int64_t viewTag) {
+  m_nodesManager->RestoreDefaultValues(viewTag);
   m_nodesManager->DisconnectAnimatedNodeToView(animatedNodeTag, viewTag);
 }
 
@@ -218,14 +219,14 @@ void NativeAnimatedModule::AddAnimatedEventToView(
     int64_t tag,
     const std::string &eventName,
     const folly::dynamic &eventMapping) {
-  m_nodesManager->AddAnimatedEventToView(tag, eventName, eventMapping, m_nodesManager);
+  //m_nodesManager->AddAnimatedEventToView(tag, eventName, eventMapping, m_nodesManager);
 }
 
 void NativeAnimatedModule::RemoveAnimatedEventFromView(
     int64_t tag,
     const std::string &eventName,
     int64_t animatedValueTag) {
-  m_nodesManager->RemoveAnimatedEventFromView(tag, eventName, animatedValueTag);
+  //m_nodesManager->RemoveAnimatedEventFromView(tag, eventName, animatedValueTag);
 }
 
 void NativeAnimatedModule::StartListeningToAnimatedNodeValue(int64_t /*tag*/) {

@@ -19,6 +19,7 @@
 
 #include <UI.Xaml.Automation.h>
 #include <UI.Xaml.Controls.h>
+#include "Utils/MatrixMath.h"
 #include "Utils/PropertyHandlerUtils.h"
 
 #include "DynamicAutomationProperties.h"
@@ -139,25 +140,8 @@ bool FrameworkElementViewManager::UpdateProperty(
       if (element.try_as<xaml::IUIElement10>()) // Works on 19H1+
       {
         if (propertyValue.Type() == winrt::Microsoft::ReactNative::JSValueType::Array) {
-          assert(propertyValue.AsArray().size() == 16);
-          winrt::Windows::Foundation::Numerics::float4x4 transformMatrix;
-          transformMatrix.m11 = static_cast<float>(propertyValue[0].AsDouble());
-          transformMatrix.m12 = static_cast<float>(propertyValue[1].AsDouble());
-          transformMatrix.m13 = static_cast<float>(propertyValue[2].AsDouble());
-          transformMatrix.m14 = static_cast<float>(propertyValue[3].AsDouble());
-          transformMatrix.m21 = static_cast<float>(propertyValue[4].AsDouble());
-          transformMatrix.m22 = static_cast<float>(propertyValue[5].AsDouble());
-          transformMatrix.m23 = static_cast<float>(propertyValue[6].AsDouble());
-          transformMatrix.m24 = static_cast<float>(propertyValue[7].AsDouble());
-          transformMatrix.m31 = static_cast<float>(propertyValue[8].AsDouble());
-          transformMatrix.m32 = static_cast<float>(propertyValue[9].AsDouble());
-          transformMatrix.m33 = static_cast<float>(propertyValue[10].AsDouble());
-          transformMatrix.m34 = static_cast<float>(propertyValue[11].AsDouble());
-          transformMatrix.m41 = static_cast<float>(propertyValue[12].AsDouble());
-          transformMatrix.m42 = static_cast<float>(propertyValue[13].AsDouble());
-          transformMatrix.m43 = static_cast<float>(propertyValue[14].AsDouble());
-          transformMatrix.m44 = static_cast<float>(propertyValue[15].AsDouble());
-
+          const auto &transforms = propertyValue.AsArray();
+          const auto transformMatrix = MatrixMath::GetTransformMatrix(transforms);
           if (!element.IsLoaded()) {
             element.Loaded([=](auto sender, auto &&) -> auto {
               ApplyTransformMatrix(sender.as<xaml::UIElement>(), nodeToUpdate, transformMatrix);

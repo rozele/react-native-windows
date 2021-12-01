@@ -5,7 +5,7 @@
 
 #include <cxxreact/CxxModule.h>
 #include <folly/dynamic.h>
-#include "NativeAnimatedNodeManager.h"
+#include "Dependent/DependentNativeAnimatedNodeManager.h"
 
 /// <summary>
 /// Module that exposes interface for creating and managing animated nodes
@@ -92,7 +92,7 @@ class NativeAnimatedModule final : public facebook::xplat::module::CxxModule {
   static const char *name;
 
  private:
-  std::shared_ptr<NativeAnimatedNodeManager> m_nodesManager{};
+  std::shared_ptr<DependentNativeAnimatedNodeManager> m_nodesManager{};
   Mso::CntPtr<Mso::React::IReactContext> m_context;
 };
 } // namespace Microsoft::ReactNative
