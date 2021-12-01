@@ -41,10 +41,12 @@ bool DependentSpringAnimationDriver::Update(double timeDeltaMs, bool restarting)
       }
 
       m_startValue = m_currentState.position = value;
+      m_lastTime = timeDeltaMs;
       m_timeAccumulator = 0.0;
     }
 
-    Advance(timeDeltaMs / 1000.0);
+    Advance((timeDeltaMs - m_lastTime) / 1000.0);
+    m_lastTime = timeDeltaMs;
     node->RawValue(m_currentState.position);
     return IsAtRest();
   }
@@ -96,7 +98,7 @@ void DependentSpringAnimationDriver::Advance(double realDeltaTime) {
   const auto t = m_timeAccumulator;
   if (zeta < 1) {
     // Under damped
-    double envelope = std::exp(-zeta * omega0 * t);
+    const auto envelope = std::exp(-zeta * omega0 * t);
     position =
         m_endValue - envelope * ((v0 + zeta * omega0 * x0) / omega1 * std::sin(omega1 * t) + x0 * std::cos(omega1 * t));
     // This looks crazy -- it's actually just the derivative of the
@@ -106,7 +108,7 @@ void DependentSpringAnimationDriver::Advance(double realDeltaTime) {
         envelope * (std::cos(omega1 * t) * (v0 + zeta * omega0 * x0) - omega1 * x0 * std::sin(omega1 * t));
   } else {
     // Critically damped spring
-    double envelope = std::exp(-omega0 * t);
+    const auto envelope = std::exp(-omega0 * t);
     position = m_endValue - envelope * (x0 + (v0 + omega0 * x0) * t);
     velocity = envelope * (v0 * (t * omega0 - 1) + t * x0 * (omega0 * omega0));
   }

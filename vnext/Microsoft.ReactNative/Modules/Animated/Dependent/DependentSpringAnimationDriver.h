@@ -41,6 +41,7 @@ class DependentSpringAnimationDriver : public DependentAnimationDriver {
   folly::dynamic m_dynamicToValues{};
 
   std::optional<double> m_originalValue;
+  double m_lastTime{0};
   double m_timeAccumulator{0};
   double m_startValue{0};
   PhysicsState m_currentState{};
