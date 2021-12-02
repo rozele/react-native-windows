@@ -29,7 +29,7 @@ bool DependentFrameBasedAnimationDriver::Update(double timeDeltaMs, bool restart
     }
 
     const auto fromValue = m_fromValue.value();
-    const auto frameIndex = static_cast<int>(timeDeltaMs / s_frameDurationMs);
+    const auto frameIndex = static_cast<size_t>(timeDeltaMs / s_frameDurationMs);
     assert(frameIndex >= 0);
 
     double nextValue;

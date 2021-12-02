@@ -65,7 +65,7 @@ static double Interpolate(
 }
 
 static int FindRangeIndex(double value, std::vector<double> const &ranges) {
-  auto index = 1;
+  size_t index = 1;
   for (; index < ranges.size() - 1; ++index) {
     if (ranges[index] >= value) {
       break;
