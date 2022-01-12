@@ -124,9 +124,10 @@ class ValueListenerExample extends React.Component<{...}, $FlowFixMeState> {
 class LoopExample extends React.Component<{...}, $FlowFixMeState> {
   state = {
     value: new Animated.Value(0),
+    current: 0,
   };
 
-  componentDidMount() {
+  render() {
     Animated.loop(
       Animated.timing(this.state.value, {
         toValue: 1,
@@ -134,22 +135,26 @@ class LoopExample extends React.Component<{...}, $FlowFixMeState> {
         useNativeDriver: true,
       }),
     ).start();
-  }
 
-  render() {
     return (
-      <View style={styles.row}>
+      <View
+        style={styles.row}
+        onTouchStart={() =>
+          this.setState({current: this.state.current ? 0 : 1})
+        }>
         <Animated.View
           style={[
             styles.block,
             {
-              opacity: this.state.value.interpolate({
-                inputRange: [0, 0.5, 1],
-                /* $FlowFixMe[speculation-ambiguous] (>=0.38.0) - Flow error
-                 * detected during the deployment of v0.38.0. To see the error,
-                 * remove this comment and run flow */
-                outputRange: [0, 1, 0],
-              }),
+              opacity: this.state.current
+                ? this.state.value.interpolate({
+                    inputRange: [0, 0.5, 1],
+                    /* $FlowFixMe[speculation-ambiguous] (>=0.38.0) - Flow error
+                     * detected during the deployment of v0.38.0. To see the error,
+                     * remove this comment and run flow */
+                    outputRange: [0, 1, 0],
+                  })
+                : 1,
             },
           ]}
         />
