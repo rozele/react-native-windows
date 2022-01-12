@@ -80,7 +80,7 @@ class ValueListenerExample extends React.Component<{...}, $FlowFixMeState> {
   _current = 0;
 
   componentDidMount() {
-    this.state.anim.addListener(e => this.setState({progress: e.value}));
+    this.state.anim.addListener((e) => this.setState({progress: e.value}));
   }
 
   componentWillUnmount() {
@@ -124,9 +124,10 @@ class ValueListenerExample extends React.Component<{...}, $FlowFixMeState> {
 class LoopExample extends React.Component<{...}, $FlowFixMeState> {
   state = {
     value: new Animated.Value(0),
+    current: 0,
   };
 
-  componentDidMount() {
+  render() {
     Animated.loop(
       Animated.timing(this.state.value, {
         toValue: 1,
@@ -134,23 +135,28 @@ class LoopExample extends React.Component<{...}, $FlowFixMeState> {
         useNativeDriver: true,
       }),
     ).start();
-  }
 
-  render() {
     return (
-      <View style={styles.row}>
+      <View
+        style={styles.row}
+        onTouchStart={() =>
+          this.setState({current: this.state.current ? 0 : 1})
+        }>
         <Animated.View
           style={[
             styles.block,
-            {
-              opacity: this.state.value.interpolate({
-                inputRange: [0, 0.5, 1],
-                /* $FlowFixMe[speculation-ambiguous] (>=0.38.0) - Flow error
-                 * detected during the deployment of v0.38.0. To see the error,
-                 * remove this comment and run flow */
-                outputRange: [0, 1, 0],
-              }),
-            },
+            this.state.current
+              ? {
+                  transform: [
+                    {
+                      translateX: this.state.value.interpolate({
+                        inputRange: [0, 0.5, 1],
+                        outputRange: [0, 200, 0],
+                      }),
+                    },
+                  ],
+                }
+              : {},
           ]}
         />
       </View>
@@ -204,7 +210,7 @@ class InternalSettings extends React.Component<
             require('react-native/Libraries/Interaction/JSEventLoopWatchdog').addHandler(
               {
                 onStall: ({busyTime}) =>
-                  this.setState(state => ({
+                  this.setState((state) => ({
                     busyTime,
                     filteredStall:
                       (state.filteredStall || 0) * 0.97 + busyTime * 0.03,
@@ -383,7 +389,7 @@ exports.examples = [
     render: function (): React.Node {
       return (
         <Tester type="timing" config={{duration: 1000}}>
-          {anim => (
+          {(anim) => (
             <Animated.View
               style={[
                 styles.block,
@@ -431,7 +437,7 @@ exports.examples = [
     render: function (): React.Node {
       return (
         <Tester type="timing" config={{duration: 1000}}>
-          {anim => (
+          {(anim) => (
             <Animated.View
               style={[
                 styles.block,
@@ -473,7 +479,7 @@ exports.examples = [
     render: function (): React.Node {
       return (
         <Tester type="timing" config={{duration: 1000}}>
-          {anim => (
+          {(anim) => (
             <Animated.View
               style={[
                 styles.block,
@@ -515,7 +521,7 @@ exports.examples = [
     render: function (): React.Node {
       return (
         <Tester type="timing" config={{duration: 1000}}>
-          {anim => (
+          {(anim) => (
             <Animated.View
               style={[
                 styles.block,
@@ -542,7 +548,7 @@ exports.examples = [
     render: function (): React.Node {
       return (
         <Tester type="timing" config={{duration: 1000, delay: 1000}}>
-          {anim => (
+          {(anim) => (
             <Animated.View
               style={[
                 styles.block,
@@ -561,7 +567,7 @@ exports.examples = [
     render: function (): React.Node {
       return (
         <Tester type="timing" config={{duration: 1000}}>
-          {anim => (
+          {(anim) => (
             <Animated.View
               style={[
                 styles.block,
@@ -587,7 +593,7 @@ exports.examples = [
     render: function (): React.Node {
       return (
         <Tester type="spring" config={{bounciness: 0}}>
-          {anim => (
+          {(anim) => (
             <Animated.View
               style={[
                 styles.block,
@@ -613,7 +619,7 @@ exports.examples = [
     render: function (): React.Node {
       return (
         <Tester type="spring" config={{stiffness: 1000, damping: 500, mass: 3}}>
-          {anim => (
+          {(anim) => (
             <Animated.View
               style={[
                 styles.block,
@@ -642,7 +648,7 @@ exports.examples = [
           type="decay"
           config={{velocity: 0.5}}
           reverseConfig={{velocity: -0.5}}>
-          {anim => (
+          {(anim) => (
             <Animated.View
               style={[
                 styles.block,
@@ -665,7 +671,7 @@ exports.examples = [
     render: function (): React.Node {
       return (
         <Tester type="timing" config={{duration: 1000}}>
-          {anim => <AnimatedSlider style={{}} value={anim} />}
+          {(anim) => <AnimatedSlider style={{}} value={anim} />}
         </Tester>
       );
     },
