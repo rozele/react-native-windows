@@ -27,6 +27,14 @@ class AnimationDriver : public std::enable_shared_from_this<AnimationDriver> {
     return std::make_tuple(nullptr, nullptr);
   };
 
+  virtual std::tuple<comp::CompositionPropertySet, comp::ScalarKeyFrameAnimation> MakeKeyFrameAnimation() {
+    return std::make_tuple(nullptr, nullptr);
+  }
+
+  virtual comp::ExpressionAnimation MakeExpressionAnimation() {
+    return nullptr;
+  }
+
   inline constexpr int64_t Id() {
     return m_id;
   };
@@ -76,5 +84,8 @@ class AnimationDriver : public std::enable_shared_from_this<AnimationDriver> {
   bool m_started{false};
   bool m_stopped{false};
   bool m_ignoreCompletedHandlers{false};
+
+  static constexpr std::wstring_view s_framePropertySetName{L"Frames"};
+  static constexpr std::wstring_view s_frameValueName{L"Value"};
 };
 } // namespace Microsoft::ReactNative

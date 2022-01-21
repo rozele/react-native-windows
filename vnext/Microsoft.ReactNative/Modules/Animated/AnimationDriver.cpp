@@ -5,6 +5,8 @@
 
 #include <UI.Composition.h>
 #include "AnimationDriver.h"
+#include "Utils/Helpers.h"
+
 
 namespace Microsoft::ReactNative {
 
@@ -43,11 +45,18 @@ AnimationDriver::~AnimationDriver() {
 
 void AnimationDriver::StartAnimation() {
   m_started = true;
-  const auto [animation, scopedBatch] = MakeAnimation(m_config);
+  const auto compositor = Microsoft::ReactNative::GetCompositor();
+  const auto scopedBatch = compositor.CreateScopedBatch(
+      IsRS5OrHigher() ? comp::CompositionBatchTypes::AllAnimations : comp::CompositionBatchTypes::Animation);
+  // TODO: where to store these key frame animations so they can be stopped
+  const auto [keyFramePS, keyFrameAnimation] = MakeKeyFrameAnimation();
+  const auto animation = MakeExpressionAnimation();
+  animation.SetReferenceParameter(s_framePropertySetName, keyFramePS);
   if (auto const animatedValue = GetAnimatedValue()) {
     animatedValue->PropertySet().StartAnimation(ValueAnimatedNode::s_valueName, animation);
     animatedValue->AddActiveAnimation(m_id);
   }
+  keyFramePS.StartAnimation(s_frameValueName, keyFrameAnimation);
   scopedBatch.End();
 
   m_scopedBatchCompletedToken = scopedBatch.Completed(
