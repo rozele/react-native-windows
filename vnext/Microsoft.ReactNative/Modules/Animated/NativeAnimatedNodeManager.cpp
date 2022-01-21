@@ -124,33 +124,6 @@ void NativeAnimatedNodeManager::StopAnimation(int64_t animationId, bool isTracki
   if (m_activeAnimations.count(animationId)) {
     if (const auto animation = m_activeAnimations.at(animationId)) {
       animation->StopAnimation(isTrackingAnimation);
-
-      // Insert the animation into the pending completion set to ensure it is
-      // not destroyed before the callback occurs. It's safe to assume the
-      // scoped batch completion callback has not run, since if it had, the
-      // animation would have been removed from the set of active animations.
-      m_pendingCompletionAnimations.insert({animationId, animation});
-
-      const auto nodeTag = animation->AnimatedValueTag();
-      if (nodeTag != -1) {
-        const auto deferredAnimation = m_deferredAnimationForValues.find(nodeTag);
-        if (deferredAnimation != m_deferredAnimationForValues.end() && deferredAnimation->second == animationId) {
-          // If the animation is deferred, just remove the deferred animation
-          // entry as two animations cannot animate the same value concurrently.
-          m_deferredAnimationForValues.erase(nodeTag);
-        } else {
-          // Since only one animation can be active at a time, there shouldn't
-          // be any stopped animations for the value node if the animation has
-          // not been deferred.
-          assert(!m_valuesWithStoppedAnimation.count(nodeTag));
-          // In this case, add the value tag to the set of values with stopped
-          // animations. This is used to optimize the lookup when determining
-          // if an animation needs to be deferred (rather than iterating over
-          // the map of pending completion animations).
-          m_valuesWithStoppedAnimation.insert(nodeTag);
-        }
-      }
-
       m_activeAnimations.erase(animationId);
     }
   }
