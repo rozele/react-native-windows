@@ -14,6 +14,7 @@ import {
   useColorScheme,
   View,
   LogBox,
+  ScrollView, Text,
 } from 'react-native';
 import * as React from 'react';
 
@@ -41,6 +42,24 @@ const APP_STATE_KEY = 'RNTesterAppState.v3';
 LogBox.ignoreLogs([/AsyncStorage has been extracted from react-native/]);
 
 const RNTesterApp = (): React.Node => {
+  return (
+      <ScrollView>
+        <View style={{flexDirection: 'row'}}>
+          <View style={{flexGrow: 1}}>
+            <View style={{flex: 1}}>
+              <View style={{flexDirection: 'row', justifyContent: 'flex-end'}}>
+                <View style={{maxWidth: '60%'}}>
+                  <Text style={{backgroundColor: 'green', fontSize: 15}}>
+                    lorem ipsum dolor lorem ipsum dolor lorem ipsum dolor lorem ipsum dolor
+                  </Text>
+                </View>
+              </View>
+            </View>
+          </View>
+        </View>
+      </ScrollView>
+    );
+
   const [state, dispatch] = useAsyncStorageReducer(
     RNTesterReducer,
     initialState,

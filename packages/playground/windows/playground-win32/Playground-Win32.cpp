@@ -97,8 +97,7 @@ struct WindowData {
   LRESULT OnCommand(HWND hwnd, int id, HWND /* hwndCtl*/, UINT) {
     switch (id) {
       case IDM_OPENJSFILE: {
-        DialogBox(s_instance, MAKEINTRESOURCE(IDD_OPENJSBUNDLEBOX), hwnd, &Bundle);
-
+        m_bundleFile = LR"(Samples\rntester)";
         if (!m_bundleFile.empty()) {
           PCWSTR appName = (m_bundleFile == LR"(Samples\rntester)") ? L"RNTesterApp" : L"Bootstrap";
 
@@ -424,7 +423,10 @@ int RunPlayground(int showCmd, bool useWebDebugger) {
   WINRT_VERIFY(hwnd);
   winrt::check_win32(!hwnd);
 
+  windowData->OnCommand(hwnd, IDM_OPENJSFILE, 0, 0);
   windowData.release();
+
+  MoveWindow(hwnd, 0, 0, 1276, 709, FALSE);
 
   ShowWindow(hwnd, showCmd);
   UpdateWindow(hwnd);
