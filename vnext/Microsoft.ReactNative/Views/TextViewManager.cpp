@@ -172,14 +172,14 @@ class TextShadowNode final : public ShadowNodeBase {
 
   void createView(const winrt::Microsoft::ReactNative::JSValueObject &props) override {
     Super::createView(props);
-    auto textBlock = GetView().as<xaml::Controls::TextBlock>();
-    m_isTextTrimmedChangedRevoker = textBlock.IsTextTrimmedChanged(winrt::auto_revoke, [this](auto &&...) {
-      this->GetViewManager()->MarkDirty(this->m_tag);
-      if (auto uiManager = GetNativeUIManager(this->GetViewManager()->GetReactContext()).lock()) {
-        uiManager->ensureInBatch();
-        uiManager->onBatchComplete();
-      }
-    });
+    //auto textBlock = GetView().as<xaml::Controls::TextBlock>();
+    //m_isTextTrimmedChangedRevoker = textBlock.IsTextTrimmedChanged(winrt::auto_revoke, [this](auto &&...) {
+    //  this->GetViewManager()->MarkDirty(this->m_tag);
+    //  if (auto uiManager = GetNativeUIManager(this->GetViewManager()->GetReactContext()).lock()) {
+    //    uiManager->ensureInBatch();
+    //    uiManager->onBatchComplete();
+    //  }
+    //});
   }
 
   XamlView GetRootView() {

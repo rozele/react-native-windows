@@ -3558,8 +3558,8 @@ static void YGNodelayoutImpl(
   }
 }
 
-bool gPrintChanges = false;
-bool gPrintSkips = false;
+bool gPrintChanges = true;
+bool gPrintSkips = true;
 
 static const char *spacer =
     "                                                            ";
@@ -3816,6 +3816,14 @@ bool YGLayoutNodeInternal(
             marginAxisRow,
             marginAxisColumn,
             config)) {
+      Log::log(
+          node,
+          YGLogLevelVerbose,
+          nullptr,
+          "%s%d.{%s",
+          YGSpacer(depth),
+          depth,
+          "[using layout cache]");
       cachedResults = &layout->cachedLayout;
     } else {
       // Try to use the measurement cache.
@@ -3834,6 +3842,14 @@ bool YGLayoutNodeInternal(
                 marginAxisRow,
                 marginAxisColumn,
                 config)) {
+          Log::log(
+          node,
+          YGLogLevelVerbose,
+          nullptr,
+          "%s%d.{%s",
+          YGSpacer(depth),
+          depth,
+          "[using measurement cache]");
           cachedResults = &layout->cachedMeasurements[i];
           break;
         }
@@ -3844,6 +3860,14 @@ bool YGLayoutNodeInternal(
         YGFloatsEqual(layout->cachedLayout.availableHeight, availableHeight) &&
         layout->cachedLayout.widthMeasureMode == widthMeasureMode &&
         layout->cachedLayout.heightMeasureMode == heightMeasureMode) {
+      Log::log(
+          node,
+          YGLogLevelVerbose,
+          nullptr,
+          "%s%d.{%s",
+          YGSpacer(depth),
+          depth,
+          "[no measure function, using layout cache]");
       cachedResults = &layout->cachedLayout;
     }
   } else {
@@ -3855,6 +3879,14 @@ bool YGLayoutNodeInternal(
           layout->cachedMeasurements[i].widthMeasureMode == widthMeasureMode &&
           layout->cachedMeasurements[i].heightMeasureMode ==
               heightMeasureMode) {
+          Log::log(
+          node,
+          YGLogLevelVerbose,
+          nullptr,
+          "%s%d.{%s",
+          YGSpacer(depth),
+          depth,
+          "[no measure function, using measurement cache]");
         cachedResults = &layout->cachedMeasurements[i];
         break;
       }
@@ -3874,22 +3906,25 @@ bool YGLayoutNodeInternal(
           node,
           YGLogLevelVerbose,
           nullptr,
-          "%s%d.{[skipped] ",
+          "%s%d.{[skipped][needToVisitNode=%d][cachedResults is null=%d]",
           YGSpacer(depth),
-          depth);
+          depth,
+        needToVisitNode,cachedResults == nullptr);
       node->print(layoutContext);
       Log::log(
           node,
           YGLogLevelVerbose,
           nullptr,
-          "wm: %s, hm: %s, aw: %f ah: %f => d: (%f, %f) %s\n",
+          "wm: %s, hm: %s, aw: %f ah: %f => d: (%f, %f) %s [needToVisitNode=%d][cachedResults is null=%d]\n",
           YGMeasureModeName(widthMeasureMode, performLayout),
           YGMeasureModeName(heightMeasureMode, performLayout),
           availableWidth,
           availableHeight,
           cachedResults->computedWidth,
           cachedResults->computedHeight,
-          LayoutPassReasonToString(reason));
+          LayoutPassReasonToString(reason),
+          needToVisitNode,
+          cachedResults == nullptr);
     }
   } else {
     if (gPrintChanges) {
@@ -3906,12 +3941,14 @@ bool YGLayoutNodeInternal(
           node,
           YGLogLevelVerbose,
           nullptr,
-          "wm: %s, hm: %s, aw: %f ah: %f %s\n",
+          "wm: %s, hm: %s, aw: %f ah: %f %s [needToVisitNode=%d][cachedResults is null=%d]\n",
           YGMeasureModeName(widthMeasureMode, performLayout),
           YGMeasureModeName(heightMeasureMode, performLayout),
           availableWidth,
           availableHeight,
-          LayoutPassReasonToString(reason));
+          LayoutPassReasonToString(reason),
+          needToVisitNode,
+          cachedResults == nullptr);
     }
 
     YGNodelayoutImpl(
