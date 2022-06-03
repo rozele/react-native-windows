@@ -36,7 +36,8 @@ static const std::unordered_map<std::string, PointerEventsKind> pointerEventsMap
 
 float GetConstrainedResult(float constrainTo, float measuredSize, YGMeasureMode measureMode) {
   // Round up to workaround truncation inside yoga
-  measuredSize = ceil(measuredSize);
+  auto scale = 1.50f;
+  measuredSize = ceil(measuredSize * scale) / scale;
 
   if (measureMode == YGMeasureMode::YGMeasureModeExactly)
     return constrainTo;

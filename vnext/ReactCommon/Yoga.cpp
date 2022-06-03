@@ -4115,14 +4115,17 @@ static void YGRoundToPixelGrid(
       !YGDoubleEqual(fmod(nodeHeight * pointScaleFactor, 1.0), 0) &&
       !YGDoubleEqual(fmod(nodeHeight * pointScaleFactor, 1.0), 1.0);
 
-  node->setLayoutDimension(
-      YGRoundValueToPixelGrid(
+  auto temp = YGRoundValueToPixelGrid(
           absoluteNodeRight,
           pointScaleFactor,
           (textRounding && hasFractionalWidth),
           (textRounding && !hasFractionalWidth)) -
           YGRoundValueToPixelGrid(
-              absoluteNodeLeft, pointScaleFactor, false, textRounding),
+              absoluteNodeLeft, pointScaleFactor, false, textRounding);
+  //assert(absoluteNodeRight - absoluteNodeLeft <= temp);
+
+  node->setLayoutDimension(
+      temp,
       YGDimensionWidth);
 
   node->setLayoutDimension(
