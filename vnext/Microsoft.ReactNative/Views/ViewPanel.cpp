@@ -9,6 +9,7 @@
 #include <UI.Xaml.Media.h>
 #include <Utils/PropertyUtils.h>
 #include <Utils/ResourceBrushUtils.h>
+#include <cxxreact/SystraceSection.h>
 #include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.UI.Xaml.Interop.h>
 
@@ -146,6 +147,8 @@ void ViewPanel::InvalidateForArrange(xaml::UIElement element) {
 }
 
 winrt::Size ViewPanel::MeasureOverride(winrt::Size /*availableSize*/) {
+  facebook::react::SystraceSection s("ViewPanel::MeasureOverride");
+
   // All children are given as much size as they'd like
   winrt::Size childConstraint(INFINITY, INFINITY);
 
@@ -158,6 +161,8 @@ winrt::Size ViewPanel::MeasureOverride(winrt::Size /*availableSize*/) {
 }
 
 winrt::Size ViewPanel::ArrangeOverride(winrt::Size finalSize) {
+  facebook::react::SystraceSection s("ViewPanel::ArrangeOverride");
+
   // Sometimes we create outerBorder(i.e. when CornerRadius is true) instead of innerBorder,
   // Yoga has no notion of outerBorder when calculating the child's position, so we
   // need to make adujustment in arrange for outerborder's thickness.
@@ -247,6 +252,7 @@ void ViewPanel::ClipChildren(bool value) {
 }
 
 void ViewPanel::FinalizeProperties() {
+  facebook::react::SystraceSection s("ViewPanel::FinalizeProperties");
   if (!m_propertiesChanged)
     return;
 

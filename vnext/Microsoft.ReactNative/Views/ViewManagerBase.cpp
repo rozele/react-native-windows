@@ -19,6 +19,7 @@
 #include <Utils/PropertyUtils.h>
 #include <Views/ExpressionAnimationStore.h>
 #include <Views/ShadowNodeBase.h>
+#include <cxxreact/SystraceSection.h>
 
 namespace winrt {
 using namespace xaml;
@@ -48,6 +49,8 @@ YGSize DefaultYogaSelfMeasureFunc(
     YGMeasureMode widthMode,
     float height,
     YGMeasureMode heightMode) {
+  facebook::react::SystraceSection s("ViewManagerBase::DefaultYogaSelfMeasureFunc");
+
   YogaContext *context = reinterpret_cast<YogaContext *>(YGNodeGetContext(node));
 
   // TODO: VEC context != nullptr, DefaultYogaSelfMeasureFunc expects a context.
@@ -248,7 +251,10 @@ void ViewManagerBase::UpdateProperties(
     }
   }
 
-  OnPropertiesUpdated(nodeToUpdate);
+  {
+    facebook::react::SystraceSection s("ViewManagerBase::OnPropertiesUpdated");
+    OnPropertiesUpdated(nodeToUpdate);
+  }
 }
 
 bool ViewManagerBase::UpdateProperty(

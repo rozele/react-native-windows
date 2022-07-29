@@ -18,6 +18,7 @@
 #include <INativeUIManager.h>
 #include <IReactInstance.h>
 
+#include <cxxreact/SystraceSection.h>
 #include <inspectable.h>
 #include <unicode.h>
 #include <winrt/Windows.System.h>
@@ -513,9 +514,11 @@ void ViewViewManager::TryUpdateView(
   //
   // 2. Transfer needed properties from old to new view
   //
-
-  // Transfer properties from old XamlView to the new one
-  TransferProperties(oldXamlView, newXamlView);
+  {
+    facebook::react::SystraceSection s("ViewViewManager::TransferProperties");
+    // Transfer properties from old XamlView to the new one
+    TransferProperties(oldXamlView, newXamlView);
+  }
 
   // Since we transferred properties to the new view we need to make the call to
   // finalize

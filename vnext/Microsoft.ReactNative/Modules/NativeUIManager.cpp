@@ -7,6 +7,7 @@
 #include <UI.Xaml.Input.h>
 #include <UI.Xaml.Media.h>
 #include <Views/ShadowNodeBase.h>
+#include <cxxreact/SystraceSection.h>
 #include "Modules/I18nManagerModule.h"
 #include "NativeUIManager.h"
 
@@ -222,6 +223,7 @@ int64_t NativeUIManager::AddMeasuredRootView(facebook::react::IReactRootView *ro
 }
 
 void NativeUIManager::AddRootView(ShadowNode &shadowNode, facebook::react::IReactRootView *pReactRootView) {
+  facebook::react::SystraceSection s("NativeUIManager::AddRootView");
   auto xamlRootView = static_cast<IXamlRootView *>(pReactRootView);
   XamlView view = xamlRootView->GetXamlView();
   m_tagsToXamlReactControl.emplace(
@@ -244,11 +246,13 @@ void NativeUIManager::AddRootView(ShadowNode &shadowNode, facebook::react::IReac
 }
 
 void NativeUIManager::removeRootView(Microsoft::ReactNative::ShadowNode &shadow) {
+  facebook::react::SystraceSection s("NativeUIManager::removeRootView");
   m_tagsToXamlReactControl.erase(shadow.m_tag);
   RemoveView(shadow, true);
 }
 
 void NativeUIManager::onBatchComplete() {
+  facebook::react::SystraceSection s("NativeUIManager::onBatchComplete");
   if (m_inBatch) {
     DoLayout();
     m_inBatch = false;
@@ -766,6 +770,7 @@ static void StyleYogaNode(
 }
 
 void NativeUIManager::CreateView(ShadowNode &shadowNode, React::JSValueObject &props) {
+  facebook::react::SystraceSection s("NativeUIManager::CreateView");
   ShadowNodeBase &node = static_cast<ShadowNodeBase &>(shadowNode);
   auto *pViewManager = node.GetViewManager();
 
@@ -794,6 +799,7 @@ void NativeUIManager::CreateView(ShadowNode &shadowNode, React::JSValueObject &p
 }
 
 void NativeUIManager::AddView(ShadowNode &parentShadowNode, ShadowNode &childShadowNode, uint64_t index) {
+  facebook::react::SystraceSection s("NativeUIManager::AddView");
   ShadowNodeBase &parentNode = static_cast<ShadowNodeBase &>(parentShadowNode);
   auto *pViewManager = parentNode.GetViewManager();
 
@@ -813,6 +819,7 @@ void NativeUIManager::AddView(ShadowNode &parentShadowNode, ShadowNode &childSha
 }
 
 void NativeUIManager::RemoveView(ShadowNode &shadowNode, bool removeChildren /*= true*/) {
+  facebook::react::SystraceSection s("NativeUIManager::ReplaceView");
   ShadowNodeBase &node = static_cast<ShadowNodeBase &>(shadowNode);
 
   if (removeChildren) {
@@ -833,6 +840,7 @@ void NativeUIManager::RemoveView(ShadowNode &shadowNode, bool removeChildren /*=
 }
 
 void NativeUIManager::ReplaceView(ShadowNode &shadowNode) {
+  facebook::react::SystraceSection s("NativeUIManager::ReplaceView");
   ShadowNodeBase &node = static_cast<ShadowNodeBase &>(shadowNode);
   auto *pViewManager = node.GetViewManager();
 
@@ -857,6 +865,7 @@ void NativeUIManager::ReplaceView(ShadowNode &shadowNode) {
 }
 
 void NativeUIManager::UpdateView(ShadowNode &shadowNode, winrt::Microsoft::ReactNative::JSValueObject &props) {
+  facebook::react::SystraceSection s("NativeUIManager::UpdateView");
   ShadowNodeBase &node = static_cast<ShadowNodeBase &>(shadowNode);
   auto *pViewManager = node.GetViewManager();
 
@@ -867,6 +876,7 @@ void NativeUIManager::UpdateView(ShadowNode &shadowNode, winrt::Microsoft::React
 }
 
 void NativeUIManager::UpdateExtraLayout(int64_t tag) {
+  facebook::react::SystraceSection s("NativeUIManager::UpdateExtraLayout");
   // For nodes that are not self-measure, there may be styles applied that are
   // applying padding. Here we make sure Yoga knows about that padding so yoga
   // layout is aware of what rendering intends to do with it.  (net: buttons
@@ -887,20 +897,29 @@ void NativeUIManager::UpdateExtraLayout(int64_t tag) {
 }
 
 void NativeUIManager::DoLayout() {
-  // Process vector of RN controls needing extra layout here.
-  const auto extraLayoutNodes = m_extraLayoutNodes;
-  for (const int64_t tag : extraLayoutNodes) {
-    ShadowNodeBase *node = static_cast<ShadowNodeBase *>(m_host->FindShadowNodeForTag(tag));
-    if (node) {
-      auto element = node->GetView().as<xaml::FrameworkElement>();
-      element.UpdateLayout();
+  facebook::react::SystraceSection s("NativeUIManager::DoLayout");
+
+  {
+    facebook::react::SystraceSection s("NativeUIManager::DoLayout::UpdateExtraLayoutNodes");
+    // Process vector of RN controls needing extra layout here.
+    const auto extraLayoutNodes = m_extraLayoutNodes;
+    for (const int64_t tag : extraLayoutNodes) {
+      ShadowNodeBase *node = static_cast<ShadowNodeBase *>(m_host->FindShadowNodeForTag(tag));
+      if (node) {
+        auto element = node->GetView().as<xaml::FrameworkElement>();
+        element.UpdateLayout();
+      }
     }
+    // Values need to be cleared from the vector before next call to DoLayout.
+    m_extraLayoutNodes.clear();
   }
-  // Values need to be cleared from the vector before next call to DoLayout.
-  m_extraLayoutNodes.clear();
+
   auto &rootTags = m_host->GetAllRootTags();
   for (int64_t rootTag : rootTags) {
-    UpdateExtraLayout(rootTag);
+    {
+      facebook::react::SystraceSection s("NativeUIManager::DoLayout::UpdateExtraLayoutRoot");
+      UpdateExtraLayout(rootTag);
+    }
 
     ShadowNodeBase &rootShadowNode = static_cast<ShadowNodeBase &>(m_host->GetShadowNodeForTag(rootTag));
     YGNodeRef rootNode = GetYogaNode(rootTag);
@@ -909,29 +928,37 @@ void NativeUIManager::DoLayout() {
     float actualWidth = static_cast<float>(rootElement.ActualWidth());
     float actualHeight = static_cast<float>(rootElement.ActualHeight());
 
-    // We must always run layout in LTR mode, which might seem unintuitive.
-    // We will flip the root of the tree into RTL by forcing the root XAML node's FlowDirection to RightToLeft
-    // which will inherit down the XAML tree, allowing all native controls to pick it up.
-    YGNodeCalculateLayout(rootNode, actualWidth, actualHeight, YGDirectionLTR);
+    {
+      facebook::react::SystraceSection s("NativeUIManager::DoLayout::YGNodeCalculateLayout");
+
+      // We must always run layout in LTR mode, which might seem unintuitive.
+      // We will flip the root of the tree into RTL by forcing the root XAML node's FlowDirection to RightToLeft
+      // which will inherit down the XAML tree, allowing all native controls to pick it up.
+      YGNodeCalculateLayout(rootNode, actualWidth, actualHeight, YGDirectionLTR);
+    }
   }
 
-  for (auto &tagToYogaNode : m_tagsToYogaNodes) {
-    int64_t tag = tagToYogaNode.first;
-    YGNodeRef yogaNode = tagToYogaNode.second.get();
+  {
+    facebook::react::SystraceSection s("NativeUIManager::DoLayout::SetLayoutProps");
 
-    if (!YGNodeGetHasNewLayout(yogaNode))
-      continue;
-    YGNodeSetHasNewLayout(yogaNode, false);
+    for (auto &tagToYogaNode : m_tagsToYogaNodes) {
+      int64_t tag = tagToYogaNode.first;
+      YGNodeRef yogaNode = tagToYogaNode.second.get();
 
-    float left = YGNodeLayoutGetLeft(yogaNode);
-    float top = YGNodeLayoutGetTop(yogaNode);
-    float width = YGNodeLayoutGetWidth(yogaNode);
-    float height = YGNodeLayoutGetHeight(yogaNode);
+      if (!YGNodeGetHasNewLayout(yogaNode))
+        continue;
+      YGNodeSetHasNewLayout(yogaNode, false);
 
-    ShadowNodeBase &shadowNode = static_cast<ShadowNodeBase &>(m_host->GetShadowNodeForTag(tag));
-    auto view = shadowNode.GetView();
-    auto pViewManager = shadowNode.GetViewManager();
-    pViewManager->SetLayoutProps(shadowNode, view, left, top, width, height);
+      float left = YGNodeLayoutGetLeft(yogaNode);
+      float top = YGNodeLayoutGetTop(yogaNode);
+      float width = YGNodeLayoutGetWidth(yogaNode);
+      float height = YGNodeLayoutGetHeight(yogaNode);
+
+      ShadowNodeBase &shadowNode = static_cast<ShadowNodeBase &>(m_host->GetShadowNodeForTag(tag));
+      auto view = shadowNode.GetView();
+      auto pViewManager = shadowNode.GetViewManager();
+      pViewManager->SetLayoutProps(shadowNode, view, left, top, width, height);
+    }
   }
 }
 
