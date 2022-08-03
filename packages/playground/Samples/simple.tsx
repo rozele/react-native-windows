@@ -3,19 +3,22 @@
  * Licensed under the MIT License.
  * @format
  */
-import React from 'react';
-import {AppRegistry, View} from 'react-native';
+import React, {useState} from 'react';
+import StarRating from './StarRating';
+import {AppRegistry, Button, Text} from 'react-native';
 
-export default class Bootstrap extends React.Component {
-  render() {
-    return (
-      <View
-        accessible={true}
-        style={{borderRadius: 30, width: 60, height: 60, margin: 10}}>
-        <View style={{backgroundColor: 'magenta', width: 60, height: 60}} />
-      </View>
-    );
-  }
+export default function FeedbackStars() {
+  const [rating, setRating] = useState(0);
+  const [useNativeDriver, setUseNativeDriver] = useState(false);
+  return (
+    <>
+      <StarRating rating={rating} onRatingChange={setRating} useNativeDriver={useNativeDriver} />
+      <Text style={{marginTop: 12}}>
+        Number of selected stars: {rating}
+      </Text>
+      <Button title={useNativeDriver ? 'Use JS Driver' : 'Use Native Driver'} onPress={() => setUseNativeDriver(!useNativeDriver)} />
+    </>
+  );
 }
 
-AppRegistry.registerComponent('Bootstrap', () => Bootstrap);
+AppRegistry.registerComponent('Bootstrap', () => FeedbackStars);
