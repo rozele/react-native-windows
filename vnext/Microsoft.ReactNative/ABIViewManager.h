@@ -20,6 +20,13 @@
 
 namespace winrt::Microsoft::ReactNative {
 
+REACTWINDOWS_EXPORT YGSize ABIYogaSelfMeasureTrampoline(
+    YGNodeRef node,
+    float width,
+    YGMeasureMode widthMode,
+    float height,
+    YGMeasureMode heightMode);
+
 class ABIViewManager : public ::Microsoft::ReactNative::FrameworkElementViewManager {
   using Super = ::Microsoft::ReactNative::FrameworkElementViewManager;
 
@@ -70,6 +77,9 @@ class ABIViewManager : public ::Microsoft::ReactNative::FrameworkElementViewMana
 
   void OnDropViewInstance(const ::Microsoft::ReactNative::XamlView &view);
 
+  YGSize
+  ABIYogaSelfMeasureFunc(YGNodeRef node, float width, YGMeasureMode widthMode, float height, YGMeasureMode heightMode);
+
  protected:
   xaml::DependencyObject CreateViewCore(int64_t, const winrt::Microsoft::ReactNative::JSValueObject &props) override;
 
@@ -82,6 +92,7 @@ class ABIViewManager : public ::Microsoft::ReactNative::FrameworkElementViewMana
   IViewManagerWithExportedEventTypeConstants m_viewManagerWithExportedEventTypeConstants;
   IViewManagerWithChildren m_viewManagerWithChildren;
   IViewManagerRequiresNativeLayout m_viewManagerRequiresNativeLayout;
+  IViewManagerWithNativeLayout m_viewManagerWithNativeLayout;
   IViewManagerWithPointerEvents m_viewManagerWithPointerEvents;
   IViewManagerWithDropViewInstance m_viewManagerWithDropViewInstance;
 
