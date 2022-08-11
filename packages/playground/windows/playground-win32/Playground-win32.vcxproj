@@ -99,7 +99,9 @@
   <ItemGroup>
     <ClInclude Include="AutolinkedNativeModules.g.h" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="PlaygroundPackageProvider.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="TestViewManager.h" />
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="Application.manifest" />
@@ -113,6 +115,8 @@
       <PrecompiledHeader>Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="Playground-Win32.cpp" />
+    <ClCompile Include="PlaygroundPackageProvider.cpp" />
+    <ClCompile Include="TestViewManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Natvis Include="$(ReactNativeWindowsDir)Folly\Folly.natvis" />

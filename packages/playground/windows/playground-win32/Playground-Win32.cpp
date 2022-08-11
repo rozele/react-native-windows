@@ -37,6 +37,8 @@
 #include <winrt/Microsoft.UI.h>
 #endif
 
+#include "PlaygroundPackageProvider.h"
+
 namespace controls = xaml::Controls;
 namespace hosting = xaml::Hosting;
 
@@ -107,7 +109,7 @@ struct WindowData {
 
           auto host = Host();
           RegisterAutolinkedNativeModulePackages(host.PackageProviders()); // Includes any autolinked modules
-
+          host.PackageProviders().Append(winrt::make<playground::PlaygroundReactPackageProvider>());
           host.InstanceSettings().JavaScriptBundleFile(m_bundleFile);
 
           host.InstanceSettings().UseWebDebugger(m_useWebDebugger);
