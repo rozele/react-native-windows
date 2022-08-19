@@ -593,13 +593,10 @@ export default class Pressability {
           (event.nativeEvent.code === 'Space' ||
             event.nativeEvent.code === 'Enter' ||
             event.nativeEvent.code === 'GamepadA') &&
-          event.defaultPrevented != true
+            event.defaultPrevented != true &&
+            this._touchState === 'RESPONDER_ACTIVE_PRESS_IN'
         ) {
-          const {onPressOut, onPress} = this._config;
-          // $FlowFixMe: PressEvents don't mesh with keyboarding APIs. Keep legacy behavior of passing KeyEvents instead
-          onPressOut && onPressOut(event);
-          // $FlowFixMe: PressEvents don't mesh with keyboarding APIs. Keep legacy behavior of passing KeyEvents instead
-          onPress && onPress(event);
+          this._receiveSignal('RESPONDER_RELEASE', event);
         }
       },
       onKeyDown: (event: KeyEvent): void => {
@@ -612,9 +609,22 @@ export default class Pressability {
             event.nativeEvent.code === 'GamepadA') &&
           event.defaultPrevented != true
         ) {
-          const {onPressIn} = this._config;
-          // $FlowFixMe: PressEvents don't mesh with keyboarding APIs. Keep legacy behavior of passing KeyEvents instead
-          onPressIn && onPressIn(event);
+        event.persist();
+
+        this._cancelPressOutDelayTimeout();
+
+        this._responderID = event.currentTarget;
+        this._touchState = 'NOT_RESPONDER';
+          this._touchState = 'NOT_RESPONDER';
+          this._receiveSignal('RESPONDER_GRANT', event);
+          const delayPressIn = normalizeDelay(this._config.delayPressIn);
+          if (delayPressIn > 0) {
+            this._pressDelayTimeout = setTimeout(() => {
+              this._receiveSignal('DELAY', event);
+            }, delayPressIn);
+          } else {
+            this._receiveSignal('DELAY', event);
+          }
         }
       },
     };
