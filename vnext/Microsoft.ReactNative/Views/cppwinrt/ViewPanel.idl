@@ -8,7 +8,7 @@ namespace Microsoft.ReactNative
 {
   [default_interface]
   [webhosthidden]
-  runtimeclass ViewPanel : XAML_NAMESPACE.Controls.Panel
+  runtimeclass ViewPanel : XAML_NAMESPACE.Controls.Canvas
   {
     // Constructors
     ViewPanel();

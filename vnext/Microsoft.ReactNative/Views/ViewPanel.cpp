@@ -110,84 +110,10 @@ winrt::AutomationPeer ViewPanel::OnCreateAutomationPeer() {
 
 /*static*/ void ViewPanel::SetTop(xaml::UIElement const &element, double value) {
   element.SetValue(TopProperty(), winrt::box_value<double>(value));
-  InvalidateForArrange(element);
 }
 
 /*static*/ void ViewPanel::SetLeft(xaml::UIElement const &element, double value) {
   element.SetValue(LeftProperty(), winrt::box_value<double>(value));
-  InvalidateForArrange(element);
-}
-
-void ViewPanel::InvalidateForArrange(const xaml::DependencyObject &element) {
-  // If the element's position has changed, we must invalidate the parent for arrange,
-  // as it's the parent's responsibility to arrange its children.
-  if (auto parent = VisualTreeHelper::GetParent(element)) {
-    if (auto parentUIE = parent.try_as<xaml::UIElement>()) {
-      parentUIE.InvalidateArrange();
-    }
-  }
-}
-
-winrt::Size ViewPanel::MeasureOverride(winrt::Size /*availableSize*/) {
-  // All children are given as much size as they'd like
-  winrt::Size childConstraint(INFINITY, INFINITY);
-
-  for (xaml::UIElement child : Children())
-    child.Measure(childConstraint);
-
-  // ViewPanels never choose their size, that is completely up to the parent -
-  // so return no size
-  return winrt::Size(0, 0);
-}
-
-winrt::Size ViewPanel::ArrangeOverride(winrt::Size finalSize) {
-  // Sometimes we create outerBorder(i.e. when CornerRadius is true) instead of innerBorder,
-  // Yoga has no notion of outerBorder when calculating the child's position, so we
-  // need to make adujustment in arrange for outerborder's thickness.
-  float outerBorderLeft = 0;
-  float outerBorderTop = 0;
-  if (auto outerBorder = GetOuterBorder()) {
-    auto borderThickness = outerBorder.BorderThickness();
-    outerBorderLeft = static_cast<float>(borderThickness.Left);
-    outerBorderTop = static_cast<float>(borderThickness.Top);
-  }
-  for (xaml::UIElement child : Children()) {
-    double childHeight = 0.0;
-    double childWidth = 0.0;
-
-    // A Border or inner ViewPanel should take up the same space as this panel
-    if (child == m_border) {
-      childWidth = finalSize.Width;
-      childHeight = finalSize.Height;
-    } else {
-      // We expect elements to have been arranged by yoga which means their
-      // Width & Height are set
-      xaml::FrameworkElement fe = child.try_as<xaml::FrameworkElement>();
-      if (fe != nullptr) {
-        childWidth = fe.Width();
-        childHeight = fe.Height();
-      }
-      // But we fall back to the measured size otherwise
-      else {
-        childWidth = child.DesiredSize().Width;
-        childHeight = child.DesiredSize().Height;
-      }
-    }
-
-    // Guard against negative values
-    childWidth = std::max<double>(0.0f, childWidth);
-    childHeight = std::max<double>(0.0f, childHeight);
-
-    float adjustedLeft = static_cast<float>(ViewPanel::GetLeft(child)) - outerBorderLeft;
-    float adjustedTop = static_cast<float>(ViewPanel::GetTop(child)) - outerBorderTop;
-
-    child.Arrange(
-        winrt::Rect(adjustedLeft, adjustedTop, static_cast<float>(childWidth), static_cast<float>(childHeight)));
-  }
-
-  UpdateClip(finalSize);
-
-  return finalSize;
 }
 
 void ViewPanel::InsertAt(uint32_t const index, xaml::UIElement const &value) const {

@@ -19,10 +19,6 @@ struct ViewPanel : ViewPanelT<ViewPanel> {
 
   xaml::Automation::Peers::AutomationPeer OnCreateAutomationPeer();
 
-  // Overrides
-  virtual winrt::Windows::Foundation::Size MeasureOverride(winrt::Windows::Foundation::Size availableSize);
-  virtual winrt::Windows::Foundation::Size ArrangeOverride(winrt::Windows::Foundation::Size finalSize);
-
   // Public Methods
   void InsertAt(uint32_t const index, xaml::UIElement const &value) const;
   void RemoveAt(uint32_t const index) const;
@@ -76,8 +72,6 @@ struct ViewPanel : ViewPanelT<ViewPanel> {
   static double GetLeft(xaml::UIElement const &element) {
     return winrt::unbox_value<double>(element.GetValue(LeftProperty()));
   }
-
-  static void InvalidateForArrange(const xaml::DependencyObject &element);
 
  private:
   void Remove(xaml::UIElement element) const;

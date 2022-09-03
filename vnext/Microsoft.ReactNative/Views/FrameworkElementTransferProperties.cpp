@@ -52,7 +52,6 @@ void TransferFrameworkElementProperties(const xaml::DependencyObject &oldView, c
   const auto top = winrt::Microsoft::ReactNative::ViewPanel::GetTop(oldUI);
   oldUI.ClearValue(winrt::Microsoft::ReactNative::ViewPanel::LeftProperty());
   oldUI.ClearValue(winrt::Microsoft::ReactNative::ViewPanel::TopProperty());
-  winrt::Microsoft::ReactNative::implementation::ViewPanel::InvalidateForArrange(oldView);
 
   const auto newUI = newView.as<xaml::UIElement>();
   winrt::Microsoft::ReactNative::ViewPanel::SetLeft(newUI, left);
