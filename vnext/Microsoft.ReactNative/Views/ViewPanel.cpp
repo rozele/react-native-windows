@@ -74,16 +74,6 @@ winrt::AutomationPeer ViewPanel::OnCreateAutomationPeer() {
   return xaml::Controls::Canvas::LeftProperty();
 }
 
-/*static*/ xaml::DependencyProperty ViewPanel::ClipChildrenProperty() {
-  static xaml::DependencyProperty s_clipChildrenProperty = xaml::DependencyProperty::Register(
-      L"ClipChildren",
-      winrt::xaml_typename<bool>(),
-      viewPanelTypeName,
-      winrt::PropertyMetadata(winrt::box_value(false), ViewPanel::VisualPropertyChanged));
-
-  return s_clipChildrenProperty;
-}
-
 /*static*/ void ViewPanel::SetTop(xaml::UIElement const &element, double value) {
   element.SetValue(TopProperty(), winrt::box_value<double>(value));
   InvalidateForArrange(element);
@@ -145,8 +135,6 @@ winrt::Size ViewPanel::ArrangeOverride(winrt::Size finalSize) {
         static_cast<float>(childHeight)));
   }
 
-  UpdateClip(finalSize);
-
   return finalSize;
 }
 
@@ -171,20 +159,6 @@ void ViewPanel::Clear() const {
 
 void ViewPanel::ViewBackground(winrt::Brush const &value) {
   SetValue(ViewBackgroundProperty(), winrt::box_value(value));
-}
-
-void ViewPanel::ClipChildren(bool value) {
-  SetValue(ClipChildrenProperty(), winrt::box_value(value));
-}
-
-void ViewPanel::UpdateClip(winrt::Size &finalSize) {
-  if (ClipChildren()) {
-    winrt::RectangleGeometry clipGeometry;
-    clipGeometry.Rect(winrt::Rect(0, 0, static_cast<float>(finalSize.Width), static_cast<float>(finalSize.Height)));
-    Clip(clipGeometry);
-  } else {
-    Clip(nullptr);
-  }
 }
 
 } // namespace winrt::Microsoft::ReactNative::implementation
