@@ -40,7 +40,7 @@ class ViewViewManager : public FrameworkElementViewManager {
   void OnPropertiesUpdated(ShadowNodeBase *node) override;
 
   XamlView CreateViewCore(int64_t tag, const winrt::Microsoft::ReactNative::JSValueObject &) override;
-  void TryUpdateView(ViewShadowNode *viewShadowNode, winrt::Microsoft::ReactNative::ViewPanel &pPanel, bool useControl);
+  void TryUpdateView(ViewShadowNode *viewShadowNode, xaml::Controls::Panel::ReactNative::ViewPanel &pPanel, bool useControl);
   void SyncFocusableAndAccessible(ViewShadowNode *viewShadowNode, bool useControl);
 
   xaml::Media::SolidColorBrush EnsureTransparentBrush();

@@ -6,6 +6,7 @@
 #include <cdebug.h>
 
 #include "ViewControl.h"
+#include "ViewGrid.h"
 
 #include <UI.Xaml.Automation.Peers.h>
 #include "DynamicAutomationProperties.h"
@@ -34,6 +35,16 @@
 using namespace facebook::react;
 
 namespace Microsoft::ReactNative {
+
+// ViewTraits
+
+enum class ViewTraits {
+  None = 0,
+  HasBorder = 1 << 1,
+  IsControl = 1 << 2,
+  IsGrid = 1 << 3,
+  IsCanvas = 1 << 4,
+};
 
 // ViewShadowNode
 
@@ -81,10 +92,8 @@ class ViewShadowNode : public ShadowNodeBase {
   }
 
   bool IsControl() {
-    return m_isControl;
   }
   void IsControl(bool isControl) {
-    m_isControl = isControl;
   }
 
   bool HasOuterBorder() {
@@ -273,6 +282,7 @@ class ViewShadowNode : public ShadowNodeBase {
 // Issue #2172: Additionally, we need to use
 // winrt::Microsoft::ReactNative::ViewPanel::implementation::ViewBackgroundProperty
 // rather than the proper projected type, because of how we're using cppwinrt.
+// Remove if we default to ViewGrid implementation.
 
 template <>
 bool TryUpdateBackgroundBrush(
@@ -297,6 +307,7 @@ bool TryUpdateBackgroundBrush(
 // because of how we're using cppwinrt. So we specialize PropertyUtils'
 // TryUpdateBorderProperties
 // to use winrt::Microsoft::ReactNative::ViewPanel::implementation::BorderBrushProperty
+// Remove if we default to ViewGrid implementation.
 
 template <>
 bool TryUpdateBorderProperties(
@@ -375,11 +386,49 @@ ShadowNode *ViewViewManager::createShadow() const {
   return new ViewShadowNode();
 }
 
-XamlView ViewViewManager::CreateViewCore(int64_t /*tag*/, const winrt::Microsoft::ReactNative::JSValueObject &) {
-  auto panel = winrt::make<winrt::Microsoft::ReactNative::implementation::ViewPanel>();
+static bool AllowViewCanvas() {
+  return true;
+}
+
+static bool AllowViewGrid() {
+  return true;
+}
+
+static bool ForceViewGrid() {
+  return false;
+}
+
+static bool UseViewGrid(const winrt::Microsoft::ReactNative::JSValueObject& props) {
+  return ForceViewGrid() || AllowViewGrid() && HasBorderProps(props);
+}
+
+static bool UseViewCanvas() {
+  // TODO: should this allow inner and outer borders...
+  return AllowViewCanvas();
+}
+
+static bool HasBorderProps(const winrt::Microsoft::ReactNative::JSValueObject& props) {
+  for (auto &prop : props) {
+    if (prop.first.compare(0, 6, "border") == 0 && prop.second.AsDouble() > 0) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+XamlView ViewViewManager::CreateViewCore(int64_t /*tag*/, const winrt::Microsoft::ReactNative::JSValueObject &props) {
+  xaml::Controls::Panel panel = nullptr;
+  if (UseViewGrid(props)) {
+    panel = winrt::make<winrt::Microsoft::ReactNative::implementation::ViewGrid>();
+  } else if (UseViewCanvas()) {
+    panel = xaml::Controls::Canvas{};
+  } else {
+    panel = winrt::make<winrt::Microsoft::ReactNative::implementation::ViewPanel>();
+  }
+
   panel.VerticalAlignment(xaml::VerticalAlignment::Stretch);
   panel.HorizontalAlignment(xaml::HorizontalAlignment::Stretch);
-
   return panel.as<XamlView>();
 }
 
