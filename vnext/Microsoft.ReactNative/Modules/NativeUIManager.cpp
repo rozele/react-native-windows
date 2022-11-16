@@ -1028,11 +1028,9 @@ void NativeUIManager::measure(
     }
   }
 
-  auto x = 0.f;
-  auto y = 0.f;
+  winrt::Point point{0.f, 0.f};
   if (const auto relativePosition = GetRelativePosition(feView, feRootView)) {
-    x = relativePosition->X;
-    y = relativePosition->Y;
+    point = *relativePosition;
   }
 
   // TODO: The first two params are for the local position. It's unclear what
@@ -1040,8 +1038,8 @@ void NativeUIManager::measure(
   //  Either codify this non-use or determine if and how we can send the needed
   //  data.
   m_context.JSDispatcher().Post(
-      [callback = std::move(callback), x, y, w = node.m_layout.Width, h = node.m_layout.Height]() {
-        callback(0, 0, w, h, x, y);
+      [callback = std::move(callback), point, w = node.m_layout.Width, h = node.m_layout.Height]() {
+        callback(0, 0, w, h, point.X, point.Y);
       });
 }
 
