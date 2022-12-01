@@ -66,6 +66,7 @@ void MainPage::OnLoadClick(
     mainComponentName = unbox_value<hstring>(item);
   }
   ReactRootView().ComponentName(mainComponentName);
+  ReactRootView().ExperimentalUseFabric(x_UseFabric().IsChecked().GetBoolean());
   ReactRootView().ReactNativeHost(host);
 
   host.InstanceSettings().UseDeveloperSupport(true);
@@ -171,8 +172,8 @@ void winrt::playground::implementation::MainPage::x_UseWebDebuggerCheckBox_Unche
 }
 
 void winrt::playground::implementation::MainPage::x_Theme_SelectionChanged(
-    winrt::Windows::Foundation::IInspectable const &,
-    xaml::Controls::SelectionChangedEventArgs const &) {
+    winrt::Windows::Foundation::IInspectable const &sender,
+    xaml::Controls::SelectionChangedEventArgs const &e) {
   auto theme = ElementTheme::Default;
   if (x_Theme().SelectedItem() == x_themeLight()) {
     theme = ElementTheme::Light;
