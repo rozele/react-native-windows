@@ -12,7 +12,7 @@
 #include "Utils/BatchingEventEmitter.h"
 #include "XamlView.h"
 
-#ifdef USE_FABRIC
+#if USE_WINUI_FABRIC
 #include <react/renderer/components/view/Touch.h>
 #endif
 
@@ -29,7 +29,7 @@ namespace Microsoft::ReactNative {
 
 class TouchEventHandler {
  public:
-  TouchEventHandler(const Mso::React::IReactContext &context);
+  TouchEventHandler(const Mso::React::IReactContext &context, bool fabric);
   virtual ~TouchEventHandler();
 
   void AddTouchHandlers(XamlView xamlView, XamlView rootView = nullptr, bool handledEventsToo = false);
@@ -86,6 +86,10 @@ class TouchEventHandler {
       std::vector<int64_t> &&newViews);
 
   enum class TouchEventType { Start = 0, End, Move, Cancel, CaptureLost, PointerEntered, PointerExited, PointerMove };
+#ifdef USE_WINUI_FABRIC
+  facebook::react::Touch TouchForPointer(const ReactPointer &pointer) noexcept;
+  static bool IsEndishEventType(TouchEventType eventType) noexcept;
+#endif
   void OnPointerConcluded(TouchEventType eventType, const winrt::PointerRoutedEventArgs &args);
   void DispatchTouchEvent(TouchEventType eventType, size_t pointerIndex);
   bool DispatchBackEvent();
@@ -114,6 +118,7 @@ class TouchEventHandler {
   XamlView m_xamlView;
   XamlView m_rootView;
   Mso::CntPtr<const Mso::React::IReactContext> m_context;
+  bool m_fabric;
   std::shared_ptr<winrt::Microsoft::ReactNative::BatchingEventEmitter> m_batchingEventEmitter;
 };
 
