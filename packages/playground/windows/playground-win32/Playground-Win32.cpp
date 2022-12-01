@@ -67,6 +67,7 @@ struct WindowData {
   bool m_fastRefreshEnabled{true};
   bool m_useDirectDebugger{true};
   bool m_breakOnNextLine{false};
+  bool m_useFabric{false};
   uint16_t m_debuggerPort{defaultDebuggerPort};
   xaml::ElementTheme m_theme{xaml::ElementTheme::Default};
 
@@ -140,6 +141,7 @@ struct WindowData {
           m_reactRootView = winrt::Microsoft::ReactNative::ReactRootView();
           m_reactRootView.ComponentName(appName);
           m_reactRootView.ReactNativeHost(host);
+          m_reactRootView.ExperimentalUseFabric(m_useFabric);
           rootElement.Children().Clear();
           rootElement.Children().Append(m_reactRootView);
         }
@@ -269,6 +271,7 @@ struct WindowData {
         CheckDlgButton(hwnd, IDC_FASTREFRESH, boolToCheck(self->m_fastRefreshEnabled));
         CheckDlgButton(hwnd, IDC_DIRECTDEBUGGER, boolToCheck(self->m_useDirectDebugger));
         CheckDlgButton(hwnd, IDC_BREAKONNEXTLINE, boolToCheck(self->m_breakOnNextLine));
+        CheckDlgButton(hwnd, IDC_USEFABRIC, boolToCheck(self->m_useFabric));
 
         auto portEditControl = GetDlgItem(hwnd, IDC_DEBUGGERPORT);
         SetWindowTextW(portEditControl, std::to_wstring(self->m_debuggerPort).c_str());
@@ -296,6 +299,10 @@ struct WindowData {
             self->m_fastRefreshEnabled = IsDlgButtonChecked(hwnd, IDC_FASTREFRESH) == BST_CHECKED;
             self->m_useDirectDebugger = IsDlgButtonChecked(hwnd, IDC_DIRECTDEBUGGER) == BST_CHECKED;
             self->m_breakOnNextLine = IsDlgButtonChecked(hwnd, IDC_BREAKONNEXTLINE) == BST_CHECKED;
+            self->m_useFabric = IsDlgButtonChecked(hwnd, IDC_USEFABRIC) == BST_CHECKED;
+            if (self->m_reactRootView) {
+              self->m_reactRootView.ExperimentalUseFabric(self->m_useFabric);
+            }
 
             auto themeComboBox = GetDlgItem(hwnd, IDC_THEME);
             self->m_theme = static_cast<xaml::ElementTheme>(ComboBox_GetCurSel(themeComboBox));
