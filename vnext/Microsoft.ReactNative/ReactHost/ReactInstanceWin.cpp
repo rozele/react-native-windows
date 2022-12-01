@@ -24,6 +24,11 @@
 
 #ifdef USE_FABRIC
 #include <Fabric/FabricUIManagerModule.h>
+#endif
+#ifdef USE_WINUI_FABRIC
+#include <Fabric/WinUI/FabricUIManagerModule.h>
+#endif
+#ifdef USE_FABRIC_CORE
 #include <SchedulerSettings.h>
 #endif
 #include <JSCallInvokerScheduler.h>
@@ -81,6 +86,13 @@
 #include "CrashManager.h"
 #include "JsiApi.h"
 #include "ReactCoreInjection.h"
+
+#ifdef USE_WINUI_FABRIC
+namespace facebook::react {
+void InitTextInputThemeInfo(const Mso::React::IReactContext &reactContext);
+void InitSliderMeasurements(const Mso::React::IReactContext &reactContext);
+} // namespace facebook::react
+#endif
 
 namespace Microsoft::ReactNative {
 
@@ -310,7 +322,7 @@ void ReactInstanceWin::LoadModules(
     }
   };
 
-#ifdef USE_FABRIC
+#ifdef USE_FABRIC_CORE
   if (!m_options.UseWebDebugger()) {
     registerTurboModule(
         L"FabricUIManagerBinding",
@@ -397,6 +409,11 @@ void ReactInstanceWin::Initialize() noexcept {
           winrt::Microsoft::ReactNative::ReactPropertyBag(strongThis->Options().Properties));
       Microsoft::ReactNative::Appearance::InitOnUIThread(strongThis->GetReactContext());
       Microsoft::ReactNative::DeviceInfoHolder::InitDeviceInfoHolder(strongThis->GetReactContext());
+
+#if USE_WINUI_FABRIC
+      facebook::react::InitTextInputThemeInfo(strongThis->GetReactContext());
+      facebook::react::InitSliderMeasurements(strongThis->GetReactContext());
+#endif // USE_WINUI_FABRIC
 
 #endif // CORE_ABI
 
@@ -527,7 +544,7 @@ void ReactInstanceWin::Initialize() noexcept {
                   }
                 });
 
-#ifdef USE_FABRIC
+#ifdef USE_FABRIC_CORE
             // Eagerly init the FabricUI binding
             if (!m_options.UseWebDebugger()) {
               Microsoft::ReactNative::SchedulerSettings::SetRuntimeExecutor(
@@ -1000,7 +1017,7 @@ void ReactInstanceWin::AttachMeasuredRootView(
   if (State() == ReactInstanceState::HasError)
     return;
 
-#ifdef USE_FABRIC
+#ifdef USE_FABRIC_CORE
   if (useFabric && !m_useWebDebugger) {
     auto uiManager = ::Microsoft::ReactNative::FabricUIManager::FromProperties(
         winrt::Microsoft::ReactNative::ReactPropertyBag(m_reactContext->Properties()));
@@ -1038,7 +1055,7 @@ void ReactInstanceWin::DetachRootView(facebook::react::IReactRootView *rootView,
   auto rootTag = rootView->GetTag();
   folly::dynamic params = folly::dynamic::array(rootTag);
 
-#ifdef USE_FABRIC
+#ifdef USE_FABRIC_CORE
   if (useFabric && !m_useWebDebugger) {
     auto uiManager = ::Microsoft::ReactNative::FabricUIManager::FromProperties(
         winrt::Microsoft::ReactNative::ReactPropertyBag(m_reactContext->Properties()));

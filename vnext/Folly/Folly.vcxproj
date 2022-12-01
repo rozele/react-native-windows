@@ -41,7 +41,7 @@
   <PropertyGroup>
     <ConfigurationType>StaticLibrary</ConfigurationType>
   </PropertyGroup>
-  <ItemGroup Condition="'$(UseFabric)' == 'true'">
+  <ItemGroup Condition="'$(UseFabric)' == 'true' OR '$(UseWinUIFabric)' == 'true'">
     <ClCompile Include="$(FollyDir)\folly\SharedMutex.cpp" />
     <ClCompile Include="$(FollyDir)\folly\concurrency\CacheLocality.cpp" />
     <ClCompile Include="$(FollyDir)\folly\detail\Futex.cpp" />

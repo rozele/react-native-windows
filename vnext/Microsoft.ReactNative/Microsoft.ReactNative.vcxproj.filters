@@ -742,6 +742,101 @@
     <ClInclude Include="Views\FrameworkElementTransferProperties.h" />
     <ClInclude Include="Views\ReactViewInstance.h" />
   </ItemGroup>
+  <!-- WinUI Fabric Files -->
+  <ItemGroup>
+    <ClCompile Include="Fabric\WinUI\ComponentViewRegistry.cpp">
+      <Filter>Fabric\WinUI</Filter>
+    </ClCompile>
+    <ClCompile Include="Fabric\WinUI\FabricUIManagerModule.cpp">
+      <Filter>Fabric\WinUI</Filter>
+    </ClCompile>
+    <ClCompile Include="Fabric\WinUI\Components\ActivityIndicator\ActivityIndicatorComponentView.cpp">
+      <Filter>Fabric\WinUI\Components\ActivityIndicator</Filter>
+    </ClCompile>
+    <ClCompile Include="Fabric\WinUI\Components\Image\ImageComponentView.cpp">
+      <Filter>Fabric\WinUI\Components\Image</Filter>
+    </ClCompile>
+    <ClCompile Include="Fabric\WinUI\Components\ScrollView\ScrollViewComponentView.cpp">
+      <Filter>Fabric\WinUI\Components\ScrollView</Filter>
+    </ClCompile>
+    <ClCompile Include="Fabric\WinUI\Components\Slider\SliderComponentView.cpp">
+      <Filter>Fabric\WinUI\Components\Slider</Filter>
+    </ClCompile>
+    <ClCompile Include="Fabric\WinUI\Components\Switch\SwitchComponentView.cpp">
+      <Filter>Fabric\WinUI\Components\Switch</Filter>
+    </ClCompile>
+    <ClCompile Include="Fabric\WinUI\Components\Text\ParagraphComponentView.cpp">
+      <Filter>Fabric\WinUI\Components\Text</Filter>
+    </ClCompile>
+    <ClCompile Include="Fabric\WinUI\Components\TextInput\WindowsTextInputComponentView.cpp">
+      <Filter>Fabric\WinUI\Components\TextInput</Filter>
+    </ClCompile>
+    <ClCompile Include="Fabric\WinUI\Components\TextInput\WindowsTextInputEventEmitter.cpp">
+      <Filter>Fabric\WinUI\Components\TextInput</Filter>
+    </ClCompile>
+    <ClCompile Include="Fabric\WinUI\Components\TextInput\WindowsTextInputProps.cpp">
+      <Filter>Fabric\WinUI\Components\TextInput</Filter>
+    </ClCompile>
+    <ClCompile Include="Fabric\WinUI\Components\TextInput\WindowsTextInputShadowNode.cpp">
+      <Filter>Fabric\WinUI\Components\TextInput</Filter>
+    </ClCompile>
+    <ClCompile Include="Fabric\WinUI\Components\TextInput\WindowsTextInputState.cpp">
+      <Filter>Fabric\WinUI\Components\TextInput</Filter>
+    </ClCompile>
+    <ClCompile Include="Fabric\WinUI\Components\View\ViewComponentView.cpp">
+      <Filter>Fabric\WinUI\Components\View</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Fabric\WinUI\ComponentView.h">
+      <Filter>Fabric\WinUI</Filter>
+    </ClInclude>
+    <ClInclude Include="Fabric\WinUI\ComponentViewRegistry.h">
+      <Filter>Fabric\WinUI</Filter>
+    </ClInclude>
+    <ClInclude Include="Fabric\WinUI\FabricUIManagerModule.h">
+      <Filter>Fabric\WinUI</Filter>
+    </ClInclude>
+    <ClInclude Include="Fabric\WinUI\Components\ActivityIndicator\ActivityIndicatorComponentView.h">
+      <Filter>Fabric\WinUI\Components\ActivityIndicator</Filter>
+    </ClInclude>
+    <ClInclude Include="Fabric\WinUI\Components\Image\ImageComponentView.h">
+      <Filter>Fabric\WinUI\Components\Image</Filter>
+    </ClInclude>
+    <ClInclude Include="Fabric\WinUI\Components\ScrollView\ScrollViewComponentView.h">
+      <Filter>Fabric\WinUI\Components\ScrollView</Filter>
+    </ClInclude>
+    <ClInclude Include="Fabric\WinUI\Components\Slider\SliderComponentView.h">
+      <Filter>Fabric\WinUI\Components\Slider</Filter>
+    </ClInclude>
+    <ClInclude Include="Fabric\WinUI\Components\Switch\SwitchComponentView.h">
+      <Filter>Fabric\WinUI\Components\Switch</Filter>
+    </ClInclude>
+    <ClInclude Include="Fabric\WinUI\Components\Text\ParagraphComponentView.h">
+      <Filter>Fabric\WinUI\Components\Text</Filter>
+    </ClInclude>
+    <ClInclude Include="Fabric\WinUI\Components\TextInput\WindowsTextInputComponentDescriptor.h">
+      <Filter>Fabric\WinUI\Components\TextInput</Filter>
+    </ClInclude>
+    <ClInclude Include="Fabric\WinUI\Components\TextInput\WindowsTextInputComponentView.h">
+      <Filter>Fabric\WinUI\Components\TextInput</Filter>
+    </ClInclude>
+    <ClInclude Include="Fabric\WinUI\Components\TextInput\WindowsTextInputEventEmitter.h">
+      <Filter>Fabric\WinUI\Components\TextInput</Filter>
+    </ClInclude>
+    <ClInclude Include="Fabric\WinUI\Components\TextInput\WindowsTextInputProps.h">
+      <Filter>Fabric\WinUI\Components\TextInput</Filter>
+    </ClInclude>
+    <ClInclude Include="Fabric\WinUI\Components\TextInput\WindowsTextInputShadowNode.h">
+      <Filter>Fabric\WinUI\Components\TextInput</Filter>
+    </ClInclude>
+    <ClInclude Include="Fabric\WinUI\Components\TextInput\WindowsTextInputState.h">
+      <Filter>Fabric\WinUI\Components\TextInput</Filter>
+    </ClInclude>
+    <ClInclude Include="Fabric\WinUI\Components\View\ViewComponentView.h">
+      <Filter>Fabric\WinUI\Components\View</Filter>
+    </ClInclude>
+  </ItemGroup>
   <ItemGroup>
     <Midl Include="IJSValueReader.idl" />
     <Midl Include="IJSValueWriter.idl" />
@@ -828,6 +923,47 @@
     </Filter>
     <Filter Include="Views\Text">
       <UniqueIdentifier>{8b871c42-6131-44c2-a73f-f1061780e97f}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Fabric">
+      <UniqueIdentifier>{c9f09c1d-c64d-46ad-a335-edd1a2b9a478}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Fabric\Composition">
+      <UniqueIdentifier>{7809196c-e581-4b0d-8a1a-95647d5de782}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Fabric\Composition\TextInput">
+      <UniqueIdentifier>{0164cb46-0aa0-438b-b970-2a7b1c11ad9c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Fabric\WinUI">
+      <UniqueIdentifier>{e0752729-1ef6-4492-9b70-f5924cd90f03}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Fabric\WinUI\Components">
+      <UniqueIdentifier>{5f5b34f3-08ce-4a6a-8091-2253c90b82a7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Fabric\WinUI\Components\ActivityIndicator">
+      <UniqueIdentifier>{36ae8c7f-161e-4849-9f9c-5086bc1d7763}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Fabric\WinUI\Components\Image">
+      <UniqueIdentifier>{4195b963-3ba6-4a47-a884-95dfcce2ff92}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Fabric\WinUI\Components\ScrollView">
+      <UniqueIdentifier>{2c5b3101-ba16-4ede-b02f-6d42f3a64e7b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Fabric\WinUI\Components\Slider">
+      <UniqueIdentifier>{48b921ac-2669-41fd-8ff9-4300909d8fb8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Fabric\WinUI\Components\Switch">
+      <UniqueIdentifier>{556bfaac-3579-42cb-8cb5-acf6670b4f73}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Fabric\WinUI\Components\Text">
+      <UniqueIdentifier>{35d5fad9-2941-4130-8fa9-a15b9a3e5add}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Fabric\WinUI\Components\TextInput">
+      <UniqueIdentifier>{bf496131-ca3c-40db-b876-934d115b83c8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Fabric\WinUI\Components\View">
+      <UniqueIdentifier>{57c4382a-3eca-412e-9cf7-2d1c0411020e}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>

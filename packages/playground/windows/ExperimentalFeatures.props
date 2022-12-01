@@ -3,7 +3,8 @@
 
   <PropertyGroup Label="Microsoft.ReactNative Experimental Features">
     <UseHermes>true</UseHermes>
-    <UseFabric>true</UseFabric>
+    <UseFabric>false</UseFabric>
+    <UseWinUIFabric>true</UseWinUIFabric>
     <UseWinUI3>false</UseWinUI3>
 
     <ReactExperimentalFeaturesSet>true</ReactExperimentalFeaturesSet>
