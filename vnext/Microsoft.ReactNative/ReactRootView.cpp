@@ -17,10 +17,15 @@
 
 #include <winrt/Microsoft.UI.Xaml.Controls.h>
 
-#ifdef USE_FABRIC
-#include <Fabric/FabricUIManagerModule.h>
+#ifdef USE_FABRIC_CORE
 #include <react/renderer/core/LayoutConstraints.h>
 #include <react/renderer/core/LayoutContext.h>
+#endif
+#ifdef USE_FABRIC
+#include <Fabric/FabricUIManagerModule.h>
+#endif
+#ifdef USE_WINUI_FABRIC
+#include <Fabric/WinUI/FabricUIManagerModule.h>
 #endif
 
 namespace winrt::Microsoft::ReactNative::implementation {

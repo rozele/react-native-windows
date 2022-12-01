@@ -91,7 +91,7 @@
   <ItemDefinitionGroup>
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
-      <RuntimeTypeInfo Condition="'$(UseFabric)' == 'true' AND '$(Configuration)'=='Debug'">true</RuntimeTypeInfo>
+      <RuntimeTypeInfo Condition="('$(UseFabric)' == 'true' OR '$(UseWinUIFabric)' == 'true') AND '$(Configuration)'=='Debug'">true</RuntimeTypeInfo>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
       <PrecompiledHeaderOutputFile>$(IntDir)pch.pch</PrecompiledHeaderOutputFile>
       <ForcedIncludeFiles>pch.h</ForcedIncludeFiles>
@@ -150,7 +150,7 @@
       <GenerateWindowsMetadata>true</GenerateWindowsMetadata>
       <ModuleDefinitionFile>Microsoft.ReactNative.def</ModuleDefinitionFile>
     </Link>
-    <Link Condition="'$(UseFabric)' == 'true'">
+    <Link Condition="'$(UseFabric)' == 'true' OR '$(UseWinUIFabric)' == 'true'">
       <AdditionalDependencies>User32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Midl>
@@ -418,6 +418,42 @@
       <DependentUpon>ReactPointerEventArgs.idl</DependentUpon>
       <SubType>Code</SubType>
     </ClInclude>
+  </ItemGroup>
+  <!-- WinUI Fabric Files -->
+  <ItemGroup Condition="'$(UseWinUIFabric)' == 'true'">
+    <ClInclude Include="Fabric\WinUI\ComponentView.h" />
+    <ClInclude Include="Fabric\WinUI\ComponentViewRegistry.h" />
+    <ClInclude Include="Fabric\WinUI\FabricUIManagerModule.h" />
+    <ClInclude Include="Fabric\WinUI\Components\ActivityIndicator\ActivityIndicatorComponentView.h" />
+    <ClInclude Include="Fabric\WinUI\Components\Image\ImageComponentView.h" />
+    <ClInclude Include="Fabric\WinUI\Components\ScrollView\ScrollViewComponentView.h" />
+    <ClInclude Include="Fabric\WinUI\Components\Slider\SliderComponentView.h" />
+    <ClInclude Include="Fabric\WinUI\Components\Switch\SwitchComponentView.h" />
+    <ClInclude Include="Fabric\WinUI\Components\Text\ParagraphComponentView.h" />
+    <ClInclude Include="Fabric\WinUI\Components\TextInput\WindowsTextInputComponentDescriptor.h" />
+    <ClInclude Include="Fabric\WinUI\Components\TextInput\WindowsTextInputComponentView.h" />
+    <ClInclude Include="Fabric\WinUI\Components\TextInput\WindowsTextInputEventEmitter.h" />
+    <ClInclude Include="Fabric\WinUI\Components\TextInput\WindowsTextInputProps.h" />
+    <ClInclude Include="Fabric\WinUI\Components\TextInput\WindowsTextInputShadowNode.h" />
+    <ClInclude Include="Fabric\WinUI\Components\TextInput\WindowsTextInputState.h" />
+    <ClInclude Include="Fabric\WinUI\Components\View\ViewComponentView.h" />
+    <ClCompile Include="Fabric\platform\react\renderer\components\slider\SliderMeasurementsManager.cpp" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(UseWinUIFabric)' == 'true'">
+    <ClCompile Include="Fabric\WinUI\ComponentViewRegistry.cpp" />
+    <ClCompile Include="Fabric\WinUI\FabricUIManagerModule.cpp" />
+    <ClCompile Include="Fabric\WinUI\Components\ActivityIndicator\ActivityIndicatorComponentView.cpp" />
+    <ClCompile Include="Fabric\WinUI\Components\Image\ImageComponentView.cpp" />
+    <ClCompile Include="Fabric\WinUI\Components\ScrollView\ScrollViewComponentView.cpp" />
+    <ClCompile Include="Fabric\WinUI\Components\Slider\SliderComponentView.cpp" />
+    <ClCompile Include="Fabric\WinUI\Components\Switch\SwitchComponentView.cpp" />
+    <ClCompile Include="Fabric\WinUI\Components\Text\ParagraphComponentView.cpp" />
+    <ClCompile Include="Fabric\WinUI\Components\TextInput\WindowsTextInputComponentView.cpp" />
+    <ClCompile Include="Fabric\WinUI\Components\TextInput\WindowsTextInputEventEmitter.cpp" />
+    <ClCompile Include="Fabric\WinUI\Components\TextInput\WindowsTextInputProps.cpp" />
+    <ClCompile Include="Fabric\WinUI\Components\TextInput\WindowsTextInputShadowNode.cpp" />
+    <ClCompile Include="Fabric\WinUI\Components\TextInput\WindowsTextInputState.cpp" />
+    <ClCompile Include="Fabric\WinUI\Components\View\ViewComponentView.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ABICxxModule.cpp" />
