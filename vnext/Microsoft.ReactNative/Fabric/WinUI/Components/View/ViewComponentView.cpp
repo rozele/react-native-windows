@@ -5,9 +5,12 @@
 
 #include "ViewComponentView.h"
 
+#include <UI.Composition.h>
 #include <UI.Xaml.Controls.h>
 #include <Utils/ValueUtils.h>
+#include <Views/ExpressionAnimationStore.h>
 #include <Views/FrameworkElementTransferProperties.h>
+#include <XamlView.h>
 
 namespace Microsoft::ReactNative {
 
@@ -21,6 +24,52 @@ const facebook::react::SharedViewEventEmitter &BaseComponentView::GetEventEmitte
 
 void BaseComponentView::handleCommand(std::string const &commandName, folly::dynamic const &arg) noexcept {
   assert(false); // Unhandled command
+}
+
+comp::CompositionPropertySet BaseComponentView::EnsureCenterPointPropertySet() noexcept {
+  if (m_centerPointPropertySet == nullptr) {
+    auto compositor = GetCompositor(Element());
+    m_centerPointPropertySet = compositor.CreatePropertySet();
+    UpdateCenterPointPropertySet();
+    m_centerPointPropertySet.InsertMatrix4x4(L"transform", winrt::Windows::Foundation::Numerics::float4x4::identity());
+    m_centerPointPropertySet.InsertVector3(L"translation", {0, 0, 0});
+  }
+
+  return m_centerPointPropertySet;
+}
+
+void BaseComponentView::UpdateCenterPointPropertySet() noexcept {
+  if (m_centerPointPropertySet != nullptr) {
+    // First build up an ExpressionAnimation to compute the "center" property,
+    // like so: The input to the expression is UIElement.ActualSize/2, output is
+    // a vector3 with [cx, cy, 0].
+    auto view = Element();
+    assert(view != nullptr);
+    m_centerPointPropertySet.InsertVector3(L"center", {0, 0, 0});
+
+    static std::shared_ptr<ExpressionAnimationStore> expressions{nullptr};
+    if (!expressions) {
+      expressions = std::make_shared<ExpressionAnimationStore>();
+    }
+
+    auto centeringAnimation = expressions->GetElementCenterPointExpression(GetCompositor(view));
+    centeringAnimation.SetExpressionReferenceParameter(L"uielement", view);
+    m_centerPointPropertySet.StartAnimation(L"center", centeringAnimation);
+
+    // Now insert the "transform" property with an initial value of identity.
+    // The caller will handle populating this with the appropriate value (either
+    // a static or animated value).
+    winrt::Windows::Foundation::Numerics::float4x4 unused;
+
+    // Take care not to stomp over any transform value we currently have set, as
+    // we will use this value in the scenario where a View changed its backing
+    // XAML element, here we will just transfer existing value to a new backing
+    // XAML element.
+    if (m_centerPointPropertySet.TryGetMatrix4x4(L"transform", unused) == comp::CompositionGetValueStatus::NotFound) {
+      m_centerPointPropertySet.InsertMatrix4x4(
+          L"transform", winrt::Windows::Foundation::Numerics::float4x4::identity());
+    }
+  }
 }
 
 ViewComponentView::ViewComponentView() {

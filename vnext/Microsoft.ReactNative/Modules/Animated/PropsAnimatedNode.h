@@ -12,6 +12,8 @@
 
 #ifdef USE_FABRIC
 #include <Fabric/Composition/CompositionViewComponentView.h>
+#elif USE_WINUI_FABRIC
+#include <Fabric/WinUI/Components/View/ViewComponentView.h>
 #endif
 
 namespace Microsoft::ReactNative {
@@ -39,9 +41,11 @@ class PropsAnimatedNode final : public AnimatedNode {
     xaml::UIElement m_element;
 #ifdef USE_FABRIC
     std::shared_ptr<CompositionBaseComponentView> m_componentView;
+#elif USE_WINUI_FABRIC
+    std::shared_ptr<BaseComponentView> m_componentView;
 #endif
     operator bool() const noexcept {
-#ifdef USE_FABRIC
+#if USE_FABRIC_CORE
       return m_element || m_componentView;
 #else
       return m_element != nullptr;

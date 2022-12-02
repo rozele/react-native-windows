@@ -16,6 +16,8 @@
 #include <Fabric/Composition/CompositionContextHelper.h>
 #include <Fabric/Composition/CompositionUIService.h>
 #include <Fabric/FabricUIManagerModule.h>
+#elif USE_WINUI_FABRIC
+#include <Fabric/WinUI/FabricUIManagerModule.h>
 #endif
 
 namespace Microsoft::ReactNative {
@@ -347,19 +349,23 @@ void PropsAnimatedNode::CommitProps() {
 }
 
 PropsAnimatedNode::AnimationView PropsAnimatedNode::GetAnimationView() {
-#ifdef USE_FABRIC
+#ifdef USE_FABRIC_CORE
   if (auto fabricuiManager = FabricUIManager::FromProperties(m_context.Properties())) {
     auto componentView = fabricuiManager->GetViewRegistry().findComponentViewWithTag(
         static_cast<facebook::react::Tag>(m_connectedViewTag));
     if (componentView) {
+#ifdef USE_WINUI_FABRIC
+      return {nullptr, std::static_pointer_cast<BaseComponentView>(componentView)};
+#else
       return {nullptr, std::static_pointer_cast<CompositionBaseComponentView>(componentView)};
+#endif
     }
   }
 #endif
   if (IsRS5OrHigher()) {
     if (const auto shadowNodeBase = GetShadowNodeBase()) {
       if (const auto shadowNodeView = shadowNodeBase->GetView()) {
-#ifdef USE_FABRIC
+#ifdef USE_FABRIC_CORE
         return {shadowNodeView.as<xaml::UIElement>(), nullptr};
 #else
         return {shadowNodeView.as<xaml::UIElement>()};
@@ -368,7 +374,7 @@ PropsAnimatedNode::AnimationView PropsAnimatedNode::GetAnimationView() {
     }
   }
 
-#ifdef USE_FABRIC
+#ifdef USE_FABRIC_CORE
   return {nullptr, nullptr};
 #else
   return {nullptr};
@@ -399,6 +405,9 @@ void PropsAnimatedNode::StartAnimation(
       }
       visual.StartAnimation(targetProp, animation);
     }
+#elif USE_WINUI_FABRIC
+  } else if (view.m_componentView) {
+    view.m_componentView->Element().StartAnimation(animation);
 #endif
   }
 }
@@ -406,7 +415,7 @@ void PropsAnimatedNode::StartAnimation(
 comp::CompositionPropertySet PropsAnimatedNode::EnsureCenterPointPropertySet(const AnimationView &view) noexcept {
   if (view.m_element) {
     return GetShadowNodeBase()->EnsureTransformPS();
-#ifdef USE_FABRIC
+#ifdef USE_FABRIC_CORE
   } else if (view.m_componentView) {
     return view.m_componentView->EnsureCenterPointPropertySet();
 #endif
