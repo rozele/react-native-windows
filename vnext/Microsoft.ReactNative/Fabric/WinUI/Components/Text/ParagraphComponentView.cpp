@@ -18,6 +18,8 @@ namespace Microsoft::ReactNative {
 ParagraphComponentView::ParagraphComponentView() {
   static auto const defaultProps = std::make_shared<facebook::react::ParagraphProps const>();
   m_props = defaultProps;
+
+  m_element.TextWrapping(xaml::TextWrapping::Wrap); // Default behavior in React Native
 }
 
 std::vector<facebook::react::ComponentDescriptorProvider>
