@@ -433,6 +433,17 @@ facebook::react::SharedEventEmitter EventEmitterForElement(
 }
 
 facebook::react::Touch TouchEventHandler::TouchForPointer(const ReactPointer &pointer) noexcept {
+  MouseEventButtonKind button = MouseEventButtonKind::None;
+  if (pointer.isLeftButton) {
+    button = MouseEventButtonKind::Main;
+  } else if (pointer.isMiddleButton) {
+    button = MouseEventButtonKind::Auxiliary;
+  } else if (pointer.isRightButton || pointer.isBarrelButton) {
+    button = MouseEventButtonKind::Secondary;
+  } else if (pointer.isEraser) {
+    button = MouseEventButtonKind::Eraser;
+  }
+
   facebook::react::Touch t;
   t.force = pointer.pressure;
   t.identifier = static_cast<int>(pointer.identifier);
@@ -444,6 +455,10 @@ facebook::react::Touch TouchEventHandler::TouchForPointer(const ReactPointer &po
   t.offsetPoint.y = pointer.positionView.Y;
   t.target = static_cast<facebook::react::Tag>(pointer.target);
   t.timestamp = static_cast<facebook::react::Float>(pointer.timestamp);
+  t.button = static_cast<int>(button);
+  t.altKey = pointer.altKey;
+  t.ctrlKey = pointer.ctrlKey;
+  t.shiftKey = pointer.shiftKey;
   return t;
 }
 

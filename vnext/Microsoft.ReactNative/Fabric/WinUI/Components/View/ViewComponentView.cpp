@@ -253,6 +253,7 @@ void ViewComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMask) no
     auto newElement = Element();
 
     // -- Transfer properties to new element
+    SetTag(newElement, GetTag(oldElement));
     TransferFrameworkElementProperties(oldElement, newElement);
     m_panel.FinalizeProperties();
 
