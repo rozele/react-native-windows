@@ -43,6 +43,8 @@ void ParagraphComponentView::unmountChildComponentView(
 void ParagraphComponentView::updateProps(
     facebook::react::Props::Shared const &props,
     facebook::react::Props::Shared const &oldProps) noexcept {
+  Super::updateProps(props, oldProps);
+
   const auto &oldViewProps = *std::static_pointer_cast<const facebook::react::ParagraphProps>(m_props);
   const auto &newViewProps = *std::static_pointer_cast<const facebook::react::ParagraphProps>(props);
 

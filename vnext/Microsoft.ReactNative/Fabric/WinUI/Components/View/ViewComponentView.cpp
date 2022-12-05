@@ -8,11 +8,44 @@
 #include <UI.Composition.h>
 #include <UI.Xaml.Controls.h>
 #include <Utils/ValueUtils.h>
-#include <Views/ExpressionAnimationStore.h>
 #include <Views/FrameworkElementTransferProperties.h>
 #include <XamlView.h>
 
 namespace Microsoft::ReactNative {
+
+void BaseComponentView::updateProps(
+    facebook::react::Props::Shared const &props,
+    facebook::react::Props::Shared const &oldProps) noexcept {
+  const auto &oldViewProps = *std::static_pointer_cast<const facebook::react::ViewProps>(oldProps);
+  const auto &newViewProps = *std::static_pointer_cast<const facebook::react::ViewProps>(props);
+
+  const auto hasInitialTransform = !oldProps && newViewProps.transform.operations.size() > 0;
+  if (hasInitialTransform || (oldProps && newViewProps.transform != oldViewProps.transform)) {
+    winrt::Windows::Foundation::Numerics::float4x4 matrix;
+    matrix.m11 = newViewProps.transform.matrix[0];
+    matrix.m12 = newViewProps.transform.matrix[1];
+    matrix.m13 = newViewProps.transform.matrix[2];
+    matrix.m14 = newViewProps.transform.matrix[3];
+    matrix.m21 = newViewProps.transform.matrix[4];
+    matrix.m22 = newViewProps.transform.matrix[5];
+    matrix.m23 = newViewProps.transform.matrix[6];
+    matrix.m24 = newViewProps.transform.matrix[7];
+    matrix.m31 = newViewProps.transform.matrix[8];
+    matrix.m32 = newViewProps.transform.matrix[9];
+    matrix.m33 = newViewProps.transform.matrix[10];
+    matrix.m34 = newViewProps.transform.matrix[11];
+    matrix.m41 = newViewProps.transform.matrix[12];
+    matrix.m42 = newViewProps.transform.matrix[13];
+    matrix.m43 = newViewProps.transform.matrix[14];
+    matrix.m44 = newViewProps.transform.matrix[15];
+    const auto element = Element();
+    if (!element.IsLoaded()) {
+      element.Loaded([this, matrix](auto &&...) { ApplyTransformMatrix(matrix); });
+    } else {
+      ApplyTransformMatrix(matrix);
+    }
+  }
+}
 
 void BaseComponentView::updateEventEmitter(facebook::react::EventEmitter::Shared const &eventEmitter) noexcept {
   m_eventEmitter = std::static_pointer_cast<facebook::react::ViewEventEmitter const>(eventEmitter);
@@ -24,6 +57,16 @@ const facebook::react::SharedViewEventEmitter &BaseComponentView::GetEventEmitte
 
 void BaseComponentView::handleCommand(std::string const &commandName, folly::dynamic const &arg) noexcept {
   assert(false); // Unhandled command
+}
+
+void BaseComponentView::ApplyTransformMatrix(winrt::Windows::Foundation::Numerics::float4x4 matrix) noexcept {
+  // Get our PropertySet from the ShadowNode and insert the TransformMatrix as
+  // the "transform" property
+  auto propertySet = EnsureCenterPointPropertySet();
+  propertySet.InsertMatrix4x4(L"transform", matrix);
+
+  // Start the overall animation to multiply everything together
+  StartTransformAnimation(Element(), propertySet);
 }
 
 comp::CompositionPropertySet BaseComponentView::EnsureCenterPointPropertySet() noexcept {
@@ -47,12 +90,7 @@ void BaseComponentView::UpdateCenterPointPropertySet() noexcept {
     assert(view != nullptr);
     m_centerPointPropertySet.InsertVector3(L"center", {0, 0, 0});
 
-    static std::shared_ptr<ExpressionAnimationStore> expressions{nullptr};
-    if (!expressions) {
-      expressions = std::make_shared<ExpressionAnimationStore>();
-    }
-
-    auto centeringAnimation = expressions->GetElementCenterPointExpression(GetCompositor(view));
+    auto centeringAnimation = EnsureExpressionAnimationStore()->GetElementCenterPointExpression(GetCompositor(view));
     centeringAnimation.SetExpressionReferenceParameter(L"uielement", view);
     m_centerPointPropertySet.StartAnimation(L"center", centeringAnimation);
 
@@ -70,6 +108,24 @@ void BaseComponentView::UpdateCenterPointPropertySet() noexcept {
           L"transform", winrt::Windows::Foundation::Numerics::float4x4::identity());
     }
   }
+}
+
+/*static*/ std::shared_ptr<ExpressionAnimationStore> BaseComponentView::EnsureExpressionAnimationStore() noexcept {
+  static std::shared_ptr<ExpressionAnimationStore> expressions;
+  if (!expressions) {
+    expressions = std::make_shared<ExpressionAnimationStore>();
+  }
+
+  return expressions;
+}
+
+/*static*/ void BaseComponentView::StartTransformAnimation(
+    xaml::UIElement const &element,
+    comp::CompositionPropertySet const &propertySet) noexcept {
+  auto expression = EnsureExpressionAnimationStore()->GetTransformCenteringExpression(GetCompositor(element));
+  expression.SetReferenceParameter(L"PS", propertySet);
+  expression.Target(L"TransformMatrix");
+  element.StartAnimation(expression);
 }
 
 ViewComponentView::ViewComponentView() {
@@ -93,6 +149,8 @@ void ViewComponentView::unmountChildComponentView(const IComponentView &childCom
 void ViewComponentView::updateProps(
     facebook::react::Props::Shared const &props,
     facebook::react::Props::Shared const &oldProps) noexcept {
+  Super::updateProps(props, oldProps);
+
   const auto &oldViewProps = *std::static_pointer_cast<const facebook::react::ViewProps>(m_props);
   const auto &newViewProps = *std::static_pointer_cast<const facebook::react::ViewProps>(props);
 

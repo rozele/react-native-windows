@@ -49,6 +49,8 @@ void SliderComponentView::unmountChildComponentView(const IComponentView &childC
 void SliderComponentView::updateProps(
     facebook::react::Props::Shared const &props,
     facebook::react::Props::Shared const &oldProps) noexcept {
+  Super::updateProps(props, oldProps);
+
   const auto &oldSliderProps = *std::static_pointer_cast<const facebook::react::SliderProps>(m_props);
   const auto &newSliderProps = *std::static_pointer_cast<const facebook::react::SliderProps>(props);
 

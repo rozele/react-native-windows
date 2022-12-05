@@ -59,6 +59,8 @@ void SwitchComponentView::unmountChildComponentView(const IComponentView &childC
 void SwitchComponentView::updateProps(
     facebook::react::Props::Shared const &props,
     facebook::react::Props::Shared const &oldProps) noexcept {
+  Super::updateProps(props, oldProps);
+
   const auto &oldSwitchProps = *std::static_pointer_cast<const facebook::react::SwitchProps>(m_props);
   const auto &newSwitchProps = *std::static_pointer_cast<const facebook::react::SwitchProps>(props);
 

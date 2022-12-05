@@ -10,6 +10,7 @@
 namespace Microsoft::ReactNative {
 
 struct ParagraphComponentView : BaseComponentView {
+  using Super = BaseComponentView;
   ParagraphComponentView();
 
   std::vector<facebook::react::ComponentDescriptorProvider> supplementalComponentDescriptorProviders() noexcept

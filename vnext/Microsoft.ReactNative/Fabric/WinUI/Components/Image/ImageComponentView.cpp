@@ -51,6 +51,8 @@ void ImageComponentView::unmountChildComponentView(const IComponentView &childCo
 void ImageComponentView::updateProps(
     facebook::react::Props::Shared const &props,
     facebook::react::Props::Shared const &oldProps) noexcept {
+  Super::updateProps(props, oldProps);
+
   const auto &oldImageProps = *std::static_pointer_cast<const facebook::react::ImageProps>(m_props);
   const auto &newImageProps = *std::static_pointer_cast<const facebook::react::ImageProps>(props);
 

@@ -15,6 +15,7 @@
 namespace Microsoft::ReactNative {
 
 struct ScrollViewComponentView : BaseComponentView {
+  using Super = BaseComponentView;
   ScrollViewComponentView();
 
   std::vector<facebook::react::ComponentDescriptorProvider> supplementalComponentDescriptorProviders() noexcept

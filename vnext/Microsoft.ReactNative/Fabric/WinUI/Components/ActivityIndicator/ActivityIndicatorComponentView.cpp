@@ -37,6 +37,8 @@ void ActivityIndicatorComponentView::unmountChildComponentView(
 void ActivityIndicatorComponentView::updateProps(
     facebook::react::Props::Shared const &props,
     facebook::react::Props::Shared const &oldProps) noexcept {
+  Super::updateProps(props, oldProps);
+
   const auto &oldActivityProps = *std::static_pointer_cast<const facebook::react::ActivityIndicatorViewProps>(m_props);
   const auto &newActivityProps = *std::static_pointer_cast<const facebook::react::ActivityIndicatorViewProps>(props);
 

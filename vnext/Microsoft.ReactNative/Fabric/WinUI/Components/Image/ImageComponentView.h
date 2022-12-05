@@ -17,6 +17,7 @@
 namespace Microsoft::ReactNative {
 
 struct ImageComponentView : BaseComponentView {
+  using Super = BaseComponentView;
   ImageComponentView(winrt::Microsoft::ReactNative::ReactContext const &reactContext);
 
   std::vector<facebook::react::ComponentDescriptorProvider> supplementalComponentDescriptorProviders() noexcept

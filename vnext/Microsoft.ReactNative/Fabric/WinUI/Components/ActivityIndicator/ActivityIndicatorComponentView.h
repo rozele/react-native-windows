@@ -17,6 +17,7 @@
 namespace Microsoft::ReactNative {
 
 struct ActivityIndicatorComponentView : BaseComponentView {
+  using Super = BaseComponentView;
   ActivityIndicatorComponentView();
 
   std::vector<facebook::react::ComponentDescriptorProvider> supplementalComponentDescriptorProviders() noexcept

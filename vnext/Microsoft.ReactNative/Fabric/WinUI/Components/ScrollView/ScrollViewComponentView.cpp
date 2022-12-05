@@ -130,6 +130,8 @@ void ScrollViewComponentView::unmountChildComponentView(
 void ScrollViewComponentView::updateProps(
     facebook::react::Props::Shared const &props,
     facebook::react::Props::Shared const &oldProps) noexcept {
+  Super::updateProps(props, oldProps);
+
   // const auto &oldViewProps = *std::static_pointer_cast<const facebook::react::TextProps>(m_props);
   const auto &newViewProps = *std::static_pointer_cast<const facebook::react::ScrollViewProps>(props);
 
