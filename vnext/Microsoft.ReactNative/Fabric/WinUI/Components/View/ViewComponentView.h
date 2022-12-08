@@ -60,8 +60,7 @@ struct ViewComponentView : BaseComponentView {
   bool shouldBeControl() const noexcept;
 
   bool m_needsBorderUpdate{false};
-  bool m_needsControlUpdate{false};
-  bool m_needsControl{false};
+  bool m_enableFocusRing{true};
   facebook::react::SharedViewProps m_props;
   facebook::react::LayoutMetrics m_layoutMetrics;
   winrt::Microsoft::ReactNative::ViewControl m_control{nullptr};

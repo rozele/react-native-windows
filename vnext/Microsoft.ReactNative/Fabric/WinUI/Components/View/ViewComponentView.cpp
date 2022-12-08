@@ -185,7 +185,7 @@ void ViewComponentView::updateProps(
 
 bool ViewComponentView::shouldBeControl() const noexcept {
   // Fabric does not appear to have the focusable prop right now...
-  return false; // m_props.focusable || HasDynamicAutomationProperties(view);
+  return m_props->focusable; // || HasDynamicAutomationProperties(view);
 }
 
 void ViewComponentView::updateState(
@@ -223,9 +223,6 @@ void ViewComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMask) no
     m_needsBorderUpdate = false;
   }
 
-  auto oldControl = m_control;
-  auto oldOuterBorder = m_outerBorder;
-
   auto oldElement = Element();
   auto parent = oldElement.Parent();
 
@@ -233,17 +230,12 @@ void ViewComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMask) no
 
   bool needsControl = shouldBeControl();
   if ((bool)m_control != needsControl || m_outerBorder != m_panel.GetOuterBorder()) {
-    // -- Remove old children that are no longer needed
     if (needsControl && !m_control) {
-      assert(false); // NYI
-      // m_control = CreateViewControl();
-    } else if (!needsControl && m_control) {
-      m_control.Content(nullptr);
-    }
-    if (!needsControl) {
-      m_control = nullptr;
+      m_control = winrt::Microsoft::ReactNative::ViewControl{};
+      m_control.UseSystemFocusVisuals(m_enableFocusRing);
     }
 
+    // TODO: When would ViewPanel have an outer border but not need it?
     if (m_panel.GetOuterBorder() && !m_outerBorder) {
       m_panel.GetOuterBorder().Child(nullptr);
     }
@@ -282,6 +274,10 @@ void ViewComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMask) no
       else
         m_control.Content(m_panel);
     }
+  }
+
+  if (m_control) {
+    m_control.IsTabStop(m_props->focusable);
   }
 
   if (m_outerBorder) {
