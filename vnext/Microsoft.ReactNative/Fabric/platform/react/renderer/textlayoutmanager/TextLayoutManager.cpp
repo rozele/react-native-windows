@@ -7,6 +7,7 @@
 
 #include <Fabric/DWriteHelpers.h>
 #include <dwrite.h>
+#include <react/renderer/telemetry/TransactionTelemetry.h>
 #include "TextLayoutManager.h"
 
 #include <unicode.h>
@@ -112,17 +113,37 @@ TextMeasurement TextLayoutManager::measure(
     AttributedStringBox attributedStringBox,
     ParagraphAttributes paragraphAttributes,
     LayoutConstraints layoutConstraints) const {
-  winrt::com_ptr<IDWriteTextLayout> spTextLayout;
+  TextMeasurement measurement{};
+#ifdef USE_WINUI_FABRIC
+  auto &attributedString = attributedStringBox.getValue();
+  measurement = m_measureCache.get(
+      {attributedString, paragraphAttributes, layoutConstraints}, [&](TextMeasureCacheKey const &key) {
+#endif
+        auto telemetry = TransactionTelemetry::threadLocalTelemetry();
+        if (telemetry) {
+          telemetry->willMeasureText();
+        }
 
-  GetTextLayout(attributedStringBox, paragraphAttributes, layoutConstraints, TextAlignment::Left, spTextLayout);
+        winrt::com_ptr<IDWriteTextLayout> spTextLayout;
 
-  TextMeasurement tm{};
-  if (spTextLayout) {
-    DWRITE_TEXT_METRICS dtm{};
-    winrt::check_hresult(spTextLayout->GetMetrics(&dtm));
-    tm.size = {dtm.width, dtm.height};
-  }
-  return tm;
+        GetTextLayout(attributedStringBox, paragraphAttributes, layoutConstraints, TextAlignment::Left, spTextLayout);
+
+        if (spTextLayout) {
+          DWRITE_TEXT_METRICS dtm{};
+          winrt::check_hresult(spTextLayout->GetMetrics(&dtm));
+          measurement.size = {dtm.width, dtm.height};
+        }
+
+        if (telemetry) {
+          telemetry->didMeasureText();
+        }
+
+        return measurement;
+#ifdef USE_WINUI_FABRIC
+      });
+
+  return measurement;
+#endif
 }
 
 /**

@@ -71,6 +71,10 @@ class TextLayoutManager {
 
  private:
   ContextContainer::Shared m_contextContainer;
+#pragma warning(push)
+#pragma warning(disable : 5028)
+  TextMeasureCache m_measureCache{};
+#pragma warning(pop)
 };
 
 } // namespace react
