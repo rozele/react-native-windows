@@ -34,14 +34,12 @@ struct SwitchComponentView : BaseComponentView {
       facebook::react::LayoutMetrics const &oldLayoutMetrics) noexcept override;
   void finalizeUpdates(RNComponentViewUpdateMask updateMask) noexcept override;
   void prepareForRecycle() noexcept override;
-  facebook::react::Props::Shared props() noexcept override;
   void handleCommand(std::string const &commandName, folly::dynamic const &arg) noexcept override;
 
   const xaml::FrameworkElement Element() const noexcept override;
 
  private:
   bool m_needsOnLoadStart{false};
-  std::shared_ptr<facebook::react::SwitchProps const> m_props;
   facebook::react::LayoutMetrics m_layoutMetrics;
   xaml::Controls::ToggleSwitch m_element;
   xaml::Controls::ToggleSwitch::Toggled_revoker m_toggledRevoker;

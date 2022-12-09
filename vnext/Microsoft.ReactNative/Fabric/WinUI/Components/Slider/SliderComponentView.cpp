@@ -16,8 +16,12 @@ namespace Microsoft::ReactNative {
 
 SliderComponentView::SliderComponentView(winrt::Microsoft::ReactNative::ReactContext const &reactContext)
     : m_context(reactContext), m_element(xaml::Controls::Slider()) {
+  static auto const defaultProps = std::make_shared<facebook::react::SliderProps const>();
+  m_props = defaultProps;
+
   m_valueChangedRevoker = m_element.ValueChanged(winrt::auto_revoke, [this](auto sender, auto args) {
-    if (m_props->value != m_element.Value()) {
+    const auto &props = *std::static_pointer_cast<const facebook::react::SliderProps>(m_props);
+    if (props.value != m_element.Value()) {
       if (m_eventEmitter) {
         auto emitter = std::static_pointer_cast<const facebook::react::SliderEventEmitter>(m_eventEmitter);
         facebook::react::SliderEventEmitter::OnValueChange onValueChangeArgs;
@@ -26,9 +30,6 @@ SliderComponentView::SliderComponentView(winrt::Microsoft::ReactNative::ReactCon
       }
     }
   });
-
-  static auto const defaultProps = std::make_shared<facebook::react::SliderProps const>();
-  m_props = defaultProps;
 }
 
 std::vector<facebook::react::ComponentDescriptorProvider>
@@ -49,8 +50,6 @@ void SliderComponentView::unmountChildComponentView(const IComponentView &childC
 void SliderComponentView::updateProps(
     facebook::react::Props::Shared const &props,
     facebook::react::Props::Shared const &oldProps) noexcept {
-  Super::updateProps(props, oldProps);
-
   const auto &oldSliderProps = *std::static_pointer_cast<const facebook::react::SliderProps>(m_props);
   const auto &newSliderProps = *std::static_pointer_cast<const facebook::react::SliderProps>(props);
 
@@ -72,7 +71,7 @@ void SliderComponentView::updateProps(
 
   // TODO tint colors
 
-  m_props = std::static_pointer_cast<facebook::react::SliderProps const>(props);
+  Super::updateProps(props, oldProps);
 }
 
 void SliderComponentView::updateState(
@@ -96,10 +95,6 @@ void SliderComponentView::updateLayoutMetrics(
 void SliderComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMask) noexcept {}
 
 void SliderComponentView::prepareForRecycle() noexcept {}
-facebook::react::Props::Shared SliderComponentView::props() noexcept {
-  assert(false);
-  return {};
-}
 
 const xaml::FrameworkElement SliderComponentView::Element() const noexcept {
   return m_element;

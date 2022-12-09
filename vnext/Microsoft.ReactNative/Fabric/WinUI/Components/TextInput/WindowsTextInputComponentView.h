@@ -27,7 +27,6 @@ struct WindowsTextInputComponentView : BaseComponentView {
       facebook::react::LayoutMetrics const &oldLayoutMetrics) noexcept override;
   void finalizeUpdates(RNComponentViewUpdateMask updateMask) noexcept override;
   void prepareForRecycle() noexcept override;
-  facebook::react::Props::Shared props() noexcept override;
   void handleCommand(std::string const &commandName, folly::dynamic const &arg) noexcept override;
 
   virtual const xaml::FrameworkElement Element() const noexcept override;
@@ -40,7 +39,6 @@ struct WindowsTextInputComponentView : BaseComponentView {
   xaml::Controls::TextBox m_element;
   xaml::Controls::TextBox::TextChanged_revoker m_textChangedRevoker;
   xaml::Controls::TextBox::SelectionChanged_revoker m_SelectionChangedRevoker;
-  std::shared_ptr<facebook::react::WindowsTextInputProps const> m_props;
   std::shared_ptr<facebook::react::WindowsTextInputShadowNode::ConcreteState const> m_state;
   int64_t m_mostRecentEventCount{0};
   int m_nativeEventCount{0};

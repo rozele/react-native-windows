@@ -16,11 +16,11 @@ namespace Microsoft::ReactNative {
 void BaseComponentView::updateProps(
     facebook::react::Props::Shared const &props,
     facebook::react::Props::Shared const &oldProps) noexcept {
-  const auto &oldViewProps = *std::static_pointer_cast<const facebook::react::ViewProps>(oldProps);
+  const auto &oldViewProps = *std::static_pointer_cast<const facebook::react::ViewProps>(m_props);
   const auto &newViewProps = *std::static_pointer_cast<const facebook::react::ViewProps>(props);
 
-  const auto hasInitialTransform = !oldProps && newViewProps.transform.operations.size() > 0;
-  if (hasInitialTransform || (oldProps && newViewProps.transform != oldViewProps.transform)) {
+  if ((!oldProps || newViewProps.transform != oldViewProps.transform && newViewProps.transform.operations.size() > 0) &&
+      !propKeysManagedByAnimated_DO_NOT_USE_THIS_IS_BROKEN.count("transform")) {
     winrt::Windows::Foundation::Numerics::float4x4 matrix;
     matrix.m11 = newViewProps.transform.matrix[0];
     matrix.m12 = newViewProps.transform.matrix[1];
@@ -45,6 +45,13 @@ void BaseComponentView::updateProps(
       ApplyTransformMatrix(matrix);
     }
   }
+
+  if ((!oldProps || oldViewProps.opacity != newViewProps.opacity) &&
+      !propKeysManagedByAnimated_DO_NOT_USE_THIS_IS_BROKEN.count("opacity")) {
+    Element().Opacity(newViewProps.opacity);
+  }
+
+  m_props = props;
 }
 
 void BaseComponentView::updateEventEmitter(facebook::react::EventEmitter::Shared const &eventEmitter) noexcept {
@@ -57,6 +64,10 @@ const facebook::react::SharedViewEventEmitter &BaseComponentView::GetEventEmitte
 
 void BaseComponentView::handleCommand(std::string const &commandName, folly::dynamic const &arg) noexcept {
   assert(false); // Unhandled command
+}
+
+facebook::react::Props::Shared BaseComponentView::props() noexcept {
+  return m_props;
 }
 
 void BaseComponentView::ApplyTransformMatrix(winrt::Windows::Foundation::Numerics::float4x4 matrix) noexcept {
@@ -149,8 +160,6 @@ void ViewComponentView::unmountChildComponentView(const IComponentView &childCom
 void ViewComponentView::updateProps(
     facebook::react::Props::Shared const &props,
     facebook::react::Props::Shared const &oldProps) noexcept {
-  Super::updateProps(props, oldProps);
-
   const auto &oldViewProps = *std::static_pointer_cast<const facebook::react::ViewProps>(m_props);
   const auto &newViewProps = *std::static_pointer_cast<const facebook::react::ViewProps>(props);
 
@@ -172,20 +181,20 @@ void ViewComponentView::updateProps(
     }
   }
 
-  if (oldViewProps.opacity != newViewProps.opacity) {
-    m_panel.Opacity(newViewProps.opacity);
-  }
-
   if (oldViewProps.borderStyles != newViewProps.borderStyles || oldViewProps.borderRadii != newViewProps.borderRadii) {
     m_needsBorderUpdate = true;
   }
 
-  m_props = std::static_pointer_cast<facebook::react::ViewProps const>(props);
+  Super::updateProps(props, oldProps);
 }
 
-bool ViewComponentView::shouldBeControl() const noexcept {
-  // Fabric does not appear to have the focusable prop right now...
-  return m_props->focusable; // || HasDynamicAutomationProperties(view);
+bool ViewComponentView::isFocusable() const noexcept {
+  const auto &props = *std::static_pointer_cast<const facebook::react::ViewProps>(m_props);
+  return props.focusable;
+}
+
+bool ViewComponentView::isAccessible() const noexcept {
+  return false; // HasDynamicAutomationProperties(view);
 }
 
 void ViewComponentView::updateState(
@@ -206,7 +215,8 @@ void ViewComponentView::updateLayoutMetrics(
 
 void ViewComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMask) noexcept {
   if (m_needsBorderUpdate) {
-    auto const borderMetrics = m_props->resolveBorderMetrics(m_layoutMetrics);
+    const auto &props = *std::static_pointer_cast<const facebook::react::ViewProps>(m_props);
+    auto const borderMetrics = props.resolveBorderMetrics(m_layoutMetrics);
     m_panel.BorderThickness(xaml::ThicknessHelper::FromLengths(
         borderMetrics.borderWidths.left,
         borderMetrics.borderWidths.top,
@@ -228,7 +238,7 @@ void ViewComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMask) no
 
   m_panel.FinalizeProperties();
 
-  bool needsControl = shouldBeControl();
+  bool needsControl = isFocusable();
   if ((bool)m_control != needsControl || m_outerBorder != m_panel.GetOuterBorder()) {
     if (needsControl && !m_control) {
       m_control = winrt::Microsoft::ReactNative::ViewControl{};
@@ -277,7 +287,7 @@ void ViewComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMask) no
   }
 
   if (m_control) {
-    m_control.IsTabStop(m_props->focusable);
+    m_control.IsTabStop(isFocusable());
   }
 
   if (m_outerBorder) {
@@ -312,10 +322,6 @@ void ViewComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMask) no
 }
 
 void ViewComponentView::prepareForRecycle() noexcept {}
-facebook::react::Props::Shared ViewComponentView::props() noexcept {
-  assert(false);
-  return {};
-}
 
 // View is implemented with up to three elements, which get nested
 // 1) ViewControl  - if focusable

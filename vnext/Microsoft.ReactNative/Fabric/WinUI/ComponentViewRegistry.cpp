@@ -76,7 +76,7 @@ ComponentViewDescriptor const &ComponentViewRegistry::dequeueComponentViewWithCo
   }
 
   SetTag(view->Element(), tag);
-  auto it = m_registry.insert({tag, ComponentViewDescriptor{view}});
+  auto it = m_registry.insert({tag, ComponentViewDescriptor{view, componentHandle}});
 
 #else
   auto it = m_registry.insert({tag, ComponentViewDescriptor{nullptr}});

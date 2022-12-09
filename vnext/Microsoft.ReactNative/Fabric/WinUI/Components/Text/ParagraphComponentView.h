@@ -27,12 +27,10 @@ struct ParagraphComponentView : BaseComponentView {
       facebook::react::LayoutMetrics const &oldLayoutMetrics) noexcept override;
   void finalizeUpdates(RNComponentViewUpdateMask updateMask) noexcept override;
   void prepareForRecycle() noexcept override;
-  facebook::react::Props::Shared props() noexcept override;
 
   const xaml::FrameworkElement Element() const noexcept override;
 
  private:
-  std::shared_ptr<facebook::react::ParagraphProps const> m_props;
   facebook::react::LayoutMetrics m_layoutMetrics;
   xaml::Controls::TextBlock m_element;
 };

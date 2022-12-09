@@ -43,8 +43,6 @@ void ParagraphComponentView::unmountChildComponentView(
 void ParagraphComponentView::updateProps(
     facebook::react::Props::Shared const &props,
     facebook::react::Props::Shared const &oldProps) noexcept {
-  Super::updateProps(props, oldProps);
-
   const auto &oldViewProps = *std::static_pointer_cast<const facebook::react::ParagraphProps>(m_props);
   const auto &newViewProps = *std::static_pointer_cast<const facebook::react::ParagraphProps>(props);
 
@@ -92,7 +90,7 @@ void ParagraphComponentView::updateProps(
           xaml::Media::FontFamily(Microsoft::Common::Unicode::Utf8ToUtf16(newViewProps.textAttributes.fontFamily)));
   }
 
-  m_props = std::static_pointer_cast<facebook::react::ParagraphProps const>(props);
+  Super::updateProps(props, oldProps);
 }
 
 void ParagraphComponentView::updateEventEmitter(facebook::react::EventEmitter::Shared const &eventEmitter) noexcept {}
@@ -151,10 +149,6 @@ void ParagraphComponentView::updateLayoutMetrics(
 }
 void ParagraphComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMask) noexcept {}
 void ParagraphComponentView::prepareForRecycle() noexcept {}
-facebook::react::Props::Shared ParagraphComponentView::props() noexcept {
-  assert(false);
-  return {};
-}
 
 const xaml::FrameworkElement ParagraphComponentView::Element() const noexcept {
   return m_element;

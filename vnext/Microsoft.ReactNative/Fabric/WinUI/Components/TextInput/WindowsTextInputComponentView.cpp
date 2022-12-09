@@ -15,10 +15,11 @@ namespace Microsoft::ReactNative {
 
 facebook::react::AttributedString WindowsTextInputComponentView::getAttributedString() const {
   // Use BaseTextShadowNode to get attributed string from children
+  const auto &props = *std::static_pointer_cast<const facebook::react::WindowsTextInputProps>(m_props);
 
   auto childTextAttributes = facebook::react::TextAttributes::defaultTextAttributes();
 
-  childTextAttributes.apply(m_props->textAttributes);
+  childTextAttributes.apply(props.textAttributes);
 
   auto attributedString = facebook::react::AttributedString{};
   // auto attachments = facebook::react::BaseTextShadowNode::Attachments{};
@@ -28,7 +29,7 @@ facebook::react::AttributedString WindowsTextInputComponentView::getAttributedSt
   auto text = winrt::to_string(m_element.Text());
   if (!text.empty()) {
     auto textAttributes = facebook::react::TextAttributes::defaultTextAttributes();
-    textAttributes.apply(m_props->textAttributes);
+    textAttributes.apply(props.textAttributes);
     auto fragment = facebook::react::AttributedString::Fragment{};
     fragment.string = text;
     fragment.textAttributes = textAttributes;
@@ -111,8 +112,6 @@ void WindowsTextInputComponentView::unmountChildComponentView(
 void WindowsTextInputComponentView::updateProps(
     facebook::react::Props::Shared const &props,
     facebook::react::Props::Shared const &oldProps) noexcept {
-  Super::updateProps(props, oldProps);
-
   const auto &oldTextInputProps = *std::static_pointer_cast<const facebook::react::WindowsTextInputProps>(m_props);
   const auto &newTextInputProps = *std::static_pointer_cast<const facebook::react::WindowsTextInputProps>(props);
 
@@ -214,7 +213,7 @@ void WindowsTextInputComponentView::updateProps(
     }
   }
 
-  m_props = std::static_pointer_cast<facebook::react::WindowsTextInputProps const>(props);
+  Super::updateProps(props, oldProps);
 }
 
 void WindowsTextInputComponentView::updateState(
@@ -297,10 +296,6 @@ void WindowsTextInputComponentView::finalizeUpdates(RNComponentViewUpdateMask up
   // m_element.FinalizeProperties();
 }
 void WindowsTextInputComponentView::prepareForRecycle() noexcept {}
-facebook::react::Props::Shared WindowsTextInputComponentView::props() noexcept {
-  assert(false);
-  return {};
-}
 
 const xaml::FrameworkElement WindowsTextInputComponentView::Element() const noexcept {
   return m_element;

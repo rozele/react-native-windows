@@ -7,6 +7,7 @@
 #include <Fabric/ReactNativeConfigProperties.h>
 #include <Fabric/WinUI/ComponentView.h>
 #include <Fabric/WinUI/FabricUIManagerModule.h>
+#include <JSValueWriter.h>
 #ifndef CORE_ABI
 #include <Fabric/WinUI/Components/View/ViewComponentView.h>
 #endif // CORE_ABI
@@ -59,6 +60,20 @@ FabicUIManagerProperty() noexcept {
 /*static*/ std::shared_ptr<FabricUIManager> FabricUIManager::FromProperties(
     const winrt::Microsoft::ReactNative::ReactPropertyBag &props) {
   return props.Get(FabicUIManagerProperty()).Value();
+}
+
+/*static*/ facebook::react::SurfaceId SurfaceIdForView(IComponentView const *view) {
+  auto element = static_cast<BaseComponentView const *>(view)->Element();
+  do {
+    const auto rootView = element.try_as<winrt::Microsoft::ReactNative::ReactRootView>();
+    if (rootView) {
+      return static_cast<facebook::react::SurfaceId>(rootView.GetTag());
+    }
+    element = element.Parent().try_as<xaml::FrameworkElement>();
+
+  } while (element);
+
+  return -1;
 }
 
 FabricUIManager::FabricUIManager() {}
@@ -294,6 +309,57 @@ facebook::react::Size FabricUIManager::measureSurface(
     const facebook::react::LayoutConstraints &layoutConstraints,
     const facebook::react::LayoutContext &layoutContext) const noexcept {
   return m_surfaceManager->measureSurface(surfaceId, layoutConstraints, layoutContext);
+}
+
+bool FabricUIManager::synchronouslyUpdateViewOnUIThread(
+    facebook::react::Tag tag,
+    winrt::Microsoft::ReactNative::JSValueObject const &props) {
+  // Check if the component view exists
+  if (!m_scheduler) {
+    return false;
+  }
+
+  // Check if the component view exists
+  auto componentView = m_registry.findComponentViewWithTag(tag);
+  if (!componentView) {
+    return false;
+  }
+
+  // Check if the component descriptor exists
+  auto viewDescriptor = m_registry.componentViewDescriptorWithTag(tag);
+  auto componentDescriptor =
+      m_scheduler->findComponentDescriptorByHandle_DO_NOT_USE_THIS_IS_BROKEN(viewDescriptor.componentHandle);
+  if (!componentDescriptor) {
+    return false;
+  }
+
+  // Get the current props for the view
+  const auto oldProps = componentView->props();
+
+  // Clone the current props with the dynamic props from Animated
+  const auto context =
+      facebook::react::PropsParserContext{SurfaceIdForView(componentView.get()), *m_scheduler->getContextContainer()};
+  const auto dynamicProps =
+      winrt::Microsoft::ReactNative::DynamicWriter::ToDynamic(winrt::Microsoft::ReactNative::MakeJSValueWriter(props));
+  const auto newProps = componentDescriptor->cloneProps(context, oldProps, facebook::react::RawProps{dynamicProps});
+
+  // Stash the current prop keys managed by Animated
+  std::unordered_set<std::string> propKeys = componentView->propKeysManagedByAnimated_DO_NOT_USE_THIS_IS_BROKEN;
+
+  // Unset the keys managed by Animated so the Animated props can be updated
+  componentView->propKeysManagedByAnimated_DO_NOT_USE_THIS_IS_BROKEN = {};
+  componentView->updateProps(newProps, oldProps);
+
+  // Update the prop keys managed by Animated
+  for (const auto &pair : props) {
+    propKeys.insert(pair.first);
+  }
+  componentView->propKeysManagedByAnimated_DO_NOT_USE_THIS_IS_BROKEN = propKeys;
+
+  // Finalize the prop updates
+  componentView->finalizeUpdates(RNComponentViewUpdateMask::Props);
+
+  return true;
 }
 
 void FabricUIManager::constraintSurfaceLayout(

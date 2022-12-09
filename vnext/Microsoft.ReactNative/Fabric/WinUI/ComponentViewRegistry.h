@@ -11,6 +11,7 @@ namespace Microsoft::ReactNative {
 
 struct ComponentViewDescriptor final {
   std::shared_ptr<IComponentView> view{nullptr};
+  facebook::react::ComponentHandle componentHandle{};
 };
 
 /* This could be expanded to have a pool of ComponentViewDescriptor's, like iOS does */

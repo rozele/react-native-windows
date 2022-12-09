@@ -19,9 +19,11 @@ struct BaseComponentView : IComponentView {
   void updateEventEmitter(facebook::react::EventEmitter::Shared const &eventEmitter) noexcept override;
   const facebook::react::SharedViewEventEmitter &GetEventEmitter() const noexcept;
   void handleCommand(std::string const &commandName, folly::dynamic const &arg) noexcept override;
+  facebook::react::Props::Shared props() noexcept override;
 
  protected:
   facebook::react::SharedViewEventEmitter m_eventEmitter;
+  facebook::react::Props::Shared m_props;
 
  private:
   static std::shared_ptr<ExpressionAnimationStore> EnsureExpressionAnimationStore() noexcept;
@@ -52,16 +54,15 @@ struct ViewComponentView : BaseComponentView {
       facebook::react::LayoutMetrics const &oldLayoutMetrics) noexcept override;
   void finalizeUpdates(RNComponentViewUpdateMask updateMask) noexcept override;
   void prepareForRecycle() noexcept override;
-  facebook::react::Props::Shared props() noexcept override;
 
   virtual const xaml::FrameworkElement Element() const noexcept;
 
  private:
-  bool shouldBeControl() const noexcept;
+  bool isFocusable() const noexcept;
+  bool isAccessible() const noexcept;
 
   bool m_needsBorderUpdate{false};
   bool m_enableFocusRing{true};
-  facebook::react::SharedViewProps m_props;
   facebook::react::LayoutMetrics m_layoutMetrics;
   winrt::Microsoft::ReactNative::ViewControl m_control{nullptr};
   winrt::Microsoft::ReactNative::ViewPanel m_panel;

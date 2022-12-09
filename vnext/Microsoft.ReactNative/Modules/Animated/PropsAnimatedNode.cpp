@@ -341,6 +341,14 @@ xaml::UIElement PropsAnimatedNode::GetUIElement() {
 }
 
 void PropsAnimatedNode::CommitProps() {
+#ifdef USE_WINUI_FABRIC
+  if (auto fabricuiManager = FabricUIManager::FromProperties(m_context.Properties())) {
+    if (fabricuiManager->synchronouslyUpdateViewOnUIThread(
+            static_cast<facebook::react::Tag>(m_connectedViewTag), m_props)) {
+      return;
+    }
+  }
+#endif
   if (const auto node = GetShadowNodeBase()) {
     if (!node->m_zombie) {
       node->updateProperties(m_props);

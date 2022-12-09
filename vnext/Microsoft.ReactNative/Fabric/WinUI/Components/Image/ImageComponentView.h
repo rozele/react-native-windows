@@ -33,15 +33,13 @@ struct ImageComponentView : BaseComponentView {
       facebook::react::LayoutMetrics const &oldLayoutMetrics) noexcept override;
   void finalizeUpdates(RNComponentViewUpdateMask updateMask) noexcept override;
   void prepareForRecycle() noexcept override;
-  facebook::react::Props::Shared props() noexcept override;
 
   const xaml::FrameworkElement Element() const noexcept override;
 
  private:
   bool m_needsOnLoadStart{false};
-  facebook::react::SharedViewProps m_props;
   facebook::react::LayoutMetrics m_layoutMetrics;
-  winrt::com_ptr<ReactImage> m_element;
+  winrt::com_ptr<ReactImage> m_element{nullptr};
   winrt::Microsoft::ReactNative::ReactContext m_context;
   winrt::event_token m_onLoadEndToken;
 };

@@ -44,5 +44,8 @@ namespace Microsoft.ReactNative
 
     DOC_STRING("Reloads the current @ReactRootView UI components.")
     void ReloadView();
+
+    DOC_STRING("Gets the surface ID for the @ReactRootView.")
+    Int64 GetTag();
   }
 } // namespace Microsoft.ReactNative

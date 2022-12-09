@@ -44,6 +44,10 @@ struct FabricUIManager final : public std::enable_shared_from_this<FabricUIManag
       const facebook::react::LayoutConstraints &layoutConstraints,
       const facebook::react::LayoutContext &layoutContext) const noexcept;
 
+  bool synchronouslyUpdateViewOnUIThread(
+      facebook::react::Tag tag,
+      winrt::Microsoft::ReactNative::JSValueObject const &props);
+
   const ComponentViewRegistry &GetViewRegistry() const noexcept;
 
  private:

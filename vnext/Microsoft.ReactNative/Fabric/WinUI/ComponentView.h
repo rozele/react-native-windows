@@ -39,6 +39,8 @@ struct IComponentView {
   virtual void prepareForRecycle() noexcept = 0;
   virtual facebook::react::Props::Shared props() noexcept = 0;
   virtual void handleCommand(std::string const &commandName, folly::dynamic const &arg) noexcept = 0;
+
+  std::unordered_set<std::string> propKeysManagedByAnimated_DO_NOT_USE_THIS_IS_BROKEN{};
 };
 
 } // namespace Microsoft::ReactNative

@@ -19,7 +19,8 @@ SwitchComponentView::SwitchComponentView(winrt::Microsoft::ReactNative::ReactCon
   m_element.OffContent(nullptr);
 
   m_toggledRevoker = m_element.Toggled(winrt::auto_revoke, [this](auto sender, auto args) {
-    if (m_props->value != m_element.IsOn()) {
+    const auto &props = *std::static_pointer_cast<const facebook::react::SwitchProps>(m_props);
+    if (props.value != m_element.IsOn()) {
       if (m_eventEmitter) {
         auto emitter = std::static_pointer_cast<const facebook::react::SwitchEventEmitter>(m_eventEmitter);
         facebook::react::SwitchEventEmitter::OnChange onChangeArgs;
@@ -59,8 +60,6 @@ void SwitchComponentView::unmountChildComponentView(const IComponentView &childC
 void SwitchComponentView::updateProps(
     facebook::react::Props::Shared const &props,
     facebook::react::Props::Shared const &oldProps) noexcept {
-  Super::updateProps(props, oldProps);
-
   const auto &oldSwitchProps = *std::static_pointer_cast<const facebook::react::SwitchProps>(m_props);
   const auto &newSwitchProps = *std::static_pointer_cast<const facebook::react::SwitchProps>(props);
 
@@ -74,7 +73,7 @@ void SwitchComponentView::updateProps(
 
   // TODO tint colors
 
-  m_props = std::static_pointer_cast<facebook::react::SwitchProps const>(props);
+  Super::updateProps(props, oldProps);
 }
 
 void SwitchComponentView::updateState(
@@ -98,10 +97,6 @@ void SwitchComponentView::updateLayoutMetrics(
 void SwitchComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMask) noexcept {}
 
 void SwitchComponentView::prepareForRecycle() noexcept {}
-facebook::react::Props::Shared SwitchComponentView::props() noexcept {
-  assert(false);
-  return {};
-}
 
 const xaml::FrameworkElement SwitchComponentView::Element() const noexcept {
   return m_element;

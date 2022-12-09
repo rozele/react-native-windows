@@ -12,6 +12,7 @@
 
 namespace Microsoft::ReactNative {
 
+// TODO: m_element needed?
 ActivityIndicatorComponentView::ActivityIndicatorComponentView() : m_element(xaml::Controls::ProgressRing()) {
   static auto const defaultProps = std::make_shared<facebook::react::ActivityIndicatorViewProps const>();
   m_props = defaultProps;
@@ -37,8 +38,6 @@ void ActivityIndicatorComponentView::unmountChildComponentView(
 void ActivityIndicatorComponentView::updateProps(
     facebook::react::Props::Shared const &props,
     facebook::react::Props::Shared const &oldProps) noexcept {
-  Super::updateProps(props, oldProps);
-
   const auto &oldActivityProps = *std::static_pointer_cast<const facebook::react::ActivityIndicatorViewProps>(m_props);
   const auto &newActivityProps = *std::static_pointer_cast<const facebook::react::ActivityIndicatorViewProps>(props);
 
@@ -50,7 +49,7 @@ void ActivityIndicatorComponentView::updateProps(
     m_element.Foreground(newActivityProps.color.AsWindowsBrush());
   }
 
-  m_props = std::static_pointer_cast<facebook::react::ActivityIndicatorViewProps const>(props);
+  Super::updateProps(props, oldProps);
 }
 
 void ActivityIndicatorComponentView::updateState(
@@ -71,10 +70,6 @@ void ActivityIndicatorComponentView::updateLayoutMetrics(
 }
 void ActivityIndicatorComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMask) noexcept {}
 void ActivityIndicatorComponentView::prepareForRecycle() noexcept {}
-facebook::react::Props::Shared ActivityIndicatorComponentView::props() noexcept {
-  assert(false);
-  return {};
-}
 
 const xaml::FrameworkElement ActivityIndicatorComponentView::Element() const noexcept {
   return m_element;
