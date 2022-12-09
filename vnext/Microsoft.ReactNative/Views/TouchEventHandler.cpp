@@ -413,22 +413,24 @@ facebook::react::SharedEventEmitter EventEmitterForElement(
     facebook::react::Tag tag) noexcept {
   auto &registry = uimanager->GetViewRegistry();
 
-  auto descriptor = registry.componentViewDescriptorWithTag(tag);
-  auto view = std::static_pointer_cast<BaseComponentView const>(descriptor.view);
-  auto emitter = view->GetEventEmitter();
-  if (emitter)
-    return emitter;
+  if (auto view = std::static_pointer_cast<BaseComponentView const>(registry.findComponentViewWithTag(tag))) {
+    auto emitter = view->GetEventEmitter();
+    if (emitter) {
+      return emitter;
+    }
 
-  auto element = view->Element();
-  while (auto parent = element.Parent()) {
-    if (element = parent.try_as<xaml::FrameworkElement>()) {
-      auto elementTag = GetTag(element);
-      if (elementTag != InvalidTag) {
-        if ((tag = static_cast<facebook::react::Tag>(elementTag)) != InvalidTag)
-          return EventEmitterForElement(uimanager, tag);
+    auto element = view->Element();
+    while (auto parent = element.Parent()) {
+      if (element = parent.try_as<xaml::FrameworkElement>()) {
+        auto elementTag = GetTag(element);
+        if (elementTag != InvalidTag) {
+          if ((tag = static_cast<facebook::react::Tag>(elementTag)) != InvalidTag)
+            return EventEmitterForElement(uimanager, tag);
+        }
       }
     }
   }
+
   return nullptr;
 }
 
