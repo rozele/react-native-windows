@@ -14,8 +14,7 @@
 
 namespace Microsoft::ReactNative {
 
-SliderComponentView::SliderComponentView(winrt::Microsoft::ReactNative::ReactContext const &reactContext)
-    : m_context(reactContext), m_element(xaml::Controls::Slider()) {
+SliderComponentView::SliderComponentView() : m_element(xaml::Controls::Slider()) {
   static auto const defaultProps = std::make_shared<facebook::react::SliderProps const>();
   m_props = defaultProps;
 
@@ -35,16 +34,6 @@ SliderComponentView::SliderComponentView(winrt::Microsoft::ReactNative::ReactCon
 std::vector<facebook::react::ComponentDescriptorProvider>
 SliderComponentView::supplementalComponentDescriptorProviders() noexcept {
   return {};
-}
-
-void SliderComponentView::mountChildComponentView(const IComponentView &childComponentView, uint32_t index) noexcept {
-  assert(false);
-  // m_element->Children().InsertAt(index, static_cast<const BaseComponentView &>(childComponentView).Element());
-}
-
-void SliderComponentView::unmountChildComponentView(const IComponentView &childComponentView, uint32_t index) noexcept {
-  assert(false);
-  // m_element->Children().RemoveAt(index);
 }
 
 void SliderComponentView::updateProps(

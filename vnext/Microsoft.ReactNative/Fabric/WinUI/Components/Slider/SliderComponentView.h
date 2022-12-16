@@ -18,12 +18,10 @@ namespace Microsoft::ReactNative {
 
 struct SliderComponentView : BaseComponentView {
   using Super = BaseComponentView;
-  SliderComponentView(winrt::Microsoft::ReactNative::ReactContext const &reactContext);
+  SliderComponentView();
 
   std::vector<facebook::react::ComponentDescriptorProvider> supplementalComponentDescriptorProviders() noexcept
       override;
-  void mountChildComponentView(const IComponentView &childComponentView, uint32_t index) noexcept override;
-  void unmountChildComponentView(const IComponentView &childComponentView, uint32_t index) noexcept override;
   void updateProps(facebook::react::Props::Shared const &props, facebook::react::Props::Shared const &oldProps) noexcept
       override;
   void updateState(facebook::react::State::Shared const &state, facebook::react::State::Shared const &oldState) noexcept
@@ -41,7 +39,6 @@ struct SliderComponentView : BaseComponentView {
   facebook::react::LayoutMetrics m_layoutMetrics;
   xaml::Controls::Slider m_element;
   xaml::Controls::Slider::ValueChanged_revoker m_valueChangedRevoker;
-  winrt::Microsoft::ReactNative::ReactContext m_context;
 };
 
 } // namespace Microsoft::ReactNative

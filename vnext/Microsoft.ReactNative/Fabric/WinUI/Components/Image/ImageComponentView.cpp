@@ -38,16 +38,6 @@ ImageComponentView::supplementalComponentDescriptorProviders() noexcept {
   return {};
 }
 
-void ImageComponentView::mountChildComponentView(const IComponentView &childComponentView, uint32_t index) noexcept {
-  assert(false);
-  // m_element->Children().InsertAt(index, static_cast<const BaseComponentView &>(childComponentView).Element());
-}
-
-void ImageComponentView::unmountChildComponentView(const IComponentView &childComponentView, uint32_t index) noexcept {
-  assert(false);
-  // m_element->Children().RemoveAt(index);
-}
-
 void ImageComponentView::updateProps(
     facebook::react::Props::Shared const &props,
     facebook::react::Props::Shared const &oldProps) noexcept {

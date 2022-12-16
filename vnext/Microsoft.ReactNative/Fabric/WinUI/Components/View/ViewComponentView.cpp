@@ -13,6 +13,14 @@
 
 namespace Microsoft::ReactNative {
 
+void BaseComponentView::mountChildComponentView(const IComponentView &childComponentView, uint32_t index) noexcept {
+  assert(false);
+}
+
+void BaseComponentView::unmountChildComponentView(const IComponentView &childComponentView, uint32_t index) noexcept {
+  assert(false);
+}
+
 void BaseComponentView::updateProps(
     facebook::react::Props::Shared const &props,
     facebook::react::Props::Shared const &oldProps) noexcept {

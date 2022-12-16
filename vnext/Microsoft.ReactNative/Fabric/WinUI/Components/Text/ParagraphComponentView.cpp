@@ -27,19 +27,6 @@ ParagraphComponentView::supplementalComponentDescriptorProviders() noexcept {
   return {};
 }
 
-void ParagraphComponentView::mountChildComponentView(
-    const IComponentView &childComponentView,
-    uint32_t index) noexcept {
-  auto v = static_cast<const ParagraphComponentView &>(childComponentView);
-  assert(false);
-}
-
-void ParagraphComponentView::unmountChildComponentView(
-    const IComponentView &childComponentView,
-    uint32_t index) noexcept {
-  assert(false);
-}
-
 void ParagraphComponentView::updateProps(
     facebook::react::Props::Shared const &props,
     facebook::react::Props::Shared const &oldProps) noexcept {

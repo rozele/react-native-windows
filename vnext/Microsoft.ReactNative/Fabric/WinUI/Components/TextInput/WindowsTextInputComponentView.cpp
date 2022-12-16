@@ -97,18 +97,6 @@ WindowsTextInputComponentView::supplementalComponentDescriptorProviders() noexce
   return {};
 }
 
-void WindowsTextInputComponentView::mountChildComponentView(
-    const IComponentView &childComponentView,
-    uint32_t index) noexcept {
-  assert(false);
-}
-
-void WindowsTextInputComponentView::unmountChildComponentView(
-    const IComponentView &childComponentView,
-    uint32_t index) noexcept {
-  assert(false);
-}
-
 void WindowsTextInputComponentView::updateProps(
     facebook::react::Props::Shared const &props,
     facebook::react::Props::Shared const &oldProps) noexcept {

@@ -13,8 +13,7 @@
 
 namespace Microsoft::ReactNative {
 
-SwitchComponentView::SwitchComponentView(winrt::Microsoft::ReactNative::ReactContext const &reactContext)
-    : m_context(reactContext), m_element(xaml::Controls::ToggleSwitch()) {
+SwitchComponentView::SwitchComponentView() : m_element(xaml::Controls::ToggleSwitch()) {
   m_element.OnContent(nullptr);
   m_element.OffContent(nullptr);
 
@@ -45,16 +44,6 @@ void SwitchComponentView::handleCommand(std::string const &commandName, folly::d
 std::vector<facebook::react::ComponentDescriptorProvider>
 SwitchComponentView::supplementalComponentDescriptorProviders() noexcept {
   return {};
-}
-
-void SwitchComponentView::mountChildComponentView(const IComponentView &childComponentView, uint32_t index) noexcept {
-  assert(false);
-  // m_element->Children().InsertAt(index, static_cast<const BaseComponentView &>(childComponentView).Element());
-}
-
-void SwitchComponentView::unmountChildComponentView(const IComponentView &childComponentView, uint32_t index) noexcept {
-  assert(false);
-  // m_element->Children().RemoveAt(index);
 }
 
 void SwitchComponentView::updateProps(

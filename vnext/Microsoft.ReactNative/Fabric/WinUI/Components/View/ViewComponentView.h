@@ -14,6 +14,8 @@ struct BaseComponentView : IComponentView {
   virtual const xaml::FrameworkElement Element() const noexcept = 0;
   comp::CompositionPropertySet EnsureCenterPointPropertySet() noexcept;
   virtual void OnPointerEvent(winrt::Microsoft::ReactNative::ReactPointerEventArgs const &args) const noexcept;
+  virtual void mountChildComponentView(const IComponentView &childComponentView, uint32_t index) noexcept;
+  virtual void unmountChildComponentView(const IComponentView &childComponentView, uint32_t index) noexcept;
   virtual void updateProps(
       facebook::react::Props::Shared const &props,
       facebook::react::Props::Shared const &oldProps) noexcept override;

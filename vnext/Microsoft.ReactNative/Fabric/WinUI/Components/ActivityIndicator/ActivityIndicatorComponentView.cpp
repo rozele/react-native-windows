@@ -23,18 +23,6 @@ ActivityIndicatorComponentView::supplementalComponentDescriptorProviders() noexc
   return {};
 }
 
-void ActivityIndicatorComponentView::mountChildComponentView(
-    const IComponentView &childComponentView,
-    uint32_t index) noexcept {
-  assert(false);
-}
-
-void ActivityIndicatorComponentView::unmountChildComponentView(
-    const IComponentView &childComponentView,
-    uint32_t index) noexcept {
-  assert(false);
-}
-
 void ActivityIndicatorComponentView::updateProps(
     facebook::react::Props::Shared const &props,
     facebook::react::Props::Shared const &oldProps) noexcept {
