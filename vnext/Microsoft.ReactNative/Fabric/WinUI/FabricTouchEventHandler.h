@@ -4,17 +4,15 @@
 #pragma once
 #include <IReactInstance.h>
 #include <JSValue.h>
+#include <ReactHost/React.h>
 #include <ReactPointerEventArgs.h>
 #include <UI.Xaml.Documents.h>
 #include <winrt/Windows.Devices.Input.h>
 #include <optional>
 #include <set>
-#include "Utils/BatchingEventEmitter.h"
 #include "XamlView.h"
 
-#ifdef USE_FABRIC
 #include <react/renderer/components/view/Touch.h>
-#endif
 
 namespace winrt {
 using namespace Windows::UI;
@@ -27,14 +25,13 @@ using namespace xaml::Media;
 
 namespace Microsoft::ReactNative {
 
-class TouchEventHandler {
+class FabricTouchEventHandler {
  public:
-  TouchEventHandler(const Mso::React::IReactContext &context);
-  virtual ~TouchEventHandler();
+  FabricTouchEventHandler(const Mso::React::IReactContext &context);
+  virtual ~FabricTouchEventHandler();
 
   void AddTouchHandlers(XamlView xamlView, XamlView rootView = nullptr, bool handledEventsToo = false);
   void RemoveTouchHandlers();
-  winrt::Microsoft::ReactNative::BatchingEventEmitter &BatchingEmitter() noexcept;
 
  private:
   void OnPointerPressed(const winrt::IInspectable &, const winrt::PointerRoutedEventArgs &args);
@@ -86,16 +83,14 @@ class TouchEventHandler {
       std::vector<int64_t> &&newViews);
 
   enum class TouchEventType { Start = 0, End, Move, Cancel, CaptureLost, PointerEntered, PointerExited, PointerMove };
+  facebook::react::Touch TouchForPointer(const ReactPointer &pointer) noexcept;
+  static bool IsEndishEventType(TouchEventType eventType) noexcept;
   void OnPointerConcluded(TouchEventType eventType, const winrt::PointerRoutedEventArgs &args);
-  void DispatchTouchEvent(TouchEventType eventType, size_t pointerIndex);
+  void DispatchTouchEvent(TouchEventType eventType, size_t pointerIndex, std::vector<int64_t> const &tagsForBranch);
   bool DispatchBackEvent();
-  const char *GetPointerDeviceTypeName(PointerDeviceType deviceType) noexcept;
 
   winrt::Microsoft::ReactNative::PointerEventKind GetPointerEventKind(TouchEventType eventType) noexcept;
-  const wchar_t *GetTouchEventTypeName(TouchEventType eventType) noexcept;
-
   std::optional<size_t> IndexOfPointerWithId(uint32_t pointerId);
-  winrt::Microsoft::ReactNative::JSValue GetPointerJson(const ReactPointer &pointer, int64_t target);
 
   struct TagSet {
     std::unordered_set<int64_t> tags;
@@ -114,7 +109,7 @@ class TouchEventHandler {
   XamlView m_xamlView;
   XamlView m_rootView;
   Mso::CntPtr<const Mso::React::IReactContext> m_context;
-  std::shared_ptr<winrt::Microsoft::ReactNative::BatchingEventEmitter> m_batchingEventEmitter;
+  bool m_fabric{true};
 };
 
 } // namespace Microsoft::ReactNative

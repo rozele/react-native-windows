@@ -6,7 +6,6 @@
 #include <Fabric/WinUI/ComponentView.h>
 
 #include <Fabric/WinUI/Components/View/ViewComponentView.h>
-#include <Microsoft.ReactNative.Cxx/ReactContext.h>
 #include <UI.Xaml.Controls.h>
 #include <react/renderer/components/rnwcore/Props.h>
 

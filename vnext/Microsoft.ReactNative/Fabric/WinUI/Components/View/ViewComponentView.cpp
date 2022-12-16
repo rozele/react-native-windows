@@ -51,6 +51,14 @@ void BaseComponentView::updateProps(
     Element().Opacity(newViewProps.opacity);
   }
 
+  if (!oldProps || oldViewProps.pointerEvents != newViewProps.pointerEvents) {
+    if (newViewProps.pointerEvents == facebook::react::PointerEventsMode::None) {
+      Element().IsHitTestVisible(false);
+    } else {
+      Element().ClearValue(xaml::UIElement::IsHitTestVisibleProperty());
+    }
+  }
+
   m_props = props;
 }
 
@@ -66,10 +74,30 @@ void BaseComponentView::handleCommand(std::string const &commandName, folly::dyn
   assert(false); // Unhandled command
 }
 
-facebook::react::Props::Shared BaseComponentView::props() noexcept {
+facebook::react::Props::Shared BaseComponentView::props() const noexcept {
   return m_props;
 }
 
+void BaseComponentView::OnPointerEvent(
+    winrt::Microsoft::ReactNative::ReactPointerEventArgs const &args) const noexcept {
+  const auto &props = *std::static_pointer_cast<const facebook::react::ViewProps>(m_props);
+  switch (props.pointerEvents) {
+    case facebook::react::PointerEventsMode::None: {
+      args.Target(nullptr);
+      break;
+    }
+    case facebook::react::PointerEventsMode::BoxNone: {
+      if (args.Target() == Element()) {
+        args.Target(nullptr);
+      }
+      break;
+    }
+    case facebook::react::PointerEventsMode::BoxOnly: {
+      args.Target(Element());
+      break;
+    }
+  }
+}
 void BaseComponentView::ApplyTransformMatrix(winrt::Windows::Foundation::Numerics::float4x4 matrix) noexcept {
   // Get our PropertySet from the ShadowNode and insert the TransformMatrix as
   // the "transform" property
@@ -250,12 +278,17 @@ void ViewComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMask) no
       m_panel.GetOuterBorder().Child(nullptr);
     }
 
+    const auto tag = GetTag(oldElement);
     m_outerBorder = m_panel.GetOuterBorder();
+    if (m_outerBorder) {
+      // TODO(T140473680): Determine why tag must be set on Border for pressability to work
+      SetTag(m_outerBorder, tag);
+    }
 
     auto newElement = Element();
 
     // -- Transfer properties to new element
-    SetTag(newElement, GetTag(oldElement));
+    SetTag(newElement, tag);
     TransferFrameworkElementProperties(oldElement, newElement);
     m_panel.FinalizeProperties();
 

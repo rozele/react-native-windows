@@ -747,6 +747,9 @@
     <ClCompile Include="Fabric\WinUI\ComponentViewRegistry.cpp">
       <Filter>Fabric\WinUI</Filter>
     </ClCompile>
+    <ClCompile Include="Fabric\WinUI\FabricTouchEventHandler.cpp">
+      <Filter>Fabric\WinUI</Filter>
+    </ClCompile>
     <ClCompile Include="Fabric\WinUI\FabricUIManagerModule.cpp">
       <Filter>Fabric\WinUI</Filter>
     </ClCompile>
@@ -792,6 +795,9 @@
       <Filter>Fabric\WinUI</Filter>
     </ClInclude>
     <ClInclude Include="Fabric\WinUI\ComponentViewRegistry.h">
+      <Filter>Fabric\WinUI</Filter>
+    </ClInclude>
+    <ClInclude Include="Fabric\WinUI\FabricTouchEventHandler.h">
       <Filter>Fabric\WinUI</Filter>
     </ClInclude>
     <ClInclude Include="Fabric\WinUI\FabricUIManagerModule.h">

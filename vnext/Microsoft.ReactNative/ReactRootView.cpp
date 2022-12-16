@@ -17,15 +17,10 @@
 
 #include <winrt/Microsoft.UI.Xaml.Controls.h>
 
-#ifdef USE_FABRIC_CORE
-#include <react/renderer/core/LayoutConstraints.h>
-#include <react/renderer/core/LayoutContext.h>
-#endif
-#ifdef USE_FABRIC
-#include <Fabric/FabricUIManagerModule.h>
-#endif
 #ifdef USE_WINUI_FABRIC
 #include <Fabric/WinUI/FabricUIManagerModule.h>
+#include <react/renderer/core/LayoutConstraints.h>
+#include <react/renderer/core/LayoutContext.h>
 #endif
 
 namespace winrt::Microsoft::ReactNative::implementation {
@@ -169,13 +164,21 @@ void ReactRootView::InitRootView(
   m_context = &reactInstance->GetReactContext();
   m_reactViewOptions = std::make_unique<Mso::React::ReactViewOptions>(std::move(reactViewOptions));
 
-  m_touchEventHandler = std::make_shared<::Microsoft::ReactNative::TouchEventHandler>(
-      *m_context, m_reactViewOptions->UseFabric && !reactInstance->Options().UseWebDebugger());
+#ifdef USE_WINUI_FABRIC
+  if (m_reactViewOptions->UseFabric && !reactInstance->Options().UseWebDebugger()) {
+    m_fabricTouchEventHandler = std::make_shared<::Microsoft::ReactNative::FabricTouchEventHandler>(*m_context);
+    m_fabricTouchEventHandler->AddTouchHandlers(*this);
+  } else
+#endif
+  {
+    m_touchEventHandler = std::make_shared<::Microsoft::ReactNative::TouchEventHandler>(*m_context);
+    m_touchEventHandler->AddTouchHandlers(*this);
+  }
+
   m_SIPEventHandler = std::make_shared<::Microsoft::ReactNative::SIPEventHandler>(*m_context);
   m_previewKeyboardEventHandlerOnRoot =
       std::make_shared<::Microsoft::ReactNative::PreviewKeyboardEventHandlerOnRoot>(*m_context);
 
-  m_touchEventHandler->AddTouchHandlers(*this);
   m_previewKeyboardEventHandlerOnRoot->hook(*this);
   m_SIPEventHandler->AttachView(*this, /*fireKeyboradEvents:*/ true);
 

@@ -6,7 +6,6 @@
 #include <Fabric/WinUI/ComponentView.h>
 
 #include <Fabric/WinUI/Components/View/ViewComponentView.h>
-#include <Microsoft.ReactNative.Cxx/ReactContext.h>
 #include <UI.Xaml.Controls.h>
 #include <react/renderer/components/rnwcore/Props.h>
 
@@ -43,7 +42,6 @@ struct SwitchComponentView : BaseComponentView {
   facebook::react::LayoutMetrics m_layoutMetrics;
   xaml::Controls::ToggleSwitch m_element;
   xaml::Controls::ToggleSwitch::Toggled_revoker m_toggledRevoker;
-  winrt::Microsoft::ReactNative::ReactContext m_context;
 };
 
 } // namespace Microsoft::ReactNative

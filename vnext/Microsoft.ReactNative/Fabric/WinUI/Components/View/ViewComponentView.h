@@ -13,13 +13,14 @@ namespace Microsoft::ReactNative {
 struct BaseComponentView : IComponentView {
   virtual const xaml::FrameworkElement Element() const noexcept = 0;
   comp::CompositionPropertySet EnsureCenterPointPropertySet() noexcept;
+  virtual void OnPointerEvent(winrt::Microsoft::ReactNative::ReactPointerEventArgs const &args) const noexcept;
   virtual void updateProps(
       facebook::react::Props::Shared const &props,
       facebook::react::Props::Shared const &oldProps) noexcept override;
   void updateEventEmitter(facebook::react::EventEmitter::Shared const &eventEmitter) noexcept override;
   const facebook::react::SharedViewEventEmitter &GetEventEmitter() const noexcept;
   void handleCommand(std::string const &commandName, folly::dynamic const &arg) noexcept override;
-  facebook::react::Props::Shared props() noexcept override;
+  facebook::react::Props::Shared props() const noexcept override;
 
  protected:
   facebook::react::SharedViewEventEmitter m_eventEmitter;

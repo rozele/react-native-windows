@@ -9,6 +9,9 @@
 #include "TouchEventHandler.h"
 #include "Views/IXamlRootView.h"
 #include "Views/KeyboardEventHandler.h"
+#if USE_WINUI_FABRIC
+#include <Fabric/WinUI/FabricTouchEventHandler.h>
+#endif
 
 namespace winrt::Microsoft::ReactNative::implementation {
 
@@ -85,6 +88,9 @@ struct ReactRootView : ReactRootViewT<ReactRootView>, ::Microsoft::ReactNative::
   Mso::CntPtr<Mso::React::IReactViewHost> m_reactViewHost;
   std::unique_ptr<Mso::React::ReactViewOptions> m_reactViewOptions;
   std::shared_ptr<::Microsoft::ReactNative::TouchEventHandler> m_touchEventHandler;
+#ifdef USE_WINUI_FABRIC
+  std::shared_ptr<::Microsoft::ReactNative::FabricTouchEventHandler> m_fabricTouchEventHandler;
+#endif
   std::shared_ptr<::Microsoft::ReactNative::SIPEventHandler> m_SIPEventHandler;
   std::shared_ptr<::Microsoft::ReactNative::PreviewKeyboardEventHandlerOnRoot> m_previewKeyboardEventHandlerOnRoot;
   xaml::Controls::ContentControl m_focusSafeHarbor{nullptr};
