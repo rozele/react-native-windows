@@ -5,13 +5,17 @@
 
 #include "ParagraphComponentView.h"
 
+#include <UI.Input.h>
 #include <UI.Xaml.Controls.h>
 #include <UI.Xaml.Documents.h>
+#include <UI.Xaml.Input.h>
 #include <Utils/ValueUtils.h>
+#include <Views/Text/TextHitTestUtils.h>
 #include <dwrite.h>
 #include <react/renderer/components/text/ParagraphShadowNode.h>
 #include <react/renderer/components/text/ParagraphState.h>
 #include <unicode.h>
+#include "XamlView.h"
 
 namespace Microsoft::ReactNative {
 
@@ -80,7 +84,16 @@ void ParagraphComponentView::updateProps(
   Super::updateProps(props, oldProps);
 }
 
-void ParagraphComponentView::updateEventEmitter(facebook::react::EventEmitter::Shared const &eventEmitter) noexcept {}
+const facebook::react::SharedViewEventEmitter &ParagraphComponentView::GetEventEmitter(
+    facebook::react::Tag tag) const noexcept {
+  const auto fragmentEventEmitterIter = m_fragmentEventEmitters.find(tag);
+  if (fragmentEventEmitterIter != m_fragmentEventEmitters.end()) {
+    return fragmentEventEmitterIter->second;
+  }
+
+  return Super::GetEventEmitter(tag);
+}
+
 void ParagraphComponentView::updateState(
     facebook::react::State::Shared const &state,
     facebook::react::State::Shared const &oldState) noexcept {
@@ -106,7 +119,15 @@ void ParagraphComponentView::updateState(
       inlines = italic.Inlines();
     }
 
-    auto run = xaml::Documents::Run();
+    const auto run = xaml::Documents::Run();
+    const auto tag = fragment.parentShadowView.tag;
+    SetTag(run, tag);
+    // TODO(T140425180): use the `pressable` prop to determine whether we need to hit test.
+    if (fragment.parentShadowView.eventEmitter) {
+      m_fragmentEventEmitters[tag] =
+          std::static_pointer_cast<facebook::react::ViewEventEmitter const>(fragment.parentShadowView.eventEmitter);
+    }
+
     run.Text(winrt::to_hstring(fragment.string));
     run.FontFamily(xaml::Media::FontFamily(
         fragment.textAttributes.fontFamily.empty() ? L"Segoe UI"
@@ -139,6 +160,28 @@ void ParagraphComponentView::prepareForRecycle() noexcept {}
 
 const xaml::FrameworkElement ParagraphComponentView::Element() const noexcept {
   return m_element;
+}
+
+void ParagraphComponentView::OnPointerEvent(
+    winrt::Microsoft::ReactNative::ReactPointerEventArgs const &args) const noexcept {
+  // Identify the specific run with hit testing
+  const auto point = args.Args().GetCurrentPoint(m_element).Position();
+  for (const auto inlineItem : m_element.Inlines()) {
+    auto run = inlineItem.try_as<xaml::Documents::Run>();
+    if (!run) {
+      if (const auto span = inlineItem.try_as<xaml::Documents::Span>()) {
+        run = span.Inlines().GetAt(0).as<xaml::Documents::Run>();
+      }
+    }
+
+    const auto tag = GetTag(run);
+    if (m_fragmentEventEmitters.count(static_cast<facebook::react::Tag>(tag)) &&
+        TextHitTestUtils::HitTest(run, point)) {
+      args.Target(run);
+    }
+  }
+
+  Super::OnPointerEvent(args);
 }
 
 } // namespace Microsoft::ReactNative

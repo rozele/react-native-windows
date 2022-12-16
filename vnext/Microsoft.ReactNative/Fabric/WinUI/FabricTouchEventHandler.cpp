@@ -367,7 +367,6 @@ void FabricTouchEventHandler::UpdatePointersInViews(
 // defines button payload, follows https://developer.mozilla.org/docs/Web/API/MouseEvent/button
 enum class MouseEventButtonKind { None = -1, Main = 0, Auxiliary = 1, Secondary = 2, Eraser = 5 };
 
-// TODO(T140473130): this work should probably be delegated to the ComponentViews
 facebook::react::SharedEventEmitter EventEmitterForElement(
     std::shared_ptr<FabricUIManager> &uimanager,
     facebook::react::Tag tag,
@@ -377,7 +376,7 @@ facebook::react::SharedEventEmitter EventEmitterForElement(
   for (const auto ancestorTag : tagsForBranch) {
     if (const auto view = std::static_pointer_cast<BaseComponentView const>(
             registry.findComponentViewWithTag(static_cast<facebook::react::Tag>(ancestorTag)))) {
-      if (const auto emitter = view->GetEventEmitter()) {
+      if (const auto emitter = view->GetEventEmitter(tag)) {
         return emitter;
       }
     }

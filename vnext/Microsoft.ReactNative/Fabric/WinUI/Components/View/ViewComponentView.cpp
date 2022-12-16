@@ -74,7 +74,8 @@ void BaseComponentView::updateEventEmitter(facebook::react::EventEmitter::Shared
   m_eventEmitter = std::static_pointer_cast<facebook::react::ViewEventEmitter const>(eventEmitter);
 }
 
-const facebook::react::SharedViewEventEmitter &BaseComponentView::GetEventEmitter() const noexcept {
+const facebook::react::SharedViewEventEmitter &BaseComponentView::GetEventEmitter(
+    facebook::react::Tag tag) const noexcept {
   return m_eventEmitter;
 }
 
