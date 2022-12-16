@@ -5,10 +5,12 @@
 
 #include "ParagraphComponentView.h"
 
+#include <IReactContext.h>
 #include <UI.Input.h>
 #include <UI.Xaml.Controls.h>
 #include <UI.Xaml.Documents.h>
 #include <UI.Xaml.Input.h>
+#include <UI.Xaml.Media.h>
 #include <Utils/ValueUtils.h>
 #include <Views/Text/TextHitTestUtils.h>
 #include <dwrite.h>
@@ -19,7 +21,8 @@
 
 namespace Microsoft::ReactNative {
 
-ParagraphComponentView::ParagraphComponentView() {
+ParagraphComponentView::ParagraphComponentView(winrt::Microsoft::ReactNative::ReactContext const &reactContext)
+    : m_context(reactContext) {
   static auto const defaultProps = std::make_shared<facebook::react::ParagraphProps const>();
   m_props = defaultProps;
 
@@ -81,6 +84,11 @@ void ParagraphComponentView::updateProps(
           xaml::Media::FontFamily(Microsoft::Common::Unicode::Utf8ToUtf16(newViewProps.textAttributes.fontFamily)));
   }
 
+  if (oldViewProps.isSelectable != newViewProps.isSelectable) {
+    m_element.IsTextSelectionEnabled(newViewProps.isSelectable);
+    ToggleTouchEvents(newViewProps.isSelectable);
+  }
+
   Super::updateProps(props, oldProps);
 }
 
@@ -98,10 +106,20 @@ void ParagraphComponentView::updateState(
     facebook::react::State::Shared const &state,
     facebook::react::State::Shared const &oldState) noexcept {
   const auto &newState = *std::static_pointer_cast<facebook::react::ParagraphShadowNode::ConcreteState const>(state);
+  const auto &attributedString = newState.getData().attributedString;
+  if (oldState) {
+    const auto &oldTextState =
+        *std::static_pointer_cast<facebook::react::ParagraphShadowNode::ConcreteState const>(oldState);
+    const auto &oldAttributedString = oldTextState.getData().attributedString;
+    if (attributedString.isContentEqual(oldAttributedString)) {
+      return;
+    }
+  }
 
   m_element.Inlines().Clear();
+  m_fragmentEventEmitters.clear();
 
-  for (const auto &fragment : newState.getData().attributedString.getFragments()) {
+  for (const auto &fragment : attributedString.getFragments()) {
     auto inlines = m_element.Inlines();
 
     if (auto tdlt = fragment.textAttributes.textDecorationLineType; tdlt &&
@@ -155,6 +173,7 @@ void ParagraphComponentView::updateLayoutMetrics(
   m_element.Width(layoutMetrics.frame.size.width);
   m_element.Height(layoutMetrics.frame.size.height);
 }
+
 void ParagraphComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMask) noexcept {}
 void ParagraphComponentView::prepareForRecycle() noexcept {}
 
@@ -181,7 +200,43 @@ void ParagraphComponentView::OnPointerEvent(
     }
   }
 
+  if (args.Kind() == winrt::Microsoft::ReactNative::PointerEventKind::CaptureLost) {
+    if (!m_selectionChanged || !*m_selectionChanged) {
+      args.Kind(winrt::Microsoft::ReactNative::PointerEventKind::End);
+    }
+    *m_selectionChanged = false;
+  }
+
   Super::OnPointerEvent(args);
+}
+
+void ParagraphComponentView::ToggleTouchEvents(bool isSelectable) {
+  if (isSelectable) {
+    m_selectionChangedRevoker = m_element.SelectionChanged(
+        winrt::auto_revoke, [selectionChanged = m_selectionChanged](const auto &sender, auto &&) {
+          const auto textBlock = sender.as<xaml::Controls::TextBlock>();
+          *selectionChanged =
+              *selectionChanged || textBlock.SelectionStart().Offset() != textBlock.SelectionEnd().Offset();
+        });
+
+    // Get ReactRootView from current element
+    xaml::DependencyObject rootView = m_element;
+    while (rootView) {
+      if (rootView.try_as<winrt::Microsoft::ReactNative::ReactRootView>()) {
+        break;
+      } else {
+        rootView = winrt::VisualTreeHelper::GetParent(rootView);
+      }
+    }
+
+    auto contextSelf = winrt::get_self<winrt::Microsoft::ReactNative::implementation::ReactContext>(m_context.Handle());
+    m_touchEventHandler = std::make_shared<FabricTouchEventHandler>(contextSelf->GetInner());
+    m_touchEventHandler->AddTouchHandlers(m_element, rootView, true);
+  } else {
+    m_touchEventHandler = nullptr;
+    m_selectionChangedRevoker.revoke();
+    *m_selectionChanged = false;
+  }
 }
 
 } // namespace Microsoft::ReactNative

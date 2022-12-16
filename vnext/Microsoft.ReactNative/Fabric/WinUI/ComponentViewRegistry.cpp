@@ -51,7 +51,7 @@ ComponentViewDescriptor const &ComponentViewRegistry::dequeueComponentViewWithCo
   std::shared_ptr<BaseComponentView> view;
 
   if (componentHandle == facebook::react::ParagraphShadowNode::Handle()) {
-    view = std::make_shared<ParagraphComponentView>();
+    view = std::make_shared<ParagraphComponentView>(m_context);
   } else if (componentHandle == facebook::react::ScrollViewShadowNode::Handle()) {
     view = std::make_shared<ScrollViewComponentView>();
   } else if (componentHandle == facebook::react::ImageShadowNode::Handle()) {
