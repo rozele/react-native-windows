@@ -14,6 +14,9 @@
 #include <react/renderer/core/ReactPrimitives.h>
 
 #include "TouchEventEmitter.h"
+#ifdef USE_WINUI_FABRIC
+#include "KeyEvent.h"
+#endif
 
 namespace facebook {
 namespace react {
@@ -74,6 +77,12 @@ class ViewEventEmitter : public TouchEventEmitter {
 
   void onMouseEnter(const Touch &touch) const;
   void onMouseLeave(const Touch &touch) const;
+
+#pragma mark - Keyboard Events
+
+ public:
+  void onKeyUp(const KeyEvent &keyEvent) const;
+  void onKeyDown(const KeyEvent &keyEvent) const;
 #endif
 };
 

@@ -423,6 +423,7 @@
   <ItemGroup Condition="'$(UseWinUIFabric)' == 'true'">
     <ClInclude Include="Fabric\WinUI\ComponentView.h" />
     <ClInclude Include="Fabric\WinUI\ComponentViewRegistry.h" />
+    <ClInclude Include="Fabric\WinUI\FabricKeyboardEventHandler.h" />
     <ClInclude Include="Fabric\WinUI\FabricTouchEventHandler.h" />
     <ClInclude Include="Fabric\WinUI\FabricUIManagerModule.h" />
     <ClInclude Include="Fabric\WinUI\Components\ActivityIndicator\ActivityIndicatorComponentView.h" />
@@ -442,6 +443,7 @@
   </ItemGroup>
   <ItemGroup Condition="'$(UseWinUIFabric)' == 'true'">
     <ClCompile Include="Fabric\WinUI\ComponentViewRegistry.cpp" />
+    <ClCompile Include="Fabric\WinUI\FabricKeyboardEventHandler.cpp" />
     <ClCompile Include="Fabric\WinUI\FabricTouchEventHandler.cpp" />
     <ClCompile Include="Fabric\WinUI\FabricUIManagerModule.cpp" />
     <ClCompile Include="Fabric\WinUI\Components\ActivityIndicator\ActivityIndicatorComponentView.cpp" />

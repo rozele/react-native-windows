@@ -3,12 +3,16 @@
 
 #include "pch.h"
 
+#include "FabricKeyboardEventHandler.h"
+
+#include <Fabric/WinUI/Components/View/ViewComponentView.h>
+#include <Fabric/WinUI/FabricUIManagerModule.h>
 #include <UI.Xaml.Input.h>
 #include <winrt/Windows.System.h>
 #include <winrt/Windows.UI.Core.h>
 #include "Utils/Helpers.h"
 #include "Utils/PropertyHandlerUtils.h"
-#include "Views/KeyboardEventHandler.h"
+#include "XamlView.h"
 
 #ifdef USE_WINUI3
 #include <winrt/Microsoft.UI.Input.h>
@@ -16,65 +20,19 @@
 
 using namespace std::placeholders;
 
-static constexpr auto ALT_KEY = "altKey";
-static constexpr auto CTRL_KEY = "ctrlKey";
-static constexpr auto META_KEY = "metaKey";
-static constexpr auto SHIFT_KEY = "shiftKey";
-static constexpr auto EVENT_PHASE = "handledEventPhase";
-static constexpr auto KEY = "key";
-static constexpr auto TARGET = "target";
-static constexpr auto CODE = "code";
-static constexpr auto TIMESTAMP = "timestamp";
-
-template <>
-struct json_type_traits<Microsoft::ReactNative::HandledKeyboardEvent> {
-  static Microsoft::ReactNative::HandledKeyboardEvent parseJson(const winrt::Microsoft::ReactNative::JSValue &json) {
-    Microsoft::ReactNative::HandledKeyboardEvent event;
-
-    for (auto const &pair : json.AsObject()) {
-      const std::string &propertyName = pair.first;
-      const auto &propertyValue = pair.second;
-
-      if (propertyName == ALT_KEY)
-        event.altKey = propertyValue.AsBoolean();
-      else if (propertyName == SHIFT_KEY)
-        event.shiftKey = propertyValue.AsBoolean();
-      else if (propertyName == CTRL_KEY)
-        event.ctrlKey = propertyValue.AsBoolean();
-      else if (propertyName == META_KEY)
-        event.metaKey = propertyValue.AsBoolean();
-      else if (propertyName == CODE)
-        event.code = propertyValue.AsString();
-      else if (propertyName == EVENT_PHASE)
-        event.handledEventPhase =
-            Microsoft::ReactNative::asEnum<Microsoft::ReactNative::HandledEventPhase>(propertyValue);
-    }
-
-    return event;
-  }
-};
-
 namespace Microsoft::ReactNative {
 
-std::vector<HandledKeyboardEvent> KeyboardHelper::FromJS(winrt::Microsoft::ReactNative::JSValue const &obj) {
-  if (obj.Type() == winrt::Microsoft::ReactNative::JSValueType::Array) {
-    return json_type_traits<std::vector<HandledKeyboardEvent>>::parseJson(obj);
-  }
-  return std::vector<HandledKeyboardEvent>{};
-}
-
-static folly::dynamic ToEventData(ReactKeyboardEvent event, double timestamp) {
-  return folly::dynamic::object(TARGET, event.target)(ALT_KEY, event.altKey)(CTRL_KEY, event.ctrlKey)(KEY, event.key)(
-      META_KEY, event.metaKey)(SHIFT_KEY, event.shiftKey)(CODE, event.code)(TIMESTAMP, timestamp);
-}
-
-KeyboardEventBaseHandler::KeyboardEventBaseHandler(KeyboardEventCallback &&keyDown, KeyboardEventCallback &&keyUp)
+FabricKeyboardEventBaseHandler::FabricKeyboardEventBaseHandler(
+    FabricKeyboardEventCallback &&keyDown,
+    FabricKeyboardEventCallback &&keyUp)
     : m_keyDownCallback(std::move(keyDown)), m_keyUpCallback(std::move(keyUp)) {}
 
-PreviewKeyboardEventHandler::PreviewKeyboardEventHandler(KeyboardEventCallback &&keyDown, KeyboardEventCallback &&keyUp)
-    : KeyboardEventBaseHandler(std::move(keyDown), std::move(keyUp)) {}
+FabricPreviewKeyboardEventHandler::FabricPreviewKeyboardEventHandler(
+    FabricKeyboardEventCallback &&keyDown,
+    FabricKeyboardEventCallback &&keyUp)
+    : FabricKeyboardEventBaseHandler(std::move(keyDown), std::move(keyUp)) {}
 
-void PreviewKeyboardEventHandler::hook(XamlView xamlView) {
+void FabricPreviewKeyboardEventHandler::hook(XamlView xamlView) {
   auto uiElement = xamlView.as<xaml::UIElement>();
   if (uiElement.try_as<xaml::IUIElement7>()) {
     if (m_keyDownCallback)
@@ -85,15 +43,17 @@ void PreviewKeyboardEventHandler::hook(XamlView xamlView) {
   }
 }
 
-void PreviewKeyboardEventHandler::unhook() {
+void FabricPreviewKeyboardEventHandler::unhook() {
   m_previewKeyDownRevoker.revoke();
   m_previewKeyUpRevoker.revoke();
 }
 
-KeyboardEventHandler::KeyboardEventHandler(KeyboardEventCallback &&keyDown, KeyboardEventCallback &&keyUp)
-    : KeyboardEventBaseHandler(std::move(keyDown), std::move(keyUp)) {}
+FabricKeyboardEventHandler::FabricKeyboardEventHandler(
+    FabricKeyboardEventCallback &&keyDown,
+    FabricKeyboardEventCallback &&keyUp)
+    : FabricKeyboardEventBaseHandler(std::move(keyDown), std::move(keyUp)) {}
 
-void KeyboardEventHandler::hook(XamlView xamlView) {
+void FabricKeyboardEventHandler::hook(XamlView xamlView) {
   auto uiElement = xamlView.as<xaml::UIElement>();
   if (m_keyDownCallback)
     m_keyDownRevoker = uiElement.KeyDown(winrt::auto_revoke, m_keyDownCallback);
@@ -102,41 +62,43 @@ void KeyboardEventHandler::hook(XamlView xamlView) {
     m_keyUpRevoker = uiElement.KeyUp(winrt::auto_revoke, m_keyUpCallback);
 }
 
-void KeyboardEventHandler::unhook() {
+void FabricKeyboardEventHandler::unhook() {
   m_keyDownRevoker.revoke();
   m_keyUpRevoker.revoke();
 }
 
-PreviewKeyboardEventHandlerOnRoot::PreviewKeyboardEventHandlerOnRoot(const Mso::React::IReactContext &context)
-    : PreviewKeyboardEventHandler(
-          std::bind(&PreviewKeyboardEventHandlerOnRoot::OnPreKeyDown, this, _1, _2),
-          std::bind(&PreviewKeyboardEventHandlerOnRoot::OnPreKeyUp, this, _1, _2)),
+FabricPreviewKeyboardEventHandlerOnRoot::FabricPreviewKeyboardEventHandlerOnRoot(
+    const Mso::React::IReactContext &context)
+    : FabricPreviewKeyboardEventHandler(
+          std::bind(&FabricPreviewKeyboardEventHandlerOnRoot::OnPreKeyDown, this, _1, _2),
+          std::bind(&FabricPreviewKeyboardEventHandlerOnRoot::OnPreKeyUp, this, _1, _2)),
       m_context(&context) {}
 
-void PreviewKeyboardEventHandlerOnRoot::OnPreKeyDown(
+void FabricPreviewKeyboardEventHandlerOnRoot::OnPreKeyDown(
     winrt::IInspectable const & /*sender*/,
     xaml::Input::KeyRoutedEventArgs const &args) {
-  DispatchEventToJs("topKeyDown", args);
+  DispatchEvent(FabricKeyEventType::Down, args);
 }
 
-void PreviewKeyboardEventHandlerOnRoot::OnPreKeyUp(
+void FabricPreviewKeyboardEventHandlerOnRoot::OnPreKeyUp(
     winrt::IInspectable const & /*sender*/,
     xaml::Input::KeyRoutedEventArgs const &args) {
-  DispatchEventToJs("topKeyUp", args);
+  DispatchEvent(FabricKeyEventType::Up, args);
 }
 
-HandledKeyboardEventHandler::HandledKeyboardEventHandler() {}
+FabricHandledKeyboardEventHandler::FabricHandledKeyboardEventHandler() {}
 
-void HandledKeyboardEventHandler::UpdateHandledKeyboardEvents(
-    std::string const &propertyName,
-    winrt::Microsoft::ReactNative::JSValue const &value) {
-  if (propertyName == "keyDownEvents") {
-    m_handledKeyDownKeyboardEvents = KeyboardHelper::FromJS(value);
-  } else if (propertyName == "keyUpEvents")
-    m_handledKeyUpKeyboardEvents = KeyboardHelper::FromJS(value);
+void FabricHandledKeyboardEventHandler::UpdateHandledKeyboardEvents(
+    FabricKeyEventType const &type,
+    std::vector<facebook::react::HandledKeyEvent> const &keyEvent) {
+  if (type == FabricKeyEventType::Down) {
+    m_handledKeyDownKeyboardEvents = keyEvent;
+  } else if (type == FabricKeyEventType::Up) {
+    m_handledKeyUpKeyboardEvents = keyEvent;
+  }
 }
 
-void HandledKeyboardEventHandler::hook(XamlView xamlView) {
+void FabricHandledKeyboardEventHandler::hook(XamlView xamlView) {
   unhook();
 
   EnsureKeyboardEventHandler();
@@ -144,57 +106,63 @@ void HandledKeyboardEventHandler::hook(XamlView xamlView) {
   m_keyboardEventHandler->hook(xamlView);
 }
 
-void HandledKeyboardEventHandler::unhook() {
+void FabricHandledKeyboardEventHandler::unhook() {
   if (m_previewKeyboardEventHandler)
     m_previewKeyboardEventHandler->unhook();
   if (m_keyboardEventHandler)
     m_keyboardEventHandler->unhook();
 }
 
-void HandledKeyboardEventHandler::EnsureKeyboardEventHandler() {
+void FabricHandledKeyboardEventHandler::EnsureKeyboardEventHandler() {
   if (!m_previewKeyboardEventHandler) {
-    m_previewKeyboardEventHandler = make_unique<PreviewKeyboardEventHandler>(
+    m_previewKeyboardEventHandler = make_unique<FabricPreviewKeyboardEventHandler>(
         std::bind(
-            &HandledKeyboardEventHandler::KeyboardEventHandledHandler,
+            &FabricHandledKeyboardEventHandler::KeyboardEventHandledHandler,
             this,
             KeyboardEventPhase::PreviewKeyDown,
             _1,
             _2),
         std::bind(
-            &HandledKeyboardEventHandler::KeyboardEventHandledHandler, this, KeyboardEventPhase::PreviewKeyUp, _1, _2));
+            &FabricHandledKeyboardEventHandler::KeyboardEventHandledHandler,
+            this,
+            KeyboardEventPhase::PreviewKeyUp,
+            _1,
+            _2));
   }
 
   if (!m_keyboardEventHandler) {
-    m_keyboardEventHandler = make_unique<KeyboardEventHandler>(
-        std::bind(&HandledKeyboardEventHandler::KeyboardEventHandledHandler, this, KeyboardEventPhase::KeyDown, _1, _2),
-        std::bind(&HandledKeyboardEventHandler::KeyboardEventHandledHandler, this, KeyboardEventPhase::KeyUp, _1, _2));
+    m_keyboardEventHandler = make_unique<FabricKeyboardEventHandler>(
+        std::bind(
+            &FabricHandledKeyboardEventHandler::KeyboardEventHandledHandler, this, KeyboardEventPhase::KeyDown, _1, _2),
+        std::bind(
+            &FabricHandledKeyboardEventHandler::KeyboardEventHandledHandler, this, KeyboardEventPhase::KeyUp, _1, _2));
   }
 }
 
-void HandledKeyboardEventHandler::KeyboardEventHandledHandler(
+void FabricHandledKeyboardEventHandler::KeyboardEventHandledHandler(
     KeyboardEventPhase phase,
     winrt::IInspectable const & /*sender*/,
     xaml::Input::KeyRoutedEventArgs const &args) {
-  HandledEventPhase currentEventPhase =
+  facebook::react::HandledEventPhase currentEventPhase =
       (phase == KeyboardEventPhase::PreviewKeyUp || phase == KeyboardEventPhase::PreviewKeyDown)
-      ? HandledEventPhase::Capturing
-      : HandledEventPhase::Bubbling;
+      ? facebook::react::HandledEventPhase::Capturing
+      : facebook::react::HandledEventPhase::Bubbling;
 
-  auto event = KeyboardHelper::CreateKeyboardEvent(currentEventPhase, args);
+  auto event = FabricKeyboardHelper::CreateKeyboardEvent(currentEventPhase, args);
 
   bool shouldMarkHandled = false;
   if (phase == KeyboardEventPhase::PreviewKeyDown || phase == KeyboardEventPhase::KeyDown)
-    shouldMarkHandled = KeyboardHelper::ShouldMarkKeyboardHandled(m_handledKeyDownKeyboardEvents, event);
+    shouldMarkHandled = FabricKeyboardHelper::ShouldMarkKeyboardHandled(m_handledKeyDownKeyboardEvents, event);
   else
-    shouldMarkHandled = KeyboardHelper::ShouldMarkKeyboardHandled(m_handledKeyUpKeyboardEvents, event);
+    shouldMarkHandled = FabricKeyboardHelper::ShouldMarkKeyboardHandled(m_handledKeyUpKeyboardEvents, event);
 
   if (shouldMarkHandled)
     args.Handled(true);
 }
 
-/* static */ bool KeyboardHelper::ShouldMarkKeyboardHandled(
-    std::vector<HandledKeyboardEvent> const &handledEvents,
-    HandledKeyboardEvent currentEvent) {
+/* static */ bool FabricKeyboardHelper::ShouldMarkKeyboardHandled(
+    std::vector<facebook::react::HandledKeyEvent> const &handledEvents,
+    facebook::react::HandledKeyEvent currentEvent) {
   for (auto const &event : handledEvents) {
     if (event.code == currentEvent.code && (event.altKey == currentEvent.altKey) &&
         (event.ctrlKey == currentEvent.ctrlKey) && (event.shiftKey == currentEvent.shiftKey) &&
@@ -205,43 +173,53 @@ void HandledKeyboardEventHandler::KeyboardEventHandledHandler(
 }
 
 template <typename T>
-void UpdateModifiedKeyStatusTo(T &event) {
+void UpdateModifiedKeyStatusTo(T &event, bool &capLocked) {
   auto const &coreWindow = winrt::CoreWindow::GetForCurrentThread();
-  event.altKey = KeyboardHelper::IsModifiedKeyPressed(coreWindow, winrt::Windows::System::VirtualKey::Menu);
-  event.shiftKey = KeyboardHelper::IsModifiedKeyPressed(coreWindow, winrt::Windows::System::VirtualKey::Shift);
-  event.metaKey = KeyboardHelper::IsModifiedKeyPressed(coreWindow, winrt::Windows::System::VirtualKey::LeftWindows) ||
-      KeyboardHelper::IsModifiedKeyPressed(coreWindow, winrt::Windows::System::VirtualKey::RightWindows);
-  event.ctrlKey = KeyboardHelper::IsModifiedKeyPressed(coreWindow, winrt::Windows::System::VirtualKey::Control);
-  event.capLocked = KeyboardHelper::IsModifiedKeyLocked(coreWindow, winrt::Windows::System::VirtualKey::CapitalLock);
+  event.altKey = FabricKeyboardHelper::IsModifiedKeyPressed(coreWindow, winrt::Windows::System::VirtualKey::Menu);
+  event.shiftKey = FabricKeyboardHelper::IsModifiedKeyPressed(coreWindow, winrt::Windows::System::VirtualKey::Shift);
+  event.metaKey =
+      FabricKeyboardHelper::IsModifiedKeyPressed(coreWindow, winrt::Windows::System::VirtualKey::LeftWindows) ||
+      FabricKeyboardHelper::IsModifiedKeyPressed(coreWindow, winrt::Windows::System::VirtualKey::RightWindows);
+  event.ctrlKey = FabricKeyboardHelper::IsModifiedKeyPressed(coreWindow, winrt::Windows::System::VirtualKey::Control);
+  capLocked = FabricKeyboardHelper::IsModifiedKeyLocked(coreWindow, winrt::Windows::System::VirtualKey::CapitalLock);
 };
 
-void PreviewKeyboardEventHandlerOnRoot::DispatchEventToJs(
-    std::string &&eventName,
+void FabricPreviewKeyboardEventHandlerOnRoot::DispatchEvent(
+    FabricKeyEventType const &keyState,
     xaml::Input::KeyRoutedEventArgs const &args) {
-  const auto timestamp =
-      std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now().time_since_epoch()).count();
-  if (auto source = args.OriginalSource().try_as<xaml::FrameworkElement>()) {
-    auto reactId = getViewId(*m_context, source);
-    if (reactId.isValid) {
-      ReactKeyboardEvent event;
-      event.target = reactId.tag;
-      UpdateModifiedKeyStatusTo(event);
-      event.key = KeyboardHelper::FromVirtualKey(args.Key(), event.shiftKey, event.capLocked);
-      event.code = KeyboardHelper::CodeFromVirtualKey(args.OriginalKey());
-
-      m_context->DispatchEvent(event.target, std::move(eventName), ToEventData(event, timestamp));
+  if (const auto uiManager =
+          FabricUIManager::FromProperties(winrt::Microsoft::ReactNative::ReactPropertyBag(m_context->Properties()))) {
+    const auto timestamp =
+        std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now().time_since_epoch()).count();
+    if (auto source = args.OriginalSource().try_as<xaml::FrameworkElement>()) {
+      facebook::react::KeyEvent event;
+      bool capLocked;
+      UpdateModifiedKeyStatusTo(event, capLocked);
+      event.key = FabricKeyboardHelper::FromVirtualKey(args.Key(), event.shiftKey, capLocked);
+      event.code = FabricKeyboardHelper::CodeFromVirtualKey(args.OriginalKey());
+      const auto tag = static_cast<facebook::react::Tag>(GetTag(source));
+      if (const auto view = std::static_pointer_cast<BaseComponentView const>(
+              uiManager->GetViewRegistry().findComponentViewWithTag(tag))) {
+        if (const auto emitter = view->GetEventEmitter(tag)) {
+          if (keyState == FabricKeyEventType::Down) {
+            emitter->onKeyDown(event);
+          } else if (keyState == FabricKeyEventType::Up) {
+            emitter->onKeyUp(event);
+          }
+        }
+      }
     }
   }
 }
 
-HandledKeyboardEvent KeyboardHelper::CreateKeyboardEvent(
-    HandledEventPhase phase,
+facebook::react::HandledKeyEvent FabricKeyboardHelper::CreateKeyboardEvent(
+    facebook::react::HandledEventPhase phase,
     xaml::Input::KeyRoutedEventArgs const &args) {
-  HandledKeyboardEvent event;
+  facebook::react::HandledKeyEvent event;
   event.handledEventPhase = phase;
-  UpdateModifiedKeyStatusTo(event);
-  event.code = KeyboardHelper::CodeFromVirtualKey(args.OriginalKey());
-
+  bool unused;
+  UpdateModifiedKeyStatusTo(event, unused);
+  event.code = FabricKeyboardHelper::CodeFromVirtualKey(args.OriginalKey());
   return event;
 }
 
@@ -582,8 +560,10 @@ static const std::string GetOrUnidentified(
   return "Unidentified";
 }
 
-std::string
-KeyboardHelper::FromVirtualKey(winrt::Windows::System::VirtualKey virtualKey, bool /*shiftDown*/, bool /*capLocked*/) {
+std::string FabricKeyboardHelper::FromVirtualKey(
+    winrt::Windows::System::VirtualKey virtualKey,
+    bool /*shiftDown*/,
+    bool /*capLocked*/) {
   int key = static_cast<int>(virtualKey);
 
   if (!isupper(key) && !isdigit(key)) {
@@ -601,10 +581,10 @@ inline winrt::Windows::System::VirtualKey GetLeftOrRightModifiedKey(
     winrt::CoreWindow const &coreWindow,
     winrt::Windows::System::VirtualKey leftKey,
     winrt::Windows::System::VirtualKey rightKey) {
-  return KeyboardHelper::IsModifiedKeyPressed(coreWindow, leftKey) ? leftKey : rightKey;
+  return FabricKeyboardHelper::IsModifiedKeyPressed(coreWindow, leftKey) ? leftKey : rightKey;
 }
 
-std::string KeyboardHelper::CodeFromVirtualKey(winrt::Windows::System::VirtualKey virtualKey) {
+std::string FabricKeyboardHelper::CodeFromVirtualKey(winrt::Windows::System::VirtualKey virtualKey) {
   int key = static_cast<int>(virtualKey);
 
   if (isdigit(key)) {
@@ -631,7 +611,7 @@ std::string KeyboardHelper::CodeFromVirtualKey(winrt::Windows::System::VirtualKe
   return GetOrUnidentified(virtualKey, g_virtualKeyToCode);
 }
 
-bool KeyboardHelper::IsModifiedKeyPressed(
+bool FabricKeyboardHelper::IsModifiedKeyPressed(
     winrt::CoreWindow const &coreWindow,
     winrt::Windows::System::VirtualKey virtualKey) {
 #ifdef USE_WINUI3
@@ -642,7 +622,7 @@ bool KeyboardHelper::IsModifiedKeyPressed(
   return (keyState & winrt::CoreVirtualKeyStates::Down) == winrt::CoreVirtualKeyStates::Down;
 }
 
-bool KeyboardHelper::IsModifiedKeyLocked(
+bool FabricKeyboardHelper::IsModifiedKeyLocked(
     winrt::CoreWindow const &coreWindow,
     winrt::Windows::System::VirtualKey virtualKey) {
 #ifdef USE_WINUI3

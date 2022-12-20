@@ -157,6 +157,42 @@ void ViewEventEmitter::onMouseLeave(const Touch &touch) const {
       EventPriority::AsynchronousBatched);
 }
 
+#pragma mark - Keyboard Events
+
+static jsi::Value keyEventPayload(
+    jsi::Runtime &runtime,
+    KeyEvent const &event) {
+  auto payload = jsi::Object(runtime);
+  payload.setProperty(
+      runtime, "key", jsi::String::createFromUtf8(runtime, event.key));
+  payload.setProperty(
+      runtime, "code", jsi::String::createFromUtf8(runtime, event.code));
+  payload.setProperty(runtime, "ctrlKey", event.ctrlKey);
+  payload.setProperty(runtime, "shiftKey", event.shiftKey);
+  payload.setProperty(runtime, "altKey", event.altKey);
+  payload.setProperty(runtime, "metaKey", event.metaKey);
+  payload.setProperty(runtime, "timestamp", event.timestamp * 1000);
+  return payload;
+};
+
+void ViewEventEmitter::onKeyUp(const KeyEvent &keyEvent) const {
+  dispatchEvent(
+      "keyUp",
+      [keyEvent](jsi::Runtime &runtime) {
+        return keyEventPayload(runtime, keyEvent);
+      },
+      EventPriority::AsynchronousBatched);
+}
+
+void ViewEventEmitter::onKeyDown(const KeyEvent &keyEvent) const {
+  dispatchEvent(
+      "keyDown",
+      [keyEvent](jsi::Runtime &runtime) {
+        return keyEventPayload(runtime, keyEvent);
+      },
+      EventPriority::AsynchronousBatched);
+}
+
 #endif
 } // namespace react
 } // namespace facebook

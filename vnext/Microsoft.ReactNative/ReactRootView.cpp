@@ -168,18 +168,21 @@ void ReactRootView::InitRootView(
   if (m_reactViewOptions->UseFabric && !reactInstance->Options().UseWebDebugger()) {
     m_fabricTouchEventHandler = std::make_shared<::Microsoft::ReactNative::FabricTouchEventHandler>(*m_context);
     m_fabricTouchEventHandler->AddTouchHandlers(*this);
+    m_fabricPreviewKeyboardEventHandlerOnRoot =
+        std::make_shared<::Microsoft::ReactNative::FabricPreviewKeyboardEventHandlerOnRoot>(*m_context);
+    m_fabricPreviewKeyboardEventHandlerOnRoot->hook(*this);
   } else
 #endif
   {
     m_touchEventHandler = std::make_shared<::Microsoft::ReactNative::TouchEventHandler>(*m_context);
     m_touchEventHandler->AddTouchHandlers(*this);
+    m_previewKeyboardEventHandlerOnRoot =
+        std::make_shared<::Microsoft::ReactNative::PreviewKeyboardEventHandlerOnRoot>(*m_context);
+    m_previewKeyboardEventHandlerOnRoot->hook(*this);
   }
 
   m_SIPEventHandler = std::make_shared<::Microsoft::ReactNative::SIPEventHandler>(*m_context);
-  m_previewKeyboardEventHandlerOnRoot =
-      std::make_shared<::Microsoft::ReactNative::PreviewKeyboardEventHandlerOnRoot>(*m_context);
 
-  m_previewKeyboardEventHandlerOnRoot->hook(*this);
   m_SIPEventHandler->AttachView(*this, /*fireKeyboradEvents:*/ true);
 
   UpdateRootViewInternal();
@@ -230,7 +233,7 @@ void ReactRootView::UninitRootView() noexcept {
     m_touchEventHandler->RemoveTouchHandlers();
   }
 
-  if (!m_previewKeyboardEventHandlerOnRoot) {
+  if (m_previewKeyboardEventHandlerOnRoot) {
     m_previewKeyboardEventHandlerOnRoot->unhook();
   }
 
