@@ -67,6 +67,20 @@ void BaseComponentView::updateProps(
     }
   }
 
+  if (newViewProps.keyDownEvents.size() > 0) {
+    EnsureKeyboardEventHandler();
+    m_keyboardEventHandler->UpdateHandledKeyboardEvents(FabricKeyEventType::Down, newViewProps.keyDownEvents);
+  } else if (oldProps && oldViewProps.keyDownEvents.size() > 0) {
+    m_keyboardEventHandler->UpdateHandledKeyboardEvents(FabricKeyEventType::Down, newViewProps.keyDownEvents);
+  }
+
+  if (newViewProps.keyUpEvents.size() > 0) {
+    EnsureKeyboardEventHandler();
+    m_keyboardEventHandler->UpdateHandledKeyboardEvents(FabricKeyEventType::Up, newViewProps.keyUpEvents);
+  } else if (oldProps && oldViewProps.keyUpEvents.size() > 0) {
+    m_keyboardEventHandler->UpdateHandledKeyboardEvents(FabricKeyEventType::Up, newViewProps.keyUpEvents);
+  }
+
   m_props = props;
 }
 
@@ -155,6 +169,13 @@ void BaseComponentView::UpdateCenterPointPropertySet() noexcept {
       m_centerPointPropertySet.InsertMatrix4x4(
           L"transform", winrt::Windows::Foundation::Numerics::float4x4::identity());
     }
+  }
+}
+
+void BaseComponentView::EnsureKeyboardEventHandler() noexcept {
+  if (!m_keyboardEventHandler) {
+    m_keyboardEventHandler = std::make_unique<FabricHandledKeyboardEventHandler>();
+    m_keyboardEventHandler->hook(Element());
   }
 }
 

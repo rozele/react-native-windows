@@ -4,6 +4,7 @@
 #pragma once
 
 #include <Fabric/WinUI/ComponentView.h>
+#include <Fabric/WinUI/FabricKeyboardEventHandler.h>
 #include <Views/ExpressionAnimationStore.h>
 #include <react/renderer/components/view/ViewEventEmitter.h>
 #include <react/renderer/components/view/ViewProps.h>
@@ -36,8 +37,11 @@ struct BaseComponentView : IComponentView {
 
   void ApplyTransformMatrix(winrt::Windows::Foundation::Numerics::float4x4 matrix) noexcept;
   void UpdateCenterPointPropertySet() noexcept;
+  void EnsureKeyboardEventHandler() noexcept;
 
   comp::CompositionPropertySet m_centerPointPropertySet{nullptr};
+
+  std::unique_ptr<FabricHandledKeyboardEventHandler> m_keyboardEventHandler{nullptr};
 };
 
 struct ViewComponentView : BaseComponentView {

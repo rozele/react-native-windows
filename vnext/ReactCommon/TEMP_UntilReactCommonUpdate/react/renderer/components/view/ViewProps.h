@@ -19,6 +19,10 @@
 
 #include <optional>
 
+#ifdef USE_WINUI_FABRIC
+#include <react/renderer/components/view/KeyEvent.h>
+#endif
+
 namespace facebook {
 namespace react {
 
@@ -84,17 +88,23 @@ class ViewProps : public YogaStylableProps, public AccessibilityProps {
 
   Float elevation{}; /* Android-only */
 
-  bool focusable{false};
-
 #ifdef ANDROID
 
   std::optional<NativeDrawable> nativeBackground{};
   std::optional<NativeDrawable> nativeForeground{};
 
+  bool focusable{false};
   bool hasTVPreferredFocus{false};
   bool needsOffscreenAlphaCompositing{false};
   bool renderToHardwareTextureAndroid{false};
 
+#endif
+
+#ifdef USE_WINUI_FABRIC
+  bool focusable{false};
+
+  std::vector<HandledKeyEvent> keyDownEvents{};
+  std::vector<HandledKeyEvent> keyUpEvents{};
 #endif
 
 #pragma mark - Convenience Methods

@@ -16,6 +16,10 @@
 #include <react/renderer/debug/debugStringConvertibleUtils.h>
 #include <react/renderer/graphics/conversions.h>
 
+#ifdef USE_WINUI_FABRIC
+#include <react/renderer/components/view/conversionsWindows.h>
+#endif
+
 namespace facebook::react {
 
 ViewProps::ViewProps(
@@ -199,15 +203,7 @@ ViewProps::ViewProps(
                     rawProps,
                     "removeClippedSubviews",
                     sourceProps.removeClippedSubviews,
-                    false)),
-      focusable(
-          CoreFeatures::enablePropIteratorSetter ? sourceProps.focusable
-                                                 : convertRawProp(
-                                                       context,
-                                                       rawProps,
-                                                       "focusable",
-                                                       sourceProps.focusable,
-                                                       {}))
+                    false))
 #ifdef ANDROID
       ,
       elevation(
@@ -236,6 +232,14 @@ ViewProps::ViewProps(
                     "nativeForegroundAndroid",
                     sourceProps.nativeForeground,
                     {})),
+      focusable(
+          CoreFeatures::enablePropIteratorSetter ? sourceProps.focusable
+                                                 : convertRawProp(
+                                                       context,
+                                                       rawProps,
+                                                       "focusable",
+                                                       sourceProps.focusable,
+                                                       {})),
       hasTVPreferredFocus(
           CoreFeatures::enablePropIteratorSetter
               ? sourceProps.hasTVPreferredFocus
@@ -264,6 +268,35 @@ ViewProps::ViewProps(
                     sourceProps.renderToHardwareTextureAndroid,
                     {}))
 
+#endif
+#ifdef USE_WINUI_FABRIC
+      ,
+      focusable(
+          CoreFeatures::enablePropIteratorSetter ? sourceProps.focusable
+                                                 : convertRawProp(
+                                                       context,
+                                                       rawProps,
+                                                       "focusable",
+                                                       sourceProps.focusable,
+                                                       {})),
+      keyDownEvents(
+          CoreFeatures::enablePropIteratorSetter
+              ? sourceProps.keyDownEvents
+              : convertRawProp(
+                    context,
+                    rawProps,
+                    "keyDownEvents",
+                    sourceProps.keyDownEvents,
+                    {})),
+      keyUpEvents(
+          CoreFeatures::enablePropIteratorSetter
+              ? sourceProps.keyUpEvents
+              : convertRawProp(
+                    context,
+                    rawProps,
+                    "keyUpEvents",
+                    sourceProps.keyUpEvents,
+                    {}))
 #endif
           {};
 
@@ -363,6 +396,9 @@ void ViewProps::setProp(
 #ifdef USE_WINUI_FABRIC
     VIEW_EVENT_CASE(ViewEvents::Offset::MouseEnter, "onMouseEnter");
     VIEW_EVENT_CASE(ViewEvents::Offset::MouseLeave, "onMouseLeave");
+    RAW_SET_PROP_SWITCH_CASE_BASIC(focusable, false);
+    RAW_SET_PROP_SWITCH_CASE_BASIC(keyDownEvents, {});
+    RAW_SET_PROP_SWITCH_CASE_BASIC(keyUpEvents, {});
 #endif
   }
 }
