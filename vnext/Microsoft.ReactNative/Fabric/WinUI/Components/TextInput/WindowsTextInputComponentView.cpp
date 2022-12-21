@@ -171,6 +171,14 @@ void WindowsTextInputComponentView::updateProps(
     }
   }
 
+  if (oldTextInputProps.placeholderTextColor != newTextInputProps.placeholderTextColor) {
+    if (newTextInputProps.placeholderTextColor) {
+      m_element.PlaceholderForeground(newTextInputProps.placeholderTextColor.AsWindowsBrush());
+    } else {
+      m_element.ClearValue(xaml::Controls::TextBox::PlaceholderForegroundProperty());
+    }
+  }
+
   /*
     if (oldTextInputProps.multiline != newTextInputProps.multiline) {
       m_element.TextWrapping(newTextInputProps.multiline ? xaml::TextWrapping::Wrap : xaml::TextWrapping::NoWrap);
