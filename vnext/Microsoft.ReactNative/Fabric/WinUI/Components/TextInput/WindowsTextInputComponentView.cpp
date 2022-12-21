@@ -162,6 +162,14 @@ void WindowsTextInputComponentView::updateProps(
   if (oldTextInputProps.editable != newTextInputProps.editable) {
     m_element.IsReadOnly(!newTextInputProps.editable);
   }
+   
+  if (oldTextInputProps.selectionColor != newTextInputProps.selectionColor) {
+    if (newTextInputProps.selectionColor) {
+      m_element.SelectionHighlightColor(xaml::Media::SolidColorBrush(newTextInputProps.selectionColor.AsWindowsColor()));
+    } else {
+      m_element.ClearValue(xaml::Controls::TextBox::SelectionHighlightColorProperty());
+    }
+  }
 
   /*
     if (oldTextInputProps.multiline != newTextInputProps.multiline) {
