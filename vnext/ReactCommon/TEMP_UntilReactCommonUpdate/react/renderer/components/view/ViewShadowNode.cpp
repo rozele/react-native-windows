@@ -78,6 +78,10 @@ void ViewShadowNode::initialize() noexcept {
       viewProps.renderToHardwareTextureAndroid;
 #endif
 
+#ifdef USE_WINUI_FABRIC
+  formsView = formsView || viewProps.focusable;
+#endif
+
   if (formsView) {
     traits_.set(ShadowNodeTraits::Trait::FormsView);
   } else {
