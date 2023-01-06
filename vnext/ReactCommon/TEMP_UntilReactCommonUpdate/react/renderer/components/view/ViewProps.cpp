@@ -360,6 +360,10 @@ void ViewProps::setProp(
     SET_CASCADED_RECTANGLE_CORNERS(borderRadii, "border", "Radius", value);
     SET_CASCADED_RECTANGLE_EDGES(borderColors, "border", "Color", value);
     SET_CASCADED_RECTANGLE_EDGES(borderStyles, "border", "Style", value);
+#ifdef USE_WINUI_FABRIC
+    VIEW_EVENT_CASE(ViewEvents::Offset::MouseEnter, "onMouseEnter");
+    VIEW_EVENT_CASE(ViewEvents::Offset::MouseLeave, "onMouseLeave");
+#endif
   }
 }
 

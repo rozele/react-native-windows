@@ -34,8 +34,6 @@ std::shared_ptr<FabricUIManager> GetFabricUIManager(const Mso::React::IReactCont
   return FabricUIManager::FromProperties(winrt::Microsoft::ReactNative::ReactPropertyBag(context.Properties()));
 }
 
-using TargetAncestorMap = std::unordered_map<xaml::DependencyObject, std::shared_ptr<BaseComponentView const>>;
-
 std::shared_ptr<BaseComponentView const> GetNearestReactViewAncestor(
     std::shared_ptr<FabricUIManager> uiManager,
     xaml::DependencyObject const &element) {
@@ -346,7 +344,17 @@ void FabricTouchEventHandler::UpdatePointersInViews(
           continue;
         }
 
-        // TODO(T140425520): emit onMouseLeave and onPointerLeave events
+        // TODO(T141828724): Enable onMouseLeave events for inline text
+        const auto reactTag = static_cast<facebook::react::Tag>(existingTag);
+        if (const auto view = std::static_pointer_cast<BaseComponentView const>(
+                uiManager->GetViewRegistry().findComponentViewWithTag(reactTag))) {
+          if (std::static_pointer_cast<facebook::react::ViewProps const>(view->props())
+                  ->events[facebook::react::ViewEvents::Offset::MouseLeave]) {
+            if (const auto emitter = view->GetEventEmitter(reactTag)) {
+              emitter->onMouseLeave(TouchForPointer(pointer));
+            }
+          }
+        }
       }
     }
 
@@ -357,7 +365,17 @@ void FabricTouchEventHandler::UpdatePointersInViews(
         continue;
       }
 
-      // TODO(T140425520): emit onMouseEnter and onPointerEnter events
+      // TODO(T141828724): Enable onMouseEnter events for inline text
+      const auto reactTag = static_cast<facebook::react::Tag>(newTag);
+      if (const auto view = std::static_pointer_cast<BaseComponentView const>(
+              uiManager->GetViewRegistry().findComponentViewWithTag(reactTag))) {
+        if (std::static_pointer_cast<facebook::react::ViewProps const>(view->props())
+                ->events[facebook::react::ViewEvents::Offset::MouseEnter]) {
+          if (const auto emitter = view->GetEventEmitter(reactTag)) {
+            emitter->onMouseEnter(TouchForPointer(pointer));
+          }
+        }
+      }
     }
 
     m_pointersInViews[pointerId] = {std::move(newViewsSet), std::move(newViews)};
