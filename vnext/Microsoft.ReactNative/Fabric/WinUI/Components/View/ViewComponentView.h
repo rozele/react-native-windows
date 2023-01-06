@@ -73,7 +73,6 @@ struct ViewComponentView : BaseComponentView {
   facebook::react::LayoutMetrics m_layoutMetrics;
   winrt::Microsoft::ReactNative::ViewControl m_control{nullptr};
   winrt::Microsoft::ReactNative::ViewPanel m_panel;
-  xaml::Controls::Border m_outerBorder{nullptr};
 };
 
 } // namespace Microsoft::ReactNative

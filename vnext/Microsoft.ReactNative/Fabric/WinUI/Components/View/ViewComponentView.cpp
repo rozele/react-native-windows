@@ -7,6 +7,7 @@
 
 #include <UI.Composition.h>
 #include <UI.Xaml.Controls.h>
+#include <Utils/ResourceBrushUtils.h>
 #include <Utils/ValueUtils.h>
 #include <Views/FrameworkElementTransferProperties.h>
 #include <XamlView.h>
@@ -235,7 +236,7 @@ void ViewComponentView::updateProps(
     if (newViewProps.borderColors.all) {
       m_panel.BorderBrush(newViewProps.borderColors.all->AsWindowsBrush());
     } else {
-      m_panel.ClearValue(winrt::Microsoft::ReactNative::ViewPanel::BorderBrushProperty());
+      m_panel.ClearValue(xaml::Controls::Grid::BorderBrushProperty());
     }
   }
 
@@ -286,6 +287,12 @@ void ViewComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMask) no
     cornerRadius.BottomRight = borderMetrics.borderRadii.bottomRight;
     cornerRadius.TopLeft = borderMetrics.borderRadii.topLeft;
     cornerRadius.TopRight = borderMetrics.borderRadii.topRight;
+
+    if (borderMetrics.borderWidths != facebook::react::BorderWidths{} &&
+        m_panel.ReadLocalValue(xaml::Controls::Grid::BorderBrushProperty()) == xaml::DependencyProperty::UnsetValue()) {
+      m_panel.BorderBrush(DefaultBrushStore::Instance().GetDefaultBorderBrush());
+    }
+
     m_panel.CornerRadius(cornerRadius);
 
     m_needsBorderUpdate = false;
@@ -294,33 +301,18 @@ void ViewComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMask) no
   auto oldElement = Element();
   auto parent = oldElement.Parent();
 
-  m_panel.FinalizeProperties();
-
   bool needsControl = isFocusable();
-  if ((bool)m_control != needsControl || m_outerBorder != m_panel.GetOuterBorder()) {
+  if ((bool)m_control != needsControl) {
     if (needsControl && !m_control) {
       m_control = winrt::Microsoft::ReactNative::ViewControl{};
       m_control.UseSystemFocusVisuals(m_enableFocusRing);
     }
 
-    // TODO: When would ViewPanel have an outer border but not need it?
-    if (m_panel.GetOuterBorder() && !m_outerBorder) {
-      m_panel.GetOuterBorder().Child(nullptr);
-    }
-
-    const auto tag = GetTag(oldElement);
-    m_outerBorder = m_panel.GetOuterBorder();
-    if (m_outerBorder) {
-      // TODO(T140473680): Determine why tag must be set on Border for pressability to work
-      SetTag(m_outerBorder, tag);
-    }
-
     auto newElement = Element();
 
     // -- Transfer properties to new element
-    SetTag(newElement, tag);
+    SetTag(newElement, GetTag(oldElement));
     TransferFrameworkElementProperties(oldElement, newElement);
-    m_panel.FinalizeProperties();
 
     // -- if the root element changes, we need to modify our parents child
     if (parent && oldElement != newElement) {
@@ -336,26 +328,13 @@ void ViewComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMask) no
       }
     }
 
-    // -- Ensure new heirarchy is setup properly
-    if (m_outerBorder) {
-      m_outerBorder.Child(m_panel);
-    }
-
     if (m_control) {
-      if (m_outerBorder)
-        m_control.Content(m_outerBorder);
-      else
-        m_control.Content(m_panel);
+      m_control.Content(m_panel);
     }
   }
 
   if (m_control) {
     m_control.IsTabStop(isFocusable());
-  }
-
-  if (m_outerBorder) {
-    m_outerBorder.Width(m_layoutMetrics.frame.size.width);
-    m_outerBorder.Height(m_layoutMetrics.frame.size.height);
   }
 
   if (m_control) {
@@ -369,13 +348,6 @@ void ViewComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMask) no
   if (m_control) {
     winrt::Microsoft::ReactNative::ViewPanel::SetLeft(m_control, m_layoutMetrics.frame.origin.x);
     winrt::Microsoft::ReactNative::ViewPanel::SetTop(m_control, m_layoutMetrics.frame.origin.y);
-    winrt::Microsoft::ReactNative::ViewPanel::SetLeft(m_outerBorder, 0);
-    winrt::Microsoft::ReactNative::ViewPanel::SetTop(m_outerBorder, 0);
-    winrt::Microsoft::ReactNative::ViewPanel::SetLeft(m_panel, 0);
-    winrt::Microsoft::ReactNative::ViewPanel::SetTop(m_panel, 0);
-  } else if (m_outerBorder) {
-    winrt::Microsoft::ReactNative::ViewPanel::SetLeft(m_outerBorder, m_layoutMetrics.frame.origin.x);
-    winrt::Microsoft::ReactNative::ViewPanel::SetTop(m_outerBorder, m_layoutMetrics.frame.origin.y);
     winrt::Microsoft::ReactNative::ViewPanel::SetLeft(m_panel, 0);
     winrt::Microsoft::ReactNative::ViewPanel::SetTop(m_panel, 0);
   } else {
@@ -391,11 +363,7 @@ void ViewComponentView::prepareForRecycle() noexcept {}
 // 2) Outer Border - if rounded corners or other clipping
 // 3) ViewPanel
 const xaml::FrameworkElement ViewComponentView::Element() const noexcept {
-  if (m_control)
-    return m_control;
-  if (m_outerBorder)
-    return m_outerBorder;
-  return m_panel;
+  return m_control != nullptr ? m_control.as<xaml::FrameworkElement>() : m_panel;
 }
 
 } // namespace Microsoft::ReactNative
