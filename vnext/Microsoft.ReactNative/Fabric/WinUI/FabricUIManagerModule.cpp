@@ -30,10 +30,11 @@
 #include <react/renderer/components/text/TextComponentDescriptor.h>
 #include <react/renderer/components/textinput/iostextinput/TextInputComponentDescriptor.h>
 #include <react/renderer/components/view/ViewComponentDescriptor.h>
-#include <react/renderer/core/EventBeat.h>
+#include <react/renderer/scheduler/AsynchronousEventBeat.h>
 #include <react/renderer/scheduler/Scheduler.h>
 #include <react/renderer/scheduler/SchedulerToolbox.h>
 #include <react/utils/ContextContainer.h>
+#include <react/utils/RunLoopObserver.h>
 #include <runtimeexecutor/ReactCommon/RuntimeExecutor.h>
 #include <winrt/Windows.Graphics.Display.h>
 #ifndef CORE_ABI
@@ -80,80 +81,54 @@ FabricUIManager::FabricUIManager() {}
 
 FabricUIManager::~FabricUIManager() {}
 
-// Equiv of AsyncEventBeat (ReactAndroid\src\main\java\com\facebook\react\fabric\jni\AsyncEventBeat.h)
-class AsyncEventBeat final : public facebook::react::EventBeat { //, public facebook::react::EventBeatManagerObserver {
+class PlatformRunLoopObserver final : public facebook::react::RunLoopObserver {
  public:
-  AsyncEventBeat(
-      facebook::react::EventBeat::SharedOwnerBox const &ownerBox,
-      // EventBeatManager *eventBeatManager,
-      const winrt::Microsoft::ReactNative::ReactContext &context,
-      facebook::react::RuntimeExecutor runtimeExecutor,
-      std::weak_ptr<FabricUIManager> uiManager)
-      : EventBeat(ownerBox),
-        m_context(context),
-        // eventBeatManager_(eventBeatManager),
-        runtimeExecutor_(runtimeExecutor),
-        uiManager_(uiManager) {
-    m_context.UIDispatcher().Post([this, uiManager, ownerBox = ownerBox_]() {
-      auto owner = ownerBox->owner.lock();
-      if (!owner) {
-        return;
-      }
+  PlatformRunLoopObserver(
+      facebook::react::RunLoopObserver::Activity activities,
+      facebook::react::RunLoopObserver::WeakOwner const &owner,
+      winrt::Microsoft::ReactNative::ReactContext const &context)
+      : facebook::react::RunLoopObserver(activities, owner), m_context{context} {}
 
-#ifndef CORE_ABI
-      // TODO: should use something other than CompositionTarget::Rendering ... not sure where to plug this in yet
-      // Getting the beat running to unblock basic events
-      m_rendering = xaml::Media::CompositionTarget::Rendering(
-          winrt::auto_revoke, [this, ownerBox](const winrt::IInspectable &, const winrt::IInspectable & /*args*/) {
-            auto owner = ownerBox->owner.lock();
-            if (!owner) {
-              return;
-            }
-
-            tick();
-          });
-#endif // CORE_ABI
-    });
-
-    // eventBeatManager->addObserver(*this);
+  bool isOnRunLoopThread() const noexcept override {
+    return m_context.UIDispatcher().HasThreadAccess();
   }
 
-  ~AsyncEventBeat() {
-    // eventBeatManager_->removeObserver(*this);
+ protected:
+  void startObserving() const noexcept override {
+    if (isOnRunLoopThread()) {
+      subscribeRendering();
+    } else {
+      m_context.UIDispatcher().Post([this] { subscribeRendering(); });
+    }
   }
 
-  void tick() const /* override */ {
-    runtimeExecutor_([this, ownerBox = ownerBox_](facebook::jsi::Runtime &runtime) {
-      auto owner = ownerBox->owner.lock();
-      if (!owner) {
-        return;
-      }
-
-      this->beat(runtime);
-    });
-  }
-
-  void induce() const override {
-    tick();
-  }
-
-  void request() const override {
-    bool alreadyRequested = isRequested_;
-    EventBeat::request();
-    if (!alreadyRequested) {
-      if (auto uiManager = uiManager_.lock()) {
-        // Notifies that an event will be dispatched (e.g. LayoutEvent)
-        // uiManager->onRequestEventBeat();
-      }
+  void stopObserving() const noexcept override {
+    if (isOnRunLoopThread()) {
+      unsubscribeRendering();
+    } else {
+      m_context.UIDispatcher().Post([this] { unsubscribeRendering(); });
     }
   }
 
  private:
-  // EventBeatManager *eventBeatManager_;
-  xaml::Media::CompositionTarget::Rendering_revoker m_rendering;
+  void subscribeRendering() const noexcept {
+    m_rendering = xaml::Media::CompositionTarget::Rendering(
+        winrt::auto_revoke, [this](const winrt::IInspectable &, const winrt::IInspectable & /*args*/) {
+          auto owner = getOwner().lock();
+          if (!owner) {
+            return;
+          }
+
+          activityDidChange(facebook::react::RunLoopObserver::Activity::BeforeWaiting);
+        });
+  }
+
+  void unsubscribeRendering() const noexcept {
+    m_rendering.revoke();
+  }
+
   winrt::Microsoft::ReactNative::ReactContext m_context;
-  facebook::react::RuntimeExecutor runtimeExecutor_;
-  std::weak_ptr<FabricUIManager> uiManager_;
+  mutable xaml::Media::CompositionTarget::Rendering_revoker m_rendering;
 };
 
 std::shared_ptr<facebook::react::ComponentDescriptorProviderRegistry const> sharedProviderRegistry() {
@@ -204,17 +179,19 @@ void FabricUIManager::installFabricUIManager() noexcept {
 
   // TODO: T31905686 Create synchronous Event Beat
   facebook::react::EventBeat::Factory synchronousBeatFactory =
-      [/*eventBeatManager,*/ runtimeExecutor, localUIManager = weak_from_this(), context = m_context](
-          facebook::react::EventBeat::SharedOwnerBox const &ownerBox) {
-        return std::make_unique<AsyncEventBeat>(
-            ownerBox, /* eventBeatManager, */ context, runtimeExecutor, localUIManager);
+      [/*eventBeatManager,*/ runtimeExecutor,
+       context = m_context](facebook::react::EventBeat::SharedOwnerBox const &ownerBox) {
+        auto runLoopObserver = std::make_unique<PlatformRunLoopObserver>(
+            facebook::react::RunLoopObserver::Activity::BeforeWaiting, ownerBox->owner, context);
+        return std::make_unique<facebook::react::AsynchronousEventBeat>(std::move(runLoopObserver), runtimeExecutor);
       };
 
   facebook::react::EventBeat::Factory asynchronousBeatFactory =
-      [/*eventBeatManager,*/ runtimeExecutor, localUIManager = weak_from_this(), context = m_context](
-          facebook::react::EventBeat::SharedOwnerBox const &ownerBox) {
-        return std::make_unique<AsyncEventBeat>(
-            ownerBox, /* eventBeatManager, */ context, runtimeExecutor, localUIManager);
+      [/*eventBeatManager,*/ runtimeExecutor,
+       context = m_context](facebook::react::EventBeat::SharedOwnerBox const &ownerBox) {
+        auto runLoopObserver = std::make_unique<PlatformRunLoopObserver>(
+            facebook::react::RunLoopObserver::Activity::BeforeWaiting, ownerBox->owner, context);
+        return std::make_unique<facebook::react::AsynchronousEventBeat>(std::move(runLoopObserver), runtimeExecutor);
       };
 
   contextContainer->insert("ReactNativeConfig", config);
