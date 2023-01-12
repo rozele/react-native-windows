@@ -162,7 +162,7 @@ void WindowsTextInputComponentView::updateProps(
   if (oldTextInputProps.editable != newTextInputProps.editable) {
     m_element.IsReadOnly(!newTextInputProps.editable);
   }
-   
+
   if (oldTextInputProps.selectionColor != newTextInputProps.selectionColor) {
     if (newTextInputProps.selectionColor) {
       m_element.SelectionHighlightColor(xaml::Media::SolidColorBrush(newTextInputProps.selectionColor.AsWindowsColor()));
@@ -268,17 +268,13 @@ void WindowsTextInputComponentView::updateLayoutMetrics(
     facebook::react::LayoutMetrics const &oldLayoutMetrics) noexcept {
   // Set Position & Size Properties
 
-  m_layoutMetrics = layoutMetrics;
-
   m_element.BorderThickness(
-      {m_layoutMetrics.borderWidth.left,
-       m_layoutMetrics.borderWidth.top,
-       m_layoutMetrics.borderWidth.right,
-       m_layoutMetrics.borderWidth.bottom});
+      {layoutMetrics.borderWidth.left,
+       layoutMetrics.borderWidth.top,
+       layoutMetrics.borderWidth.right,
+       layoutMetrics.borderWidth.bottom});
 
-  winrt::Microsoft::ReactNative::ViewPanel::SetLeft(m_element, layoutMetrics.frame.origin.x);
-  winrt::Microsoft::ReactNative::ViewPanel::SetTop(m_element, layoutMetrics.frame.origin.y);
-
+  // TODO(T142315946): Why is minHeight needed?
   m_element.MinHeight(0);
 
   m_element.Padding({
@@ -288,13 +284,17 @@ void WindowsTextInputComponentView::updateLayoutMetrics(
       layoutMetrics.contentInsets.bottom - layoutMetrics.borderWidth.bottom,
   });
 
+  // TODO(T142315971): why is measurement required?
+  const auto height = m_element.Height();
+  const auto width = m_element.Width();
   m_element.ClearValue(xaml::FrameworkElement::HeightProperty());
   m_element.ClearValue(xaml::FrameworkElement::WidthProperty());
   m_element.Measure({std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity()});
   auto ds = m_element.DesiredSize();
+  m_element.Height(height);
+  m_element.Width(width);
 
-  m_element.Width(layoutMetrics.frame.size.width);
-  m_element.Height(layoutMetrics.frame.size.height);
+  Super::updateLayoutMetrics(layoutMetrics, oldLayoutMetrics);
 }
 void WindowsTextInputComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMask) noexcept {
   // m_element.FinalizeProperties();

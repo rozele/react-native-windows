@@ -26,16 +26,12 @@ struct ActivityIndicatorComponentView : BaseComponentView {
       override;
   void updateState(facebook::react::State::Shared const &state, facebook::react::State::Shared const &oldState) noexcept
       override;
-  void updateLayoutMetrics(
-      facebook::react::LayoutMetrics const &layoutMetrics,
-      facebook::react::LayoutMetrics const &oldLayoutMetrics) noexcept override;
   void finalizeUpdates(RNComponentViewUpdateMask updateMask) noexcept override;
   void prepareForRecycle() noexcept override;
 
   const xaml::FrameworkElement Element() const noexcept override;
 
  private:
-  facebook::react::LayoutMetrics m_layoutMetrics;
   xaml::Controls::ProgressRing m_element;
 };
 

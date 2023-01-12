@@ -22,9 +22,6 @@ struct ParagraphComponentView : BaseComponentView {
   const facebook::react::SharedViewEventEmitter &GetEventEmitter(facebook::react::Tag tag) const noexcept override;
   void updateState(facebook::react::State::Shared const &state, facebook::react::State::Shared const &oldState) noexcept
       override;
-  void updateLayoutMetrics(
-      facebook::react::LayoutMetrics const &layoutMetrics,
-      facebook::react::LayoutMetrics const &oldLayoutMetrics) noexcept override;
   void finalizeUpdates(RNComponentViewUpdateMask updateMask) noexcept override;
   void prepareForRecycle() noexcept override;
 
@@ -34,7 +31,6 @@ struct ParagraphComponentView : BaseComponentView {
  private:
   void ToggleTouchEvents(bool selectable);
 
-  facebook::react::LayoutMetrics m_layoutMetrics;
   xaml::Controls::TextBlock m_element;
   std::unordered_map<facebook::react::Tag, facebook::react::SharedViewEventEmitter> m_fragmentEventEmitters{};
 

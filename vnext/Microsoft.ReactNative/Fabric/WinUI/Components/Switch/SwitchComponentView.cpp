@@ -69,20 +69,6 @@ void SwitchComponentView::updateState(
     facebook::react::State::Shared const &state,
     facebook::react::State::Shared const &oldState) noexcept {}
 
-void SwitchComponentView::updateLayoutMetrics(
-    facebook::react::LayoutMetrics const &layoutMetrics,
-    facebook::react::LayoutMetrics const &oldLayoutMetrics) noexcept {
-  // Set Position & Size Properties
-
-  m_layoutMetrics = layoutMetrics;
-
-  winrt::Microsoft::ReactNative::ViewPanel::SetLeft(m_element, layoutMetrics.frame.origin.x);
-  winrt::Microsoft::ReactNative::ViewPanel::SetTop(m_element, layoutMetrics.frame.origin.y);
-
-  m_element.Width(layoutMetrics.frame.size.width);
-  m_element.Height(layoutMetrics.frame.size.height);
-}
-
 void SwitchComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMask) noexcept {}
 
 void SwitchComponentView::prepareForRecycle() noexcept {}

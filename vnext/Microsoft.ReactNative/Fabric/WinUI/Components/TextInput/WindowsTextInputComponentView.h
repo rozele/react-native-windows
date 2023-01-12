@@ -33,7 +33,6 @@ struct WindowsTextInputComponentView : BaseComponentView {
   void SetText(winrt::hstring text) noexcept;
   facebook::react::AttributedString getAttributedString() const;
 
-  facebook::react::LayoutMetrics m_layoutMetrics;
   xaml::Controls::TextBox m_element;
   xaml::Controls::TextBox::TextChanged_revoker m_textChangedRevoker;
   xaml::Controls::TextBox::SelectionChanged_revoker m_SelectionChangedRevoker;

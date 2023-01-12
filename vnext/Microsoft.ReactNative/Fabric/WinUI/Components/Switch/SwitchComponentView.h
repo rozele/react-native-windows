@@ -26,9 +26,6 @@ struct SwitchComponentView : BaseComponentView {
       override;
   void updateState(facebook::react::State::Shared const &state, facebook::react::State::Shared const &oldState) noexcept
       override;
-  void updateLayoutMetrics(
-      facebook::react::LayoutMetrics const &layoutMetrics,
-      facebook::react::LayoutMetrics const &oldLayoutMetrics) noexcept override;
   void finalizeUpdates(RNComponentViewUpdateMask updateMask) noexcept override;
   void prepareForRecycle() noexcept override;
   void handleCommand(std::string const &commandName, folly::dynamic const &arg) noexcept override;
@@ -37,7 +34,6 @@ struct SwitchComponentView : BaseComponentView {
 
  private:
   bool m_needsOnLoadStart{false};
-  facebook::react::LayoutMetrics m_layoutMetrics;
   xaml::Controls::ToggleSwitch m_element;
   xaml::Controls::ToggleSwitch::Toggled_revoker m_toggledRevoker;
 };

@@ -89,6 +89,26 @@ void BaseComponentView::updateEventEmitter(facebook::react::EventEmitter::Shared
   m_eventEmitter = std::static_pointer_cast<facebook::react::ViewEventEmitter const>(eventEmitter);
 }
 
+void BaseComponentView::updateLayoutMetrics(
+    facebook::react::LayoutMetrics const &layoutMetrics,
+    facebook::react::LayoutMetrics const &oldLayoutMetrics) noexcept {
+  // Set Position & Size Properties
+  const auto element = Element();
+  if (layoutMetrics.frame.origin.x != oldLayoutMetrics.frame.origin.x) {
+    winrt::Microsoft::ReactNative::ViewPanel::SetLeft(element, layoutMetrics.frame.origin.x);
+  }
+  if (layoutMetrics.frame.origin.y != oldLayoutMetrics.frame.origin.y) {
+    winrt::Microsoft::ReactNative::ViewPanel::SetTop(element, layoutMetrics.frame.origin.y);
+  }
+  if (layoutMetrics.frame.size.width != oldLayoutMetrics.frame.size.width) {
+    element.Width(layoutMetrics.frame.size.width);
+  }
+  if (layoutMetrics.frame.size.height != oldLayoutMetrics.frame.size.height) {
+    element.Height(layoutMetrics.frame.size.height);
+  }
+}
+
+
 const facebook::react::SharedViewEventEmitter &BaseComponentView::GetEventEmitter(
     facebook::react::Tag tag) const noexcept {
   return m_eventEmitter;
@@ -264,12 +284,14 @@ void ViewComponentView::updateLayoutMetrics(
     facebook::react::LayoutMetrics const &layoutMetrics,
     facebook::react::LayoutMetrics const &oldLayoutMetrics) noexcept {
   // Set Position & Size Properties
-
   m_needsBorderUpdate = true;
   m_layoutMetrics = layoutMetrics;
 
-  winrt::Microsoft::ReactNative::ViewPanel::SetLeft(m_panel, layoutMetrics.frame.origin.x);
-  winrt::Microsoft::ReactNative::ViewPanel::SetTop(m_panel, layoutMetrics.frame.origin.y);
+  Super::updateLayoutMetrics(layoutMetrics, oldLayoutMetrics);
+  if (m_control) {
+    m_panel.Width(layoutMetrics.frame.size.width);
+    m_panel.Height(layoutMetrics.frame.size.height);
+  }
 }
 
 void ViewComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMask) noexcept {
@@ -298,61 +320,40 @@ void ViewComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMask) no
     m_needsBorderUpdate = false;
   }
 
-  auto oldElement = Element();
-  auto parent = oldElement.Parent();
-
-  bool needsControl = isFocusable();
-  if ((bool)m_control != needsControl) {
-    if (needsControl && !m_control) {
-      m_control = winrt::Microsoft::ReactNative::ViewControl{};
-      m_control.UseSystemFocusVisuals(m_enableFocusRing);
-    }
-
-    auto newElement = Element();
+  if (isFocusable() && !m_control) {
+    m_control = winrt::Microsoft::ReactNative::ViewControl{};
+    m_control.UseSystemFocusVisuals(m_enableFocusRing);
 
     // -- Transfer properties to new element
-    SetTag(newElement, GetTag(oldElement));
-    TransferFrameworkElementProperties(oldElement, newElement);
+    SetTag(m_control, GetTag(m_panel));
+    TransferFrameworkElementProperties(m_panel, m_control);
 
     // -- if the root element changes, we need to modify our parents child
-    if (parent && oldElement != newElement) {
+    auto parent = m_panel.Parent();
+    if (parent) {
       // RefreshProperties(); - Transfer EnableFocusRing,TabIndex,IsFocusable
       auto parentPanel = parent.try_as<xaml::Controls::Panel>();
       if (parentPanel) {
         uint32_t index;
-        auto found = parentPanel.Children().IndexOf(oldElement, index);
+        auto found = parentPanel.Children().IndexOf(m_panel, index);
         assert(found);
-        parentPanel.Children().SetAt(index, newElement);
+        parentPanel.Children().SetAt(index, m_control);
       } else {
         assert(false); // TODO handle border/control parent
       }
     }
 
-    if (m_control) {
-      m_control.Content(m_panel);
-    }
-  }
-
-  if (m_control) {
-    m_control.IsTabStop(isFocusable());
-  }
-
-  if (m_control) {
+    m_control.Content(m_panel);
     m_control.Width(m_layoutMetrics.frame.size.width);
     m_control.Height(m_layoutMetrics.frame.size.height);
-  }
-
-  m_panel.Width(m_layoutMetrics.frame.size.width);
-  m_panel.Height(m_layoutMetrics.frame.size.height);
-
-  if (m_control) {
     winrt::Microsoft::ReactNative::ViewPanel::SetLeft(m_control, m_layoutMetrics.frame.origin.x);
     winrt::Microsoft::ReactNative::ViewPanel::SetTop(m_control, m_layoutMetrics.frame.origin.y);
     winrt::Microsoft::ReactNative::ViewPanel::SetLeft(m_panel, 0);
     winrt::Microsoft::ReactNative::ViewPanel::SetTop(m_panel, 0);
-  } else {
-    winrt::Microsoft::ReactNative::ViewPanel::SetLeft(m_panel, m_layoutMetrics.frame.origin.x);
-    winrt::Microsoft::ReactNative::ViewPanel::SetTop(m_panel, m_layoutMetrics.frame.origin.y);
+  }
+
+  if (m_control) {
+    m_control.IsTabStop(isFocusable());
   }
 }
 

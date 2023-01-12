@@ -21,6 +21,9 @@ struct BaseComponentView : IComponentView {
       facebook::react::Props::Shared const &props,
       facebook::react::Props::Shared const &oldProps) noexcept override;
   void updateEventEmitter(facebook::react::EventEmitter::Shared const &eventEmitter) noexcept override;
+  void updateLayoutMetrics(
+      facebook::react::LayoutMetrics const &layoutMetrics,
+      facebook::react::LayoutMetrics const &oldLayoutMetrics) noexcept override;
   virtual const facebook::react::SharedViewEventEmitter &GetEventEmitter(facebook::react::Tag tag) const noexcept;
   void handleCommand(std::string const &commandName, folly::dynamic const &arg) noexcept override;
   facebook::react::Props::Shared props() const noexcept override;

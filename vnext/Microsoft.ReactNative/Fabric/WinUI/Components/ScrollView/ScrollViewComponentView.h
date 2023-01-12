@@ -27,16 +27,12 @@ struct ScrollViewComponentView : BaseComponentView {
   void updateEventEmitter(facebook::react::EventEmitter::Shared const &eventEmitter) noexcept override;
   void updateState(facebook::react::State::Shared const &state, facebook::react::State::Shared const &oldState) noexcept
       override;
-  void updateLayoutMetrics(
-      facebook::react::LayoutMetrics const &layoutMetrics,
-      facebook::react::LayoutMetrics const &oldLayoutMetrics) noexcept override;
   void finalizeUpdates(RNComponentViewUpdateMask updateMask) noexcept override;
   void prepareForRecycle() noexcept override;
 
   const xaml::FrameworkElement Element() const noexcept override;
 
  private:
-  facebook::react::LayoutMetrics m_layoutMetrics;
   xaml::Controls::ScrollViewer m_element;
 
   xaml::FrameworkElement::SizeChanged_revoker m_scrollViewerSizeChangedRevoker{};
