@@ -106,8 +106,16 @@ void BaseComponentView::updateLayoutMetrics(
   if (layoutMetrics.frame.size.height != oldLayoutMetrics.frame.size.height) {
     element.Height(layoutMetrics.frame.size.height);
   }
-}
 
+  const auto &viewProps = *std::static_pointer_cast<const facebook::react::ViewProps>(m_props);
+  if (viewProps.yogaStyle.overflow() == YGOverflowHidden) {
+    xaml::Media::RectangleGeometry clipGeometry;
+    clipGeometry.Rect(winrt::Rect(0, 0, layoutMetrics.frame.size.width, layoutMetrics.frame.size.height));
+    element.Clip(clipGeometry);
+  } else {
+    element.ClearValue(xaml::UIElement::ClipProperty());
+  }
+}
 
 const facebook::react::SharedViewEventEmitter &BaseComponentView::GetEventEmitter(
     facebook::react::Tag tag) const noexcept {
