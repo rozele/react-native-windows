@@ -102,6 +102,7 @@ class ViewProps : public YogaStylableProps, public AccessibilityProps {
 
 #ifdef USE_WINUI_FABRIC
   bool focusable{false};
+  bool enableFocusRing{true};
 
   std::vector<HandledKeyEvent> keyDownEvents{};
   std::vector<HandledKeyEvent> keyUpEvents{};

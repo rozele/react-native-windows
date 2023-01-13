@@ -279,6 +279,14 @@ ViewProps::ViewProps(
                                                        "focusable",
                                                        sourceProps.focusable,
                                                        {})),
+      enableFocusRing(
+          CoreFeatures::enablePropIteratorSetter ? sourceProps.enableFocusRing
+                                                 : convertRawProp(
+                                                       context,
+                                                       rawProps,
+                                                       "enableFocusRing",
+                                                       sourceProps.enableFocusRing,
+                                                       true)),
       keyDownEvents(
           CoreFeatures::enablePropIteratorSetter
               ? sourceProps.keyDownEvents
@@ -397,6 +405,7 @@ void ViewProps::setProp(
     VIEW_EVENT_CASE(ViewEvents::Offset::MouseEnter, "onMouseEnter");
     VIEW_EVENT_CASE(ViewEvents::Offset::MouseLeave, "onMouseLeave");
     RAW_SET_PROP_SWITCH_CASE_BASIC(focusable, false);
+    RAW_SET_PROP_SWITCH_CASE_BASIC(enableFocusRing, true);
     RAW_SET_PROP_SWITCH_CASE_BASIC(keyDownEvents, {});
     RAW_SET_PROP_SWITCH_CASE_BASIC(keyUpEvents, {});
 #endif

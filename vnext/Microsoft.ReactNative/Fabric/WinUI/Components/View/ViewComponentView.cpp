@@ -272,6 +272,10 @@ void ViewComponentView::updateProps(
     m_needsBorderUpdate = true;
   }
 
+  if (oldViewProps.enableFocusRing != newViewProps.enableFocusRing && m_control) {
+    m_control.UseSystemFocusVisuals(newViewProps.enableFocusRing);
+  }
+
   Super::updateProps(props, oldProps);
 }
 
@@ -303,8 +307,8 @@ void ViewComponentView::updateLayoutMetrics(
 }
 
 void ViewComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMask) noexcept {
+  const auto &props = *std::static_pointer_cast<const facebook::react::ViewProps>(m_props);
   if (m_needsBorderUpdate) {
-    const auto &props = *std::static_pointer_cast<const facebook::react::ViewProps>(m_props);
     auto const borderMetrics = props.resolveBorderMetrics(m_layoutMetrics);
     m_panel.BorderThickness(xaml::ThicknessHelper::FromLengths(
         borderMetrics.borderWidths.left,
@@ -330,7 +334,7 @@ void ViewComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMask) no
 
   if (isFocusable() && !m_control) {
     m_control = winrt::Microsoft::ReactNative::ViewControl{};
-    m_control.UseSystemFocusVisuals(m_enableFocusRing);
+    m_control.UseSystemFocusVisuals(props.enableFocusRing);
 
     // -- Transfer properties to new element
     SetTag(m_control, GetTag(m_panel));

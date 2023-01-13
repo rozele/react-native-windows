@@ -72,7 +72,6 @@ struct ViewComponentView : BaseComponentView {
   bool isAccessible() const noexcept;
 
   bool m_needsBorderUpdate{false};
-  bool m_enableFocusRing{true};
   facebook::react::LayoutMetrics m_layoutMetrics;
   winrt::Microsoft::ReactNative::ViewControl m_control{nullptr};
   winrt::Microsoft::ReactNative::ViewPanel m_panel;
