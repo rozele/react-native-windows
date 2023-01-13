@@ -11,6 +11,7 @@
 #include <Utils/ValueUtils.h>
 #include <Views/FrameworkElementTransferProperties.h>
 #include <XamlView.h>
+#include "Unicode.h"
 
 namespace Microsoft::ReactNative {
 
@@ -80,6 +81,13 @@ void BaseComponentView::updateProps(
     m_keyboardEventHandler->UpdateHandledKeyboardEvents(FabricKeyEventType::Up, newViewProps.keyUpEvents);
   } else if (oldProps && oldViewProps.keyUpEvents.size() > 0) {
     m_keyboardEventHandler->UpdateHandledKeyboardEvents(FabricKeyEventType::Up, newViewProps.keyUpEvents);
+  }
+
+  if (newViewProps.tooltip) {
+    xaml::Controls::ToolTipService::SetToolTip(
+        Element(), winrt::box_value(Microsoft::Common::Unicode::Utf8ToUtf16(newViewProps.tooltip.value())));
+  } else if (oldProps && oldViewProps.tooltip) {
+    Element().ClearValue(xaml::Controls::ToolTipService::ToolTipProperty());
   }
 
   m_props = props;
