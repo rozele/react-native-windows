@@ -30,6 +30,7 @@ struct WindowsTextInputComponentView : BaseComponentView {
   virtual const xaml::FrameworkElement Element() const noexcept override;
 
  private:
+  void registerPreviewKeyDown() noexcept;
   void SetText(winrt::hstring text) noexcept;
   void updateTextAlignment(std::optional<facebook::react::TextAlignment> const &newAlignment);
   facebook::react::AttributedString getAttributedString() const;
@@ -37,6 +38,7 @@ struct WindowsTextInputComponentView : BaseComponentView {
   xaml::Controls::TextBox m_element;
   xaml::Controls::TextBox::TextChanged_revoker m_textChangedRevoker;
   xaml::Controls::TextBox::SelectionChanged_revoker m_SelectionChangedRevoker;
+  xaml::Controls::TextBox::PreviewKeyDown_revoker m_controlPreviewKeyDownRevoker;
   std::shared_ptr<facebook::react::WindowsTextInputShadowNode::ConcreteState const> m_state;
   int64_t m_mostRecentEventCount{0};
   int m_nativeEventCount{0};

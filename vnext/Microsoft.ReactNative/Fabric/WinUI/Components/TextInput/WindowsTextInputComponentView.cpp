@@ -5,10 +5,15 @@
 
 #include "WindowsTextInputComponentView.h"
 
+#include <Fabric/WinUI/FabricKeyboardEventHandler.h>
 #include <UI.Xaml.Controls.h>
+#include <UI.Xaml.Input.h>
 #include <Utils/ResourceBrushUtils.h>
 #include <Utils/ValueUtils.h>
+#include <XamlView.h>
 #include <unicode.h>
+#include "Unicode.h"
+#include "Utils/XamlIslandUtils.h"
 #include "WindowsTextInputShadowNode.h"
 #include "WindowsTextInputState.h"
 
@@ -70,6 +75,34 @@ WindowsTextInputComponentView::WindowsTextInputComponentView() {
       emitter->onSelectionChange(onSelectionChangeArgs);
     }
   });
+  registerPreviewKeyDown();
+}
+
+void WindowsTextInputComponentView::registerPreviewKeyDown() noexcept {
+  // TODO(T142459741): Implement support for multi-line and encrypted textBox
+  // TODO(T142461146): Implement support for custom submit keys
+  const auto tag = GetTag(m_element);
+  m_controlPreviewKeyDownRevoker =
+      m_element.PreviewKeyDown(winrt::auto_revoke, [=](auto &&, xaml::Input::KeyRoutedEventArgs const &args) {
+        auto shouldSubmit = !args.Handled();
+        if (shouldSubmit) {
+          shouldSubmit = args.Key() == winrt::Windows::System::VirtualKey::Enter;
+        }
+        if (shouldSubmit && m_eventEmitter) {
+          auto emitter = std::static_pointer_cast<const facebook::react::WindowsTextInputEventEmitter>(m_eventEmitter);
+          facebook::react::WindowsTextInputMetrics textInputMetricsArgs;
+          textInputMetricsArgs.text = winrt::to_string(m_element.Text());
+          textInputMetricsArgs.eventCount = m_nativeEventCount;
+          textInputMetricsArgs.selectionRange.location = m_element.SelectionStart();
+          textInputMetricsArgs.selectionRange.length = m_element.SelectionLength();
+          emitter->onSubmitEditing(textInputMetricsArgs);
+
+          const auto &props = *std::static_pointer_cast<const facebook::react::WindowsTextInputProps>(m_props);
+          if (props.clearTextOnSubmit) {
+            m_element.ClearValue(xaml::Controls::TextBox::TextProperty());
+          }
+        }
+      });
 }
 
 void WindowsTextInputComponentView::handleCommand(std::string const &commandName, folly::dynamic const &arg) noexcept {
@@ -171,7 +204,8 @@ void WindowsTextInputComponentView::updateProps(
 
   if (oldTextInputProps.selectionColor != newTextInputProps.selectionColor) {
     if (newTextInputProps.selectionColor) {
-      m_element.SelectionHighlightColor(xaml::Media::SolidColorBrush(newTextInputProps.selectionColor.AsWindowsColor()));
+      m_element.SelectionHighlightColor(
+          xaml::Media::SolidColorBrush(newTextInputProps.selectionColor.AsWindowsColor()));
     } else {
       m_element.ClearValue(xaml::Controls::TextBox::SelectionHighlightColorProperty());
     }
