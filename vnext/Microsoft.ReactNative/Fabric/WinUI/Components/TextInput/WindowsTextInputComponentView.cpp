@@ -179,6 +179,14 @@ void WindowsTextInputComponentView::updateProps(
     }
   }
 
+  if (oldTextInputProps.textAttributes.alignment != newTextInputProps.textAttributes.alignment) {
+    if (newTextInputProps.textAttributes.alignment) {
+      updateTextAlignment(newTextInputProps.textAttributes.alignment);
+    } else {
+      m_element.ClearValue(xaml::Controls::TextBox::TextAlignmentProperty());
+    }
+  }
+
   /*
     if (oldTextInputProps.multiline != newTextInputProps.multiline) {
       m_element.TextWrapping(newTextInputProps.multiline ? xaml::TextWrapping::Wrap : xaml::TextWrapping::NoWrap);
@@ -260,6 +268,21 @@ void WindowsTextInputComponentView::SetText(winrt::hstring text) noexcept {
     } else {
       m_element.SelectionStart(newValue.size());
     }
+  }
+}
+
+void WindowsTextInputComponentView::updateTextAlignment(
+    std::optional<facebook::react::TextAlignment> const &newAlignment) {
+  if (newAlignment == facebook::react::TextAlignment::Right) {
+    m_element.TextAlignment(xaml::TextAlignment::Right);
+  } else if (newAlignment == facebook::react::TextAlignment::Left) {
+    m_element.TextAlignment(xaml::TextAlignment::Left);
+  } else if (newAlignment == facebook::react::TextAlignment::Center) {
+    m_element.TextAlignment(xaml::TextAlignment::Center);
+  } else if (newAlignment == facebook::react::TextAlignment::Justified) {
+    m_element.TextAlignment(xaml::TextAlignment::Justify);
+  } else {
+    m_element.TextAlignment(xaml::TextAlignment::DetectFromContent);
   }
 }
 

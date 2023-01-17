@@ -31,6 +31,7 @@ struct WindowsTextInputComponentView : BaseComponentView {
 
  private:
   void SetText(winrt::hstring text) noexcept;
+  void updateTextAlignment(std::optional<facebook::react::TextAlignment> const &newAlignment);
   facebook::react::AttributedString getAttributedString() const;
 
   xaml::Controls::TextBox m_element;
