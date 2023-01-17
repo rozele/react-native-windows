@@ -6,6 +6,7 @@
 #include "WindowsTextInputComponentView.h"
 
 #include <UI.Xaml.Controls.h>
+#include <Utils/ResourceBrushUtils.h>
 #include <Utils/ValueUtils.h>
 #include <unicode.h>
 #include "WindowsTextInputShadowNode.h"
@@ -211,9 +212,13 @@ void WindowsTextInputComponentView::updateProps(
 
   if (oldTextInputProps.backgroundColor != newTextInputProps.backgroundColor) {
     if (newTextInputProps.backgroundColor) {
-      m_element.Background(newTextInputProps.backgroundColor.AsWindowsBrush());
+      const auto newBackgroundBrush = newTextInputProps.backgroundColor.AsWindowsBrush();
+      m_element.Background(newBackgroundBrush);
+      UpdateControlBackgroundResourceBrushes(m_element, newBackgroundBrush);
     } else {
+      // TODO: T142203681 Background color does not update when reset to undefined
       m_element.ClearValue(xaml::Controls::Control::BackgroundProperty());
+      UpdateControlBackgroundResourceBrushes(m_element, nullptr);
     }
   }
 
