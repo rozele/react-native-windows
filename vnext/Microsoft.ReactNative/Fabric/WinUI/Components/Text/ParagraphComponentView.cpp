@@ -11,6 +11,7 @@
 #include <UI.Xaml.Documents.h>
 #include <UI.Xaml.Input.h>
 #include <UI.Xaml.Media.h>
+#include <Utils/TransformableText.h>
 #include <Utils/ValueUtils.h>
 #include <Views/Text/TextHitTestUtils.h>
 #include <dwrite.h>
@@ -102,6 +103,27 @@ const facebook::react::SharedViewEventEmitter &ParagraphComponentView::GetEventE
   return Super::GetEventEmitter(tag);
 }
 
+// TODO(T142878585): DRY this helper function with the version defined in TextLayoutManager
+Microsoft::ReactNative::TextTransform ConvertTextTransform(
+    std::optional<facebook::react::TextTransform> const &transform) {
+  if (transform) {
+    switch (transform.value()) {
+      case facebook::react::TextTransform::Capitalize:
+        return Microsoft::ReactNative::TextTransform::Capitalize;
+      case facebook::react::TextTransform::Lowercase:
+        return Microsoft::ReactNative::TextTransform::Lowercase;
+      case facebook::react::TextTransform::Uppercase:
+        return Microsoft::ReactNative::TextTransform::Uppercase;
+      case facebook::react::TextTransform::None:
+        return Microsoft::ReactNative::TextTransform::None;
+      default:
+        break;
+    }
+  }
+
+  return Microsoft::ReactNative::TextTransform::Undefined;
+}
+
 void ParagraphComponentView::updateState(
     facebook::react::State::Shared const &state,
     facebook::react::State::Shared const &oldState) noexcept {
@@ -146,7 +168,8 @@ void ParagraphComponentView::updateState(
           std::static_pointer_cast<facebook::react::ViewEventEmitter const>(fragment.parentShadowView.eventEmitter);
     }
 
-    run.Text(winrt::to_hstring(fragment.string));
+    run.Text(TransformableText::TransformText(
+        winrt::to_hstring(fragment.string), ConvertTextTransform(fragment.textAttributes.textTransform)));
     run.FontFamily(xaml::Media::FontFamily(
         fragment.textAttributes.fontFamily.empty() ? L"Segoe UI"
                                                    : winrt::to_hstring(fragment.textAttributes.fontFamily)));

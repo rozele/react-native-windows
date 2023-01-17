@@ -6,6 +6,7 @@
 #include "pch.h"
 
 #include <Fabric/DWriteHelpers.h>
+#include <Utils/TransformableText.h>
 #include <dwrite.h>
 #include <react/renderer/telemetry/TransactionTelemetry.h>
 #include "TextLayoutManager.h"
@@ -71,11 +72,11 @@ void TextLayoutManager::GetTextLayout(
   }
   winrt::check_hresult(spTextFormat->SetTextAlignment(alignment));
 
-  auto str = Microsoft::Common::Unicode::Utf8ToUtf16(attributedStringBox.getValue().getString());
+  auto str = GetTransformedText(attributedStringBox);
 
   winrt::check_hresult(Microsoft::ReactNative::DWriteFactory()->CreateTextLayout(
       str.c_str(), // The string to be laid out and formatted.
-      static_cast<UINT32>(str.length()), // The length of the string.
+      static_cast<UINT32>(str.size()), // The length of the string.
       spTextFormat.get(), // The text format to apply to the string (contains font information, etc).
       layoutConstraints.maximumSize.width, // The width of the layout box.
       layoutConstraints.maximumSize.height, // The height of the layout box.
@@ -183,6 +184,36 @@ LinesMeasurements TextLayoutManager::measureLines(
 
 void *TextLayoutManager::getNativeTextLayoutManager() const {
   return (void *)this;
+}
+
+Microsoft::ReactNative::TextTransform ConvertTextTransform(std::optional<TextTransform> const &transform) {
+  if (transform) {
+    switch (transform.value()) {
+      case TextTransform::Capitalize:
+        return Microsoft::ReactNative::TextTransform::Capitalize;
+      case TextTransform::Lowercase:
+        return Microsoft::ReactNative::TextTransform::Lowercase;
+      case TextTransform::Uppercase:
+        return Microsoft::ReactNative::TextTransform::Uppercase;
+      case TextTransform::None:
+        return Microsoft::ReactNative::TextTransform::None;
+      default:
+        break;
+    }
+  }
+
+  return Microsoft::ReactNative::TextTransform::Undefined;
+}
+
+winrt::hstring TextLayoutManager::GetTransformedText(AttributedStringBox const &attributedStringBox) {
+  winrt::hstring result{};
+  for (const auto &fragment : attributedStringBox.getValue().getFragments()) {
+    result = result +
+        Microsoft::ReactNative::TransformableText::TransformText(
+                 winrt::hstring{Microsoft::Common::Unicode::Utf8ToUtf16(fragment.string)},
+                 ConvertTextTransform(fragment.textAttributes.textTransform));
+  }
+  return result;
 }
 
 } // namespace facebook::react

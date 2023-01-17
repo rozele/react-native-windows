@@ -70,6 +70,8 @@ class TextLayoutManager {
 #pragma endregion
 
  private:
+  static winrt::hstring GetTransformedText(AttributedStringBox const &attributedStringBox);
+
   ContextContainer::Shared m_contextContainer;
 #pragma warning(push)
 #pragma warning(disable : 5028)
