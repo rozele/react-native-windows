@@ -33,6 +33,7 @@ struct ParagraphComponentView : BaseComponentView {
 
   xaml::Controls::TextBlock m_element;
   std::unordered_map<facebook::react::Tag, facebook::react::SharedViewEventEmitter> m_fragmentEventEmitters{};
+  std::vector<bool> m_inheritsBackground{};
 
   winrt::Microsoft::ReactNative::ReactContext m_context;
   std::shared_ptr<FabricTouchEventHandler> m_touchEventHandler;

@@ -90,6 +90,19 @@ void ParagraphComponentView::updateProps(
     ToggleTouchEvents(newViewProps.isSelectable);
   }
 
+  if (oldViewProps.backgroundColor != newViewProps.backgroundColor) {
+    if (m_inheritsBackground.size() > 0) {
+      const auto newBrush = newViewProps.backgroundColor ? newViewProps.backgroundColor.AsWindowsBrush()
+                                                         : xaml::Media::SolidColorBrush{winrt::Colors::Transparent()};
+      assert(m_inheritsBackground.size() == m_element.TextHighlighters().Size());
+      for (auto i = 0; i < m_inheritsBackground.size(); ++i) {
+        if (m_inheritsBackground[i]) {
+          m_element.TextHighlighters().GetAt(i).Background(newBrush);
+        }
+      }
+    }
+  }
+
   Super::updateProps(props, oldProps);
 }
 
@@ -139,7 +152,16 @@ void ParagraphComponentView::updateState(
   }
 
   m_element.Inlines().Clear();
+  m_element.TextHighlighters().Clear();
+  m_inheritsBackground.clear();
   m_fragmentEventEmitters.clear();
+
+  // TODO(T142895298): Apply ViewProps::backgroundColor prop when no state change occurs
+  int32_t position = 0;
+  const auto &viewProps = *std::static_pointer_cast<const facebook::react::ParagraphProps>(m_props);
+  const auto defaultBackground = facebook::react::isColorMeaningful(viewProps.backgroundColor)
+      ? viewProps.backgroundColor.AsWindowsBrush()
+      : nullptr;
 
   for (const auto &fragment : attributedString.getFragments()) {
     auto inlines = m_element.Inlines();
@@ -179,8 +201,33 @@ void ParagraphComponentView::updateState(
             static_cast<facebook::react::FontWeight>(DWRITE_FONT_WEIGHT_REGULAR)))});
 
     run.FontSize(fragment.textAttributes.fontSize);
-    run.Foreground(fragment.textAttributes.foregroundColor.AsWindowsBrush());
+
+    const auto foreground = fragment.textAttributes.foregroundColor.AsWindowsBrush();
+    run.Foreground(foreground);
+
     inlines.Append(run);
+
+    // We need to track if the background is inherited from the paragraph in
+    // case the backgroundColor prop changes. To simplify the logic for
+    // updating the paragraph backgroundColor prop, we ensure that there is a
+    // one-to-one mapping between fragments and highlighters.
+    const auto hasNestedBackground = facebook::react::isColorMeaningful(fragment.textAttributes.backgroundColor);
+    // If the default background brush is null, convert the non-meaningful
+    // (i.e., transparent) backgroundColor prop to a transparent brush, since
+    // a null background brush on a TextHighlighter produces a yellow highlight.
+    const auto background = hasNestedBackground || !defaultBackground
+        ? fragment.textAttributes.backgroundColor.AsWindowsBrush()
+        : defaultBackground;
+
+    const auto length = static_cast<int32_t>(run.Text().size());
+    xaml::Documents::TextHighlighter highlighter;
+    highlighter.Background(background);
+    highlighter.Foreground(foreground);
+    highlighter.Ranges().Append({position, length});
+    m_element.TextHighlighters().Append(highlighter);
+    m_inheritsBackground.push_back(!hasNestedBackground);
+
+    position += length;
   }
 }
 
