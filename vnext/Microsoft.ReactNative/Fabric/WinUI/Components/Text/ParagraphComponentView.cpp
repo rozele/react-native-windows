@@ -103,6 +103,34 @@ void ParagraphComponentView::updateProps(
     }
   }
 
+  if (oldViewProps.textAttributes.alignment != newViewProps.textAttributes.alignment) {
+    if (newViewProps.textAttributes.alignment) {
+      auto alignment = xaml::TextAlignment::DetectFromContent;
+      switch (*newViewProps.textAttributes.alignment) {
+        case facebook::react::TextAlignment::Center:
+          alignment = xaml::TextAlignment::Center;
+          break;
+        case facebook::react::TextAlignment::Justified:
+          alignment = xaml::TextAlignment::Justify;
+          break;
+        case facebook::react::TextAlignment::Left:
+          alignment = xaml::TextAlignment::Left;
+          break;
+        case facebook::react::TextAlignment::Right:
+          alignment = xaml::TextAlignment::Right;
+          break;
+        case facebook::react::TextAlignment::Natural:
+          alignment = xaml::TextAlignment::Start;
+          break;
+        default:
+          break;
+      }
+      m_element.TextAlignment(alignment);
+    } else {
+      m_element.ClearValue(xaml::Controls::TextBlock::TextAlignmentProperty());
+    }
+  }
+
   Super::updateProps(props, oldProps);
 }
 

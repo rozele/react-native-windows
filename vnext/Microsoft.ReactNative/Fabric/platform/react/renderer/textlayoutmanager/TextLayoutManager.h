@@ -64,7 +64,6 @@ class TextLayoutManager {
       AttributedStringBox attributedStringBox,
       ParagraphAttributes paragraphAttributes,
       LayoutConstraints layoutConstraints,
-      const std::optional<TextAlignment> &textAlignment,
       winrt::com_ptr<IDWriteTextLayout> &spTextLayout) noexcept;
 
 #pragma endregion

@@ -19,7 +19,6 @@ void TextLayoutManager::GetTextLayout(
     AttributedStringBox attributedStringBox,
     ParagraphAttributes paragraphAttributes,
     LayoutConstraints layoutConstraints,
-    const std::optional<TextAlignment> &textAlignment,
     winrt::com_ptr<IDWriteTextLayout> &spTextLayout) noexcept {
   if (attributedStringBox.getValue().isEmpty())
     return;
@@ -48,8 +47,8 @@ void TextLayoutManager::GetTextLayout(
       spTextFormat.put()));
 
   DWRITE_TEXT_ALIGNMENT alignment = DWRITE_TEXT_ALIGNMENT_LEADING;
-  if (textAlignment) {
-    switch (*textAlignment) {
+  if (outerFragment.textAttributes.alignment) {
+    switch (*outerFragment.textAttributes.alignment) {
       case facebook::react::TextAlignment::Center:
         alignment = DWRITE_TEXT_ALIGNMENT_CENTER;
         break;
@@ -127,7 +126,7 @@ TextMeasurement TextLayoutManager::measure(
 
         winrt::com_ptr<IDWriteTextLayout> spTextLayout;
 
-        GetTextLayout(attributedStringBox, paragraphAttributes, layoutConstraints, TextAlignment::Left, spTextLayout);
+        GetTextLayout(attributedStringBox, paragraphAttributes, layoutConstraints, spTextLayout);
 
         if (spTextLayout) {
           auto maxHeight = std::numeric_limits<float>().max();
