@@ -105,10 +105,15 @@ void WindowsTextInputComponentView::updateProps(
   const auto &newTextInputProps = *std::static_pointer_cast<const facebook::react::WindowsTextInputProps>(props);
 
   if (oldTextInputProps.textAttributes.foregroundColor != newTextInputProps.textAttributes.foregroundColor) {
-    if (newTextInputProps.textAttributes.foregroundColor)
-      m_element.Foreground(newTextInputProps.textAttributes.foregroundColor.AsWindowsBrush());
-    else
-      m_element.ClearValue(::xaml::Controls::TextBlock::ForegroundProperty());
+    if (newTextInputProps.textAttributes.foregroundColor) {
+      const auto newColorBrush = newTextInputProps.textAttributes.foregroundColor.AsWindowsBrush();
+      m_element.Foreground(newColorBrush);
+      UpdateControlForegroundResourceBrushes(m_element, newColorBrush);
+    } else {
+      // TODO: T142202708 ForegroundColor does not update when reset to undefined
+      m_element.ClearValue(xaml::Controls::Control::ForegroundProperty());
+      UpdateControlForegroundResourceBrushes(m_element, nullptr);
+    }
   }
 
   if (oldTextInputProps.textAttributes.fontSize != newTextInputProps.textAttributes.fontSize) {
