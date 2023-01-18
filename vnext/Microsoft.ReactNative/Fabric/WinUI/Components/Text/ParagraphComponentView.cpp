@@ -141,6 +141,14 @@ void ParagraphComponentView::updateProps(
     }
   }
 
+  if (oldViewProps.paragraphAttributes.ellipsizeMode != newViewProps.paragraphAttributes.ellipsizeMode) {
+    if (newViewProps.paragraphAttributes.ellipsizeMode != facebook::react::EllipsizeMode::Clip) {
+      m_element.TextTrimming(xaml::TextTrimming::CharacterEllipsis);
+    } else {
+      m_element.ClearValue(xaml::Controls::TextBlock::TextTrimmingProperty());
+    }
+  }
+
   Super::updateProps(props, oldProps);
 }
 
