@@ -129,6 +129,16 @@ TextMeasurement TextLayoutManager::measure(
         GetTextLayout(attributedStringBox, paragraphAttributes, layoutConstraints, spTextLayout);
 
         if (spTextLayout) {
+          DWRITE_TEXT_METRICS dtm{};
+          winrt::check_hresult(spTextLayout->GetMetrics(&dtm));
+
+          // Adjust the width by one logical pixel to avoid truncation. An
+          // improved algorithm might adjust the width by one physical pixel,
+          // but it's non-trivial to get the DPI value here without context of
+          // which surface (and thus monitor) this text will be rendered on.
+          const auto maxWidth = std::min(dtm.width + 1, layoutConstraints.maximumSize.width);
+          winrt::check_hresult(spTextLayout->SetMaxWidth(maxWidth));
+
           auto maxHeight = std::numeric_limits<float>().max();
           if (paragraphAttributes.maximumNumberOfLines > 0) {
             std::vector<DWRITE_LINE_METRICS> lineMetrics;
@@ -144,9 +154,8 @@ TextMeasurement TextLayoutManager::measure(
             }
           }
 
-          DWRITE_TEXT_METRICS dtm{};
           winrt::check_hresult(spTextLayout->GetMetrics(&dtm));
-          measurement.size = {dtm.width, std::min(dtm.height, maxHeight)};
+          measurement.size = {maxWidth, std::min(dtm.height, maxHeight)};
         }
 
         if (telemetry) {
