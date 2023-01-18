@@ -131,6 +131,16 @@ void ParagraphComponentView::updateProps(
     }
   }
 
+  if (oldViewProps.textAttributes.lineHeight != newViewProps.textAttributes.lineHeight) {
+    if (!isnan(newViewProps.textAttributes.lineHeight)) {
+      m_element.LineStackingStrategy(xaml::LineStackingStrategy::BlockLineHeight);
+      m_element.LineHeight(newViewProps.textAttributes.lineHeight);
+    } else {
+      m_element.ClearValue(xaml::Controls::TextBlock::LineHeightProperty());
+      m_element.ClearValue(xaml::Controls::TextBlock::LineStackingStrategyProperty());
+    }
+  }
+
   Super::updateProps(props, oldProps);
 }
 

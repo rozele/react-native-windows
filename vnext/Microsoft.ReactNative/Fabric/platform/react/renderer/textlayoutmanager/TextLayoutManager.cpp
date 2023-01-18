@@ -46,6 +46,11 @@ void TextLayoutManager::GetTextLayout(
       L"",
       spTextFormat.put()));
 
+  if (!isnan(outerFragment.textAttributes.lineHeight)) {
+    winrt::check_hresult(
+        spTextFormat->SetLineSpacing(DWRITE_LINE_SPACING_METHOD_UNIFORM, outerFragment.textAttributes.lineHeight, 0));
+  }
+
   DWRITE_TEXT_ALIGNMENT alignment = DWRITE_TEXT_ALIGNMENT_LEADING;
   if (outerFragment.textAttributes.alignment) {
     switch (*outerFragment.textAttributes.alignment) {
