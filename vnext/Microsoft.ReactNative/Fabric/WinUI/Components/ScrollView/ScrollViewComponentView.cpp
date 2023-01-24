@@ -179,6 +179,29 @@ void ScrollViewComponentView::updateProps(
     m_element.VerticalScrollBarVisibility(scrollBarVisibility);
   }
 
+  if (oldViewProps.zoomScale != newViewProps.zoomScale) {
+    if (m_element.IsLoaded()) {
+      UpdateZoomScale(m_element, newViewProps.zoomScale);
+    } else {
+      // If the ScrollViewer has not yet Loaded, calling ChangeView will not work.
+      // Thus, we defer the action until the Loaded event fires.
+      m_controlLoadedRevoker = m_element.Loaded(
+          winrt::auto_revoke, [this, zoomScale = newViewProps.zoomScale](winrt::IInspectable const &sender, auto &&) {
+            const auto scrollViewer = sender.as<xaml::Controls::ScrollViewer>();
+            UpdateZoomScale(m_element, zoomScale);
+            m_controlLoadedRevoker.revoke();
+          });
+    }
+  }
+
+  if (oldViewProps.minimumZoomScale != newViewProps.minimumZoomScale) {
+    m_element.MinZoomFactor(newViewProps.minimumZoomScale);
+  }
+
+  if (oldViewProps.maximumZoomScale != newViewProps.maximumZoomScale) {
+    m_element.MaxZoomFactor(newViewProps.maximumZoomScale);
+  }
+
   Super::updateProps(props, oldProps);
 }
 
@@ -199,6 +222,37 @@ void ScrollViewComponentView::prepareForRecycle() noexcept {}
 
 const xaml::FrameworkElement ScrollViewComponentView::Element() const noexcept {
   return m_element;
+}
+
+void ScrollViewComponentView::UpdateZoomScale(xaml::Controls::ScrollViewer const& scrollViewer, float zoomScale) {
+  // We want to keep a fixed center point. The current center point is given by:
+  // let h = view port height
+  // let y = scaled vertical offset
+  // let z = zoom factor
+  // h / (z * 2) + y / z
+  //
+  // We want the center point to remain unchanged with zoom, so we have to
+  // solve for y' in the following equality:
+  // let z' = target zoom factor
+  // h / (z * 2) + y / z = h / (z' * 2) + y' / z'
+  //
+  // This gives us:
+  // let r = z' / z
+  // y' = (r - 1) * h / 2 + r * y
+  //
+  // We can calculate x' by following the approach above, substituting "h" for
+  // the view port width and "y" for the scaled horizontal offset.
+  winrt::IReference<double> xOffset = nullptr;
+  winrt::IReference<double> yOffset = nullptr;
+  const auto w = scrollViewer.ActualWidth();
+  const auto h = scrollViewer.ActualHeight();
+  const auto x = scrollViewer.HorizontalOffset();
+  const auto y = scrollViewer.VerticalOffset();
+  const auto z = scrollViewer.ZoomFactor();
+  const auto r = zoomScale / z;
+  xOffset = (r - 1) * w / 2 + r * x;
+  yOffset = (r - 1) * h / 2 + r * y;
+  scrollViewer.ChangeView(xOffset, yOffset, zoomScale);
 }
 
 } // namespace Microsoft::ReactNative

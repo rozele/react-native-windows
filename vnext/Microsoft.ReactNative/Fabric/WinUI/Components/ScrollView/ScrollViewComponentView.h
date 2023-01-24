@@ -43,6 +43,8 @@ struct ScrollViewComponentView : BaseComponentView {
   xaml::Controls::ScrollViewer::DirectManipulationStarted_revoker m_scrollViewerDirectManipulationStartedRevoker{};
   xaml::Controls::Control::Loaded_revoker m_controlLoadedRevoker{};
 
+  void UpdateZoomScale(xaml::Controls::ScrollViewer const &scrollViewer, float zoomScale);
+
   float m_zoomFactor{1.0f};
   bool m_isScrollingFromInertia = false;
   bool m_isScrolling = false;
