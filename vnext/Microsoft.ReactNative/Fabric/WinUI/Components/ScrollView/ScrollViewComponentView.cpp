@@ -165,6 +165,20 @@ void ScrollViewComponentView::updateProps(
     m_element.VerticalScrollMode(scrollMode);
   }
 
+  if (oldViewProps.showsHorizontalScrollIndicator != newViewProps.showsHorizontalScrollIndicator) {
+    const auto scrollBarVisibility = newViewProps.showsHorizontalScrollIndicator
+        ? xaml::Controls::ScrollBarVisibility::Auto
+        : xaml::Controls::ScrollBarVisibility::Hidden;
+    m_element.HorizontalScrollBarVisibility(scrollBarVisibility);
+  }
+
+  if (oldViewProps.showsVerticalScrollIndicator != newViewProps.showsVerticalScrollIndicator) {
+    const auto scrollBarVisibility = newViewProps.showsVerticalScrollIndicator
+        ? xaml::Controls::ScrollBarVisibility::Auto
+        : xaml::Controls::ScrollBarVisibility::Hidden;
+    m_element.VerticalScrollBarVisibility(scrollBarVisibility);
+  }
+
   Super::updateProps(props, oldProps);
 }
 
