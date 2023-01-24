@@ -5,6 +5,7 @@
 
 #include <react/renderer/components/rnwcore/Props.h>
 #include <react/renderer/components/text/BaseTextProps.h>
+#include <react/renderer/components/view/KeyEvent.h>
 #include <react/renderer/core/propsConversions.h>
 
 namespace facebook::react {
@@ -30,56 +31,6 @@ fromRawValue(const PropsParserContext &context, const RawValue &value, WindowsTe
 
 static inline std::string toString(const WindowsTextInputSelectionStruct &value) {
   return "[Object WindowsTextInputSelectionStruct]";
-}
-
-struct WindowsTextInputSubmitKeyEventsStruct {
-  bool altKey;
-  bool ctrlKey;
-  bool metaKey;
-  bool shiftKey;
-  std::string code;
-};
-
-static inline void
-fromRawValue(const PropsParserContext &context, const RawValue &value, WindowsTextInputSubmitKeyEventsStruct &result) {
-  auto map = (butter::map<std::string, RawValue>)value;
-
-  auto tmp_altKey = map.find("altKey");
-  if (tmp_altKey != map.end()) {
-    fromRawValue(context, tmp_altKey->second, result.altKey);
-  }
-  auto tmp_ctrlKey = map.find("ctrlKey");
-  if (tmp_ctrlKey != map.end()) {
-    fromRawValue(context, tmp_ctrlKey->second, result.ctrlKey);
-  }
-  auto tmp_metaKey = map.find("metaKey");
-  if (tmp_metaKey != map.end()) {
-    fromRawValue(context, tmp_metaKey->second, result.metaKey);
-  }
-  auto tmp_shiftKey = map.find("shiftKey");
-  if (tmp_shiftKey != map.end()) {
-    fromRawValue(context, tmp_shiftKey->second, result.shiftKey);
-  }
-  auto tmp_code = map.find("code");
-  if (tmp_code != map.end()) {
-    fromRawValue(context, tmp_code->second, result.code);
-  }
-}
-
-static inline std::string toString(const WindowsTextInputSubmitKeyEventsStruct &value) {
-  return "[Object WindowsTextInputSubmitKeyEventsStruct]";
-}
-
-static inline void fromRawValue(
-    const PropsParserContext &context,
-    const RawValue &value,
-    std::vector<WindowsTextInputSubmitKeyEventsStruct> &result) {
-  auto items = (std::vector<RawValue>)value;
-  for (const auto &item : items) {
-    WindowsTextInputSubmitKeyEventsStruct newItem;
-    fromRawValue(context, item, newItem);
-    result.emplace_back(newItem);
-  }
 }
 
 class WindowsTextInputProps final : public ViewProps, public BaseTextProps {
@@ -110,7 +61,7 @@ class WindowsTextInputProps final : public ViewProps, public BaseTextProps {
   bool caretHidden{false};
   std::string autoCapitalize{};
   bool clearTextOnSubmit{false};
-  std::vector<WindowsTextInputSubmitKeyEventsStruct> submitKeyEvents{};
+  std::vector<facebook::react::HandledKeyEvent> submitKeyEvents{};
   bool autoFocus{false};
 
   /**

@@ -4,6 +4,7 @@
 #pragma once
 
 #include "WindowsTextInputProps.h"
+#include <react/renderer/components/view/conversionsWindows.h>
 
 namespace facebook::react {
 

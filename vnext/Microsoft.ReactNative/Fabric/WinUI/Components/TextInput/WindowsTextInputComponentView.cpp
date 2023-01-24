@@ -11,7 +11,6 @@
 #include <Utils/ResourceBrushUtils.h>
 #include <Utils/ValueUtils.h>
 #include <XamlView.h>
-#include <unicode.h>
 #include "Unicode.h"
 #include "Utils/XamlIslandUtils.h"
 #include "WindowsTextInputShadowNode.h"
@@ -80,13 +79,19 @@ WindowsTextInputComponentView::WindowsTextInputComponentView() {
 
 void WindowsTextInputComponentView::registerPreviewKeyDown() noexcept {
   // TODO(T142459741): Implement support for multi-line and encrypted textBox
-  // TODO(T142461146): Implement support for custom submit keys
   const auto tag = GetTag(m_element);
   m_controlPreviewKeyDownRevoker =
       m_element.PreviewKeyDown(winrt::auto_revoke, [=](auto &&, xaml::Input::KeyRoutedEventArgs const &args) {
+        const auto &props = *std::static_pointer_cast<const facebook::react::WindowsTextInputProps>(m_props);
         auto shouldSubmit = !args.Handled();
         if (shouldSubmit) {
-          shouldSubmit = args.Key() == winrt::Windows::System::VirtualKey::Enter;
+          if (props.submitKeyEvents.size() == 0) {
+            shouldSubmit = args.Key() == winrt::Windows::System::VirtualKey::Enter;
+          } else {
+            auto defaultEventPhase = facebook::react::HandledEventPhase::Bubbling;
+            auto currentEvent = FabricKeyboardHelper::CreateKeyboardEvent(defaultEventPhase, args);
+            shouldSubmit = FabricKeyboardHelper::ShouldMarkKeyboardHandled(props.submitKeyEvents, currentEvent);
+          }
         }
         if (shouldSubmit && m_eventEmitter) {
           auto emitter = std::static_pointer_cast<const facebook::react::WindowsTextInputEventEmitter>(m_eventEmitter);
@@ -96,8 +101,6 @@ void WindowsTextInputComponentView::registerPreviewKeyDown() noexcept {
           textInputMetricsArgs.selectionRange.location = m_element.SelectionStart();
           textInputMetricsArgs.selectionRange.length = m_element.SelectionLength();
           emitter->onSubmitEditing(textInputMetricsArgs);
-
-          const auto &props = *std::static_pointer_cast<const facebook::react::WindowsTextInputProps>(m_props);
           if (props.clearTextOnSubmit) {
             m_element.ClearValue(xaml::Controls::TextBox::TextProperty());
           }
