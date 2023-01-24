@@ -18,8 +18,8 @@
 namespace Microsoft::ReactNative {
 
 ScrollViewComponentView::ScrollViewComponentView() {
-  // static auto const defaultProps = std::make_shared<facebook::react::TextProps const>();
-  // m_props = defaultProps;
+  static auto const defaultProps = std::make_shared<facebook::react::ScrollViewProps const>();
+  m_props = defaultProps;
 
   m_element.Content(m_contentPanel);
   m_contentPanel.VerticalAlignment(xaml::VerticalAlignment::Top);
@@ -130,7 +130,7 @@ void ScrollViewComponentView::unmountChildComponentView(
 void ScrollViewComponentView::updateProps(
     facebook::react::Props::Shared const &props,
     facebook::react::Props::Shared const &oldProps) noexcept {
-  // const auto &oldViewProps = *std::static_pointer_cast<const facebook::react::TextProps>(m_props);
+  const auto &oldViewProps = *std::static_pointer_cast<const facebook::react::ScrollViewProps>(m_props);
   const auto &newViewProps = *std::static_pointer_cast<const facebook::react::ScrollViewProps>(props);
 
   /*
@@ -157,6 +157,13 @@ void ScrollViewComponentView::updateProps(
     m_needsBorderUpdate = true;
   }
   */
+
+  if (oldViewProps.scrollEnabled != newViewProps.scrollEnabled) {
+    const auto scrollMode =
+        newViewProps.scrollEnabled ? xaml::Controls::ScrollMode::Auto : xaml::Controls::ScrollMode::Disabled;
+    m_element.HorizontalScrollMode(scrollMode);
+    m_element.VerticalScrollMode(scrollMode);
+  }
 
   Super::updateProps(props, oldProps);
 }
