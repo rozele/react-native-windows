@@ -138,30 +138,13 @@ void ScrollViewComponentView::updateProps(
   const auto &oldViewProps = *std::static_pointer_cast<const facebook::react::ScrollViewProps>(m_props);
   const auto &newViewProps = *std::static_pointer_cast<const facebook::react::ScrollViewProps>(props);
 
-  /*
-
   if (oldViewProps.backgroundColor != newViewProps.backgroundColor) {
-    auto color = *newViewProps.backgroundColor;
-
     if (newViewProps.backgroundColor) {
-      m_element.ViewBackground(SolidColorBrushFrom(newViewProps.backgroundColor));
+      m_element.Background(newViewProps.backgroundColor.AsWindowsBrush());
     } else {
-      m_element.ClearValue(winrt::Microsoft::ReactNative::ViewPanel::ViewBackgroundProperty());
+      m_element.ClearValue(xaml::Controls::Control::BackgroundProperty());
     }
   }
-
-  if (oldViewProps.borderColors != newViewProps.borderColors) {
-    if (newViewProps.borderColors.all) {
-      m_element.BorderBrush(SolidColorBrushFrom(*newViewProps.borderColors.all));
-    } else {
-      m_element.ClearValue(winrt::Microsoft::ReactNative::ViewPanel::BorderBrushProperty());
-    }
-  }
-
-  if (oldViewProps.borderStyles != newViewProps.borderStyles) {
-    m_needsBorderUpdate = true;
-  }
-  */
 
   if (oldViewProps.scrollEnabled != newViewProps.scrollEnabled) {
     m_needsScrollModeUpdate = true;
