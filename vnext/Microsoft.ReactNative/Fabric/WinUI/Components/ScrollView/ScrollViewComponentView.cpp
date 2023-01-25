@@ -22,6 +22,11 @@ ScrollViewComponentView::ScrollViewComponentView() {
   m_props = defaultProps;
 
   m_element.Content(m_contentPanel);
+  m_element.HorizontalScrollBarVisibility(xaml::Controls::ScrollBarVisibility::Auto);
+  m_element.VerticalScrollBarVisibility(xaml::Controls::ScrollBarVisibility::Auto);
+  m_element.VerticalSnapPointsAlignment(xaml::Controls::Primitives::SnapPointsAlignment::Near);
+  m_element.VerticalSnapPointsType(xaml::Controls::SnapPointsType::Mandatory);
+  m_element.HorizontalSnapPointsType(xaml::Controls::SnapPointsType::Mandatory);
   m_contentPanel.VerticalAlignment(xaml::VerticalAlignment::Top);
   m_contentPanel.HorizontalAlignment(xaml::HorizontalAlignment::Left);
 
@@ -159,10 +164,7 @@ void ScrollViewComponentView::updateProps(
   */
 
   if (oldViewProps.scrollEnabled != newViewProps.scrollEnabled) {
-    const auto scrollMode =
-        newViewProps.scrollEnabled ? xaml::Controls::ScrollMode::Auto : xaml::Controls::ScrollMode::Disabled;
-    m_element.HorizontalScrollMode(scrollMode);
-    m_element.VerticalScrollMode(scrollMode);
+    m_needsScrollModeUpdate = true;
   }
 
   if (oldViewProps.showsHorizontalScrollIndicator != newViewProps.showsHorizontalScrollIndicator) {
@@ -214,17 +216,39 @@ void ScrollViewComponentView::updateState(
   auto contentSize = newState.getData().getContentSize();
   m_contentPanel.Height(contentSize.height);
   m_contentPanel.Width(contentSize.width);
+  m_contentSize = contentSize;
+  m_needsScrollModeUpdate = true;
 }
+void ScrollViewComponentView::updateLayoutMetrics(
+    facebook::react::LayoutMetrics const &layoutMetrics,
+    facebook::react::LayoutMetrics const &oldLayoutMetrics) noexcept {
+  Super::updateLayoutMetrics(layoutMetrics, oldLayoutMetrics);
+  m_layoutMetrics = layoutMetrics;
+  m_needsScrollModeUpdate = true;
+}
+
 void ScrollViewComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMask) noexcept {
-  // m_element.FinalizeProperties();
+  if (m_needsScrollModeUpdate) {
+    const auto &props = *std::static_pointer_cast<const facebook::react::ScrollViewProps>(m_props);
+    m_element.HorizontalScrollMode(
+        props.scrollEnabled && m_contentSize.width > m_layoutMetrics.frame.size.width
+            ? xaml::Controls::ScrollMode::Auto
+            : xaml::Controls::ScrollMode::Disabled);
+    m_element.VerticalScrollMode(
+        props.scrollEnabled && m_contentSize.height > m_layoutMetrics.frame.size.height
+            ? xaml::Controls::ScrollMode::Auto
+            : xaml::Controls::ScrollMode::Disabled);
+    m_needsScrollModeUpdate = false;
+  }
 }
+
 void ScrollViewComponentView::prepareForRecycle() noexcept {}
 
 const xaml::FrameworkElement ScrollViewComponentView::Element() const noexcept {
   return m_element;
 }
 
-void ScrollViewComponentView::UpdateZoomScale(xaml::Controls::ScrollViewer const& scrollViewer, float zoomScale) {
+void ScrollViewComponentView::UpdateZoomScale(xaml::Controls::ScrollViewer const &scrollViewer, float zoomScale) {
   // We want to keep a fixed center point. The current center point is given by:
   // let h = view port height
   // let y = scaled vertical offset

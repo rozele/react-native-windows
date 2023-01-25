@@ -27,6 +27,9 @@ struct ScrollViewComponentView : BaseComponentView {
   void updateEventEmitter(facebook::react::EventEmitter::Shared const &eventEmitter) noexcept override;
   void updateState(facebook::react::State::Shared const &state, facebook::react::State::Shared const &oldState) noexcept
       override;
+  void updateLayoutMetrics(
+      facebook::react::LayoutMetrics const &layoutMetrics,
+      facebook::react::LayoutMetrics const &oldLayoutMetrics) noexcept override;
   void finalizeUpdates(RNComponentViewUpdateMask updateMask) noexcept override;
   void prepareForRecycle() noexcept override;
 
@@ -34,6 +37,7 @@ struct ScrollViewComponentView : BaseComponentView {
 
  private:
   xaml::Controls::ScrollViewer m_element;
+  winrt::Microsoft::ReactNative::ViewPanel m_contentPanel;
 
   xaml::FrameworkElement::SizeChanged_revoker m_scrollViewerSizeChangedRevoker{};
   xaml::FrameworkElement::SizeChanged_revoker m_contentSizeChangedRevoker{};
@@ -43,17 +47,13 @@ struct ScrollViewComponentView : BaseComponentView {
   xaml::Controls::ScrollViewer::DirectManipulationStarted_revoker m_scrollViewerDirectManipulationStartedRevoker{};
   xaml::Controls::Control::Loaded_revoker m_controlLoadedRevoker{};
 
-  void UpdateZoomScale(xaml::Controls::ScrollViewer const &scrollViewer, float zoomScale);
-
-  float m_zoomFactor{1.0f};
   bool m_isScrollingFromInertia = false;
   bool m_isScrolling = false;
-  bool m_isHorizontal = false;
-  bool m_isScrollingEnabled = true;
-  bool m_changeViewAfterLoaded = false;
-  bool m_dismissKeyboardOnDrag = false;
+  bool m_needsScrollModeUpdate = false;
+  facebook::react::Size m_contentSize{};
+  facebook::react::LayoutMetrics m_layoutMetrics{};
 
-  winrt::Microsoft::ReactNative::ViewPanel m_contentPanel;
+  void UpdateZoomScale(xaml::Controls::ScrollViewer const &scrollViewer, float zoomScale);
 };
 
 } // namespace Microsoft::ReactNative
