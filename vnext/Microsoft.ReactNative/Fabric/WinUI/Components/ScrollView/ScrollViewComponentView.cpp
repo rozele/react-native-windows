@@ -7,6 +7,7 @@
 
 #include <UI.Xaml.Controls.h>
 #include <Utils/ValueUtils.h>
+#include <Views/Impl/ScrollViewUWPImplementation.h>
 
 #pragma warning(push)
 #pragma warning(disable : 4305)
@@ -21,7 +22,10 @@ ScrollViewComponentView::ScrollViewComponentView() {
   static auto const defaultProps = std::make_shared<facebook::react::ScrollViewProps const>();
   m_props = defaultProps;
 
-  m_element.Content(m_contentPanel);
+  const auto snapPointManager = SnapPointManagingContentControl::Create();
+  m_element.Content(*snapPointManager);
+  snapPointManager->Content(m_contentPanel);
+
   m_element.HorizontalScrollBarVisibility(xaml::Controls::ScrollBarVisibility::Auto);
   m_element.VerticalScrollBarVisibility(xaml::Controls::ScrollBarVisibility::Auto);
   m_element.VerticalSnapPointsAlignment(xaml::Controls::Primitives::SnapPointsAlignment::Near);
@@ -29,6 +33,27 @@ ScrollViewComponentView::ScrollViewComponentView() {
   m_element.HorizontalSnapPointsType(xaml::Controls::SnapPointsType::Mandatory);
   m_contentPanel.VerticalAlignment(xaml::VerticalAlignment::Top);
   m_contentPanel.HorizontalAlignment(xaml::HorizontalAlignment::Left);
+
+  const auto scrollViewUWPImplementation = ScrollViewUWPImplementation(m_element);
+  m_scrollViewerSizeChangedRevoker =
+      m_element.SizeChanged(winrt::auto_revoke, [scrollViewUWPImplementation](const auto &, const auto &) {
+        scrollViewUWPImplementation.UpdateScrollableSize();
+      });
+
+  m_contentSizeChangedRevoker = scrollViewUWPImplementation.ScrollViewerSnapPointManager()->SizeChanged(
+      winrt::auto_revoke, [this, scrollViewUWPImplementation](const auto &, const auto &) {
+        scrollViewUWPImplementation.UpdateScrollableSize();
+      });
+
+  m_scrollViewerViewChangedRevoker = m_element.ViewChanged(
+      winrt::auto_revoke, [this, scrollViewUWPImplementation](const auto &sender, const auto &args) {
+        const auto scrollViewerNotNull{sender.as<winrt::ScrollViewer>()};
+        const auto zoomFactor{scrollViewerNotNull.ZoomFactor()};
+        if (m_zoomFactor != zoomFactor) {
+          m_zoomFactor = zoomFactor;
+          scrollViewUWPImplementation.UpdateScrollableSize();
+        }
+      });
 
   m_scrollViewerViewChangingRevoker =
       m_element.ViewChanging(winrt::auto_revoke, [this](const auto &sender, const auto &args) {
@@ -187,6 +212,48 @@ void ScrollViewComponentView::updateProps(
     m_element.MaxZoomFactor(newViewProps.maximumZoomScale);
   }
 
+  auto impl = ScrollViewUWPImplementation(m_element);
+  if (oldViewProps.snapToStart != newViewProps.snapToStart) {
+    impl.ScrollViewerSnapPointManager()->SnapToStart(newViewProps.snapToStart);
+  }
+
+  if (oldViewProps.snapToEnd != newViewProps.snapToEnd) {
+    impl.ScrollViewerSnapPointManager()->SnapToEnd(newViewProps.snapToEnd);
+  }
+
+  if (oldViewProps.snapToAlignment != newViewProps.snapToAlignment) {
+    switch (newViewProps.snapToAlignment) {
+      case facebook::react::ScrollViewSnapToAlignment::End: {
+        impl.SnapPointAlignment(xaml::Controls::Primitives::SnapPointsAlignment::Far);
+        break;
+      }
+      case facebook::react::ScrollViewSnapToAlignment::Center: {
+        impl.SnapPointAlignment(xaml::Controls::Primitives::SnapPointsAlignment::Center);
+        break;
+      }
+      default: {
+        impl.SnapPointAlignment(xaml::Controls::Primitives::SnapPointsAlignment::Near);
+        break;
+      }
+    }
+  }
+
+  if (oldViewProps.snapToInterval != newViewProps.snapToInterval) {
+    impl.ScrollViewerSnapPointManager()->SnapToInterval(newViewProps.snapToInterval);
+  }
+
+  if (oldViewProps.snapToOffsets != newViewProps.snapToOffsets) {
+    const auto offsets = winrt::single_threaded_vector<float>();
+    for (const auto offset : newViewProps.snapToOffsets) {
+      offsets.Append(offset);
+    }
+    impl.ScrollViewerSnapPointManager()->SnapToOffsets(offsets.GetView());
+  }
+
+  if (oldViewProps.pagingEnabled != newViewProps.pagingEnabled) {
+    impl.PagingEnabled(newViewProps.pagingEnabled);
+  }
+
   Super::updateProps(props, oldProps);
 }
 
@@ -213,14 +280,13 @@ void ScrollViewComponentView::updateLayoutMetrics(
 void ScrollViewComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMask) noexcept {
   if (m_needsScrollModeUpdate) {
     const auto &props = *std::static_pointer_cast<const facebook::react::ScrollViewProps>(m_props);
+    const auto canScrollHorizontal = props.scrollEnabled && m_contentSize.width > m_layoutMetrics.frame.size.width;
+    const auto canScrollVertical = props.scrollEnabled && m_contentSize.height > m_layoutMetrics.frame.size.height;
     m_element.HorizontalScrollMode(
-        props.scrollEnabled && m_contentSize.width > m_layoutMetrics.frame.size.width
-            ? xaml::Controls::ScrollMode::Auto
-            : xaml::Controls::ScrollMode::Disabled);
+        canScrollHorizontal ? xaml::Controls::ScrollMode::Auto : xaml::Controls::ScrollMode::Disabled);
     m_element.VerticalScrollMode(
-        props.scrollEnabled && m_contentSize.height > m_layoutMetrics.frame.size.height
-            ? xaml::Controls::ScrollMode::Auto
-            : xaml::Controls::ScrollMode::Disabled);
+        canScrollVertical ? xaml::Controls::ScrollMode::Auto : xaml::Controls::ScrollMode::Disabled);
+    ScrollViewUWPImplementation(m_element).SetHorizontal(canScrollHorizontal && !canScrollVertical);
     m_needsScrollModeUpdate = false;
   }
 }

@@ -52,6 +52,7 @@ struct ScrollViewComponentView : BaseComponentView {
   bool m_needsScrollModeUpdate = false;
   facebook::react::Size m_contentSize{};
   facebook::react::LayoutMetrics m_layoutMetrics{};
+  float m_zoomFactor{1.0f};
 
   void UpdateZoomScale(xaml::Controls::ScrollViewer const &scrollViewer, float zoomScale);
 };
