@@ -53,11 +53,20 @@ ScrollViewComponentView::ScrollViewComponentView() {
           m_zoomFactor = zoomFactor;
           scrollViewUWPImplementation.UpdateScrollableSize();
         }
+
+        m_viewChanger.OnViewChanged(scrollViewerNotNull, args);
       });
 
   m_scrollViewerViewChangingRevoker =
       m_element.ViewChanging(winrt::auto_revoke, [this](const auto &sender, const auto &args) {
         const auto scrollViewerNotNull = sender.as<xaml::Controls::ScrollViewer>();
+        // Do not emit scroll events before the ScrollViewer is loaded when in the
+        // context of an inverted VirtualizedList. Emitting the scroll event when the
+        // control has not been loaded sends incorrect values for the `ActualWidth`
+        // and `ActualHeight`, which can mess up the VirtualizedList behavior.
+        const auto &props = *std::static_pointer_cast<const facebook::react::ScrollViewProps>(m_props);
+        if (props.inverted && !scrollViewerNotNull.IsLoaded())
+          return;
 
         facebook::react::ScrollViewMetrics scrollMetrics;
         scrollMetrics.containerSize.height = static_cast<facebook::react::Float>(m_element.ActualHeight());
@@ -79,6 +88,8 @@ ScrollViewComponentView::ScrollViewComponentView() {
                 ->onMomentumScrollBegin(scrollMetrics);
           }
         }
+
+        m_viewChanger.OnViewChanging(scrollViewerNotNull, args);
 
         if (m_eventEmitter) {
           std::static_pointer_cast<facebook::react::ScrollViewEventEmitter const>(m_eventEmitter)
@@ -148,7 +159,21 @@ ScrollViewComponentView::supplementalComponentDescriptorProviders() noexcept {
 void ScrollViewComponentView::mountChildComponentView(
     const IComponentView &childComponentView,
     uint32_t index) noexcept {
-  m_contentPanel.Children().InsertAt(index, static_cast<const BaseComponentView &>(childComponentView).Element());
+  const auto child = static_cast<const BaseComponentView &>(childComponentView).Element();
+  const auto childViewProps = *std::static_pointer_cast<facebook::react::ViewProps const>(childComponentView.props());
+
+  const auto scrollViewContentControl = m_element.Content().as<SnapPointManagingContentControl>();
+  if (scrollViewContentControl->IsInverted()) {
+    if (scrollViewContentControl->IsContentAnchoringEnabled()) {
+      if (childViewProps.overflowAnchor != "none") {
+        child.CanBeScrollAnchor(true);
+      }
+    } else {
+      m_element.InvalidateArrange();
+    }
+  }
+
+  m_contentPanel.Children().InsertAt(index, child);
 }
 
 void ScrollViewComponentView::unmountChildComponentView(
@@ -212,6 +237,18 @@ void ScrollViewComponentView::updateProps(
     m_element.MaxZoomFactor(newViewProps.maximumZoomScale);
   }
 
+  if (oldViewProps.inverted != newViewProps.inverted) {
+    m_viewChanger.Inverted(newViewProps.inverted);
+    ScrollViewUWPImplementation(m_element).SetInverted(newViewProps.inverted);
+    if (newViewProps.inverted) {
+      m_element.HorizontalAnchorRatio(1.0);
+      m_element.VerticalAnchorRatio(1.0);
+    } else {
+      m_element.ClearValue(winrt::ScrollViewer::HorizontalAnchorRatioProperty());
+      m_element.ClearValue(winrt::ScrollViewer::VerticalAnchorRatioProperty());
+    }
+  }
+
   auto impl = ScrollViewUWPImplementation(m_element);
   if (oldViewProps.snapToStart != newViewProps.snapToStart) {
     impl.ScrollViewerSnapPointManager()->SnapToStart(newViewProps.snapToStart);
@@ -257,7 +294,6 @@ void ScrollViewComponentView::updateProps(
   Super::updateProps(props, oldProps);
 }
 
-void ScrollViewComponentView::updateEventEmitter(facebook::react::EventEmitter::Shared const &eventEmitter) noexcept {}
 void ScrollViewComponentView::updateState(
     facebook::react::State::Shared const &state,
     facebook::react::State::Shared const &oldState) noexcept {
@@ -268,6 +304,20 @@ void ScrollViewComponentView::updateState(
   m_contentPanel.Width(contentSize.width);
   m_contentSize = contentSize;
   m_needsScrollModeUpdate = true;
+
+  // ScrollViewer selects an anchor during the Arrange phase of layout.
+  // If you do not call InvalidateArrange whenever a new child is added
+  // to the ScrollViewer content, the anchor behavior does not work.
+  //
+  // While this call fires too frequently resulting in unnecessary
+  // calls to invalidate arrange, it is the only sure-fire way to call
+  // InvalidateArrange any time any descendent layout changes.
+  // TODO(T143666093): State updates don't fire as often as SetLayoutProps
+  // in Paper, so we may not perform edge anchoring as often as needed.
+  const auto &props = *std::static_pointer_cast<const facebook::react::ScrollViewProps>(m_props);
+  if (props.inverted) {
+    m_element.InvalidateArrange();
+  }
 }
 void ScrollViewComponentView::updateLayoutMetrics(
     facebook::react::LayoutMetrics const &layoutMetrics,
@@ -299,16 +349,11 @@ void ScrollViewComponentView::handleCommand(std::string const &commandName, foll
     m_element.ChangeView(x, y, nullptr, /* diableAnimation: */ !animated);
   } else if (commandName == "scrollToEnd") {
     const auto animated = arg[0].asBool();
-    if (m_element.HorizontalScrollMode() != xaml::Controls::ScrollMode::Disabled &&
-        m_element.VerticalScrollMode() == xaml::Controls::ScrollMode::Disabled) {
-      m_element.ChangeView(m_element.ScrollableWidth(), nullptr, nullptr, /* diableAnimation: */ !animated);
-    } else if (m_element.VerticalScrollMode() != xaml::Controls::ScrollMode::Disabled) {
-      m_element.ChangeView(nullptr, m_element.ScrollableHeight(), nullptr, /* diableAnimation: */ !animated);
-    }
+    m_viewChanger.ScrollToEnd(m_element, animated);
   } else {
     Super::handleCommand(commandName, arg);
   }
-} 
+}
 
 void ScrollViewComponentView::prepareForRecycle() noexcept {}
 

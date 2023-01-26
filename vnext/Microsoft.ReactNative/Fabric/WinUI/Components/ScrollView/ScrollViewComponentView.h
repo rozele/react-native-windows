@@ -3,9 +3,8 @@
 
 #pragma once
 
-#include <Fabric/WinUI/ComponentView.h>
-
 #include <Fabric/WinUI/Components/View/ViewComponentView.h>
+#include <Views/Impl/ScrollViewViewChanger.h>
 
 #pragma warning(push)
 #pragma warning(disable : 4305)
@@ -24,7 +23,6 @@ struct ScrollViewComponentView : BaseComponentView {
   void unmountChildComponentView(const IComponentView &childComponentView, uint32_t index) noexcept override;
   void updateProps(facebook::react::Props::Shared const &props, facebook::react::Props::Shared const &oldProps) noexcept
       override;
-  void updateEventEmitter(facebook::react::EventEmitter::Shared const &eventEmitter) noexcept override;
   void updateState(facebook::react::State::Shared const &state, facebook::react::State::Shared const &oldState) noexcept
       override;
   void updateLayoutMetrics(
@@ -47,6 +45,8 @@ struct ScrollViewComponentView : BaseComponentView {
   xaml::Controls::ScrollViewer::DirectManipulationCompleted_revoker m_scrollViewerDirectManipulationCompletedRevoker{};
   xaml::Controls::ScrollViewer::DirectManipulationStarted_revoker m_scrollViewerDirectManipulationStartedRevoker{};
   xaml::Controls::Control::Loaded_revoker m_controlLoadedRevoker{};
+
+  ScrollViewViewChanger m_viewChanger;
 
   bool m_isScrollingFromInertia = false;
   bool m_isScrolling = false;

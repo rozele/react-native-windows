@@ -10,6 +10,7 @@
 #include <Utils/ResourceBrushUtils.h>
 #include <Utils/ValueUtils.h>
 #include <Views/FrameworkElementTransferProperties.h>
+#include <Views/Impl/ScrollViewViewChanger.h>
 #include <XamlView.h>
 #include "Unicode.h"
 
@@ -88,6 +89,12 @@ void BaseComponentView::updateProps(
         Element(), winrt::box_value(Microsoft::Common::Unicode::Utf8ToUtf16(newViewProps.tooltip.value())));
   } else if (oldProps && oldViewProps.tooltip) {
     Element().ClearValue(xaml::Controls::ToolTipService::ToolTipProperty());
+  }
+
+  if (newViewProps.overflowAnchor == "none") {
+    Element().SetValue(ScrollViewViewChanger::CanBeScrollAnchorProperty(), winrt::box_value(false));
+  } else if (oldProps && oldViewProps.overflowAnchor == "none") {
+    Element().ClearValue(ScrollViewViewChanger::CanBeScrollAnchorProperty());
   }
 
   m_props = props;

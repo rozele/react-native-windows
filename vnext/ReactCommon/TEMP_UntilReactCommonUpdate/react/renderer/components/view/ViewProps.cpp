@@ -287,6 +287,14 @@ ViewProps::ViewProps(
                                                        "enableFocusRing",
                                                        sourceProps.enableFocusRing,
                                                        true)),
+      overflowAnchor(
+          CoreFeatures::enablePropIteratorSetter ? sourceProps.overflowAnchor
+                                                 : convertRawProp(
+                                                       context,
+                                                       rawProps,
+                                                       "overflowAnchor",
+                                                       sourceProps.overflowAnchor,
+                                                       {})),
       tooltip(
           CoreFeatures::enablePropIteratorSetter ? sourceProps.tooltip
                                                  : convertRawProp(
@@ -414,6 +422,7 @@ void ViewProps::setProp(
     VIEW_EVENT_CASE(ViewEvents::Offset::MouseLeave, "onMouseLeave");
     RAW_SET_PROP_SWITCH_CASE_BASIC(focusable, false);
     RAW_SET_PROP_SWITCH_CASE_BASIC(enableFocusRing, true);
+    RAW_SET_PROP_SWITCH_CASE_BASIC(overflowAnchor, {});
     RAW_SET_PROP_SWITCH_CASE_BASIC(tooltip, {});
     RAW_SET_PROP_SWITCH_CASE_BASIC(keyDownEvents, {});
     RAW_SET_PROP_SWITCH_CASE_BASIC(keyUpEvents, {});

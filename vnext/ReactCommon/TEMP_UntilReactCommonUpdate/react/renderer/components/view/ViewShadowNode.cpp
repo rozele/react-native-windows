@@ -61,7 +61,9 @@ void ViewShadowNode::initialize() noexcept {
 #endif
 
 #ifdef USE_WINUI_FABRIC
-  formsStackingContext = formsStackingContext || viewProps.pointerEvents == PointerEventsMode::BoxOnly;
+  formsStackingContext = formsStackingContext ||
+      viewProps.pointerEvents == PointerEventsMode::BoxOnly ||
+      viewProps.overflowAnchor == "none";
 #endif
 
   bool formsView = formsStackingContext ||
