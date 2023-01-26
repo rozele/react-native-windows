@@ -85,12 +85,17 @@ void WindowsTextInputComponentView::registerPreviewKeyDown() noexcept {
         const auto &props = *std::static_pointer_cast<const facebook::react::WindowsTextInputProps>(m_props);
         auto shouldSubmit = !args.Handled();
         if (shouldSubmit) {
-          if (props.submitKeyEvents.size() == 0) {
+          if (!props.multiline && props.submitKeyEvents.size() == 0) {
+            // For single line TextInput without custom submit keys, submit when user presses enter
             shouldSubmit = args.Key() == winrt::Windows::System::VirtualKey::Enter;
-          } else {
+          } else if (props.submitKeyEvents.size() > 0) {
+            // If custom submit keys are provided, use them to determine shouldSubmit
             auto defaultEventPhase = facebook::react::HandledEventPhase::Bubbling;
             auto currentEvent = FabricKeyboardHelper::CreateKeyboardEvent(defaultEventPhase, args);
             shouldSubmit = FabricKeyboardHelper::ShouldMarkKeyboardHandled(props.submitKeyEvents, currentEvent);
+          } else {
+            // If no custom submit keys are provided and multiline is enabled, disable submitting
+            shouldSubmit = false;
           }
         }
         if (shouldSubmit && m_eventEmitter) {
@@ -103,6 +108,9 @@ void WindowsTextInputComponentView::registerPreviewKeyDown() noexcept {
           emitter->onSubmitEditing(textInputMetricsArgs);
           if (props.clearTextOnSubmit) {
             m_element.ClearValue(xaml::Controls::TextBox::TextProperty());
+          }
+          if (props.multiline) {
+            args.Handled(true);
           }
         }
       });
@@ -230,12 +238,10 @@ void WindowsTextInputComponentView::updateProps(
     }
   }
 
-  /*
     if (oldTextInputProps.multiline != newTextInputProps.multiline) {
       m_element.TextWrapping(newTextInputProps.multiline ? xaml::TextWrapping::Wrap : xaml::TextWrapping::NoWrap);
       m_element.AcceptsReturn(newTextInputProps.multiline);
     }
-    */
 
   if (oldTextInputProps.selection.start != newTextInputProps.selection.start ||
       oldTextInputProps.selection.end != newTextInputProps.selection.end) {
