@@ -291,6 +291,25 @@ void ScrollViewComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMa
   }
 }
 
+void ScrollViewComponentView::handleCommand(std::string const &commandName, folly::dynamic const &arg) noexcept {
+  if (commandName == "scrollTo") {
+    const auto x = arg[0].asDouble();
+    const auto y = arg[1].asDouble();
+    const auto animated = arg[2].asBool();
+    m_element.ChangeView(x, y, nullptr, /* diableAnimation: */ !animated);
+  } else if (commandName == "scrollToEnd") {
+    const auto animated = arg[0].asBool();
+    if (m_element.HorizontalScrollMode() != xaml::Controls::ScrollMode::Disabled &&
+        m_element.VerticalScrollMode() == xaml::Controls::ScrollMode::Disabled) {
+      m_element.ChangeView(m_element.ScrollableWidth(), nullptr, nullptr, /* diableAnimation: */ !animated);
+    } else if (m_element.VerticalScrollMode() != xaml::Controls::ScrollMode::Disabled) {
+      m_element.ChangeView(nullptr, m_element.ScrollableHeight(), nullptr, /* diableAnimation: */ !animated);
+    }
+  } else {
+    Super::handleCommand(commandName, arg);
+  }
+} 
+
 void ScrollViewComponentView::prepareForRecycle() noexcept {}
 
 const xaml::FrameworkElement ScrollViewComponentView::Element() const noexcept {

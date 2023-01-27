@@ -31,6 +31,7 @@ struct ScrollViewComponentView : BaseComponentView {
       facebook::react::LayoutMetrics const &layoutMetrics,
       facebook::react::LayoutMetrics const &oldLayoutMetrics) noexcept override;
   void finalizeUpdates(RNComponentViewUpdateMask updateMask) noexcept override;
+  void handleCommand(std::string const &commandName, folly::dynamic const &arg) noexcept override;
   void prepareForRecycle() noexcept override;
 
   const xaml::FrameworkElement Element() const noexcept override;
