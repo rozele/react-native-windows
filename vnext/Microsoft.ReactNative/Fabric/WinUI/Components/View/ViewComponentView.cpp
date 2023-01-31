@@ -30,8 +30,10 @@ void BaseComponentView::updateProps(
   const auto &oldViewProps = *std::static_pointer_cast<const facebook::react::ViewProps>(m_props);
   const auto &newViewProps = *std::static_pointer_cast<const facebook::react::ViewProps>(props);
 
-  if ((!oldProps || newViewProps.transform != oldViewProps.transform && newViewProps.transform.operations.size() > 0) &&
-      !propKeysManagedByAnimated_DO_NOT_USE_THIS_IS_BROKEN.count("transform")) {
+  const auto hasInitialTransform = !oldProps && newViewProps.transform != facebook::react::Transform::Identity();
+  const auto hasUpdatedTransform = oldProps && newViewProps.transform != oldViewProps.transform;
+  const auto hasAnimatedTransform = propKeysManagedByAnimated_DO_NOT_USE_THIS_IS_BROKEN.count("transform");
+  if ((hasInitialTransform || hasUpdatedTransform) && !hasAnimatedTransform) {
     winrt::Windows::Foundation::Numerics::float4x4 matrix;
     matrix.m11 = newViewProps.transform.matrix[0];
     matrix.m12 = newViewProps.transform.matrix[1];
