@@ -259,12 +259,10 @@ void ViewComponentView::updateProps(
   const auto &newViewProps = *std::static_pointer_cast<const facebook::react::ViewProps>(props);
 
   if (oldViewProps.backgroundColor != newViewProps.backgroundColor) {
-    auto color = *newViewProps.backgroundColor;
-
     if (newViewProps.backgroundColor) {
-      m_panel.ViewBackground(newViewProps.backgroundColor.AsWindowsBrush());
+      m_panel.Background(newViewProps.backgroundColor.AsWindowsBrush());
     } else {
-      m_panel.ClearValue(winrt::Microsoft::ReactNative::ViewPanel::ViewBackgroundProperty());
+      m_panel.ClearValue(xaml::Controls::Panel::BackgroundProperty());
     }
   }
 
