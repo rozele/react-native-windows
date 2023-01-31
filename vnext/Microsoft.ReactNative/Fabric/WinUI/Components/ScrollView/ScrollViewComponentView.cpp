@@ -196,6 +196,18 @@ void ScrollViewComponentView::updateProps(
     }
   }
 
+  if (oldViewProps.borderColors != newViewProps.borderColors) {
+    if (newViewProps.borderColors.all) {
+      m_element.BorderBrush(newViewProps.borderColors.all->AsWindowsBrush());
+    } else {
+      m_element.ClearValue(xaml::Controls::Control::BorderBrushProperty());
+    }
+  }
+
+  if (oldViewProps.borderStyles != newViewProps.borderStyles || oldViewProps.borderRadii != newViewProps.borderRadii) {
+    m_needsBorderUpdate = true;
+  }
+
   if (oldViewProps.scrollEnabled != newViewProps.scrollEnabled) {
     m_needsScrollModeUpdate = true;
   }
@@ -328,8 +340,8 @@ void ScrollViewComponentView::updateLayoutMetrics(
 }
 
 void ScrollViewComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMask) noexcept {
+  const auto &props = *std::static_pointer_cast<const facebook::react::ScrollViewProps>(m_props);
   if (m_needsScrollModeUpdate) {
-    const auto &props = *std::static_pointer_cast<const facebook::react::ScrollViewProps>(m_props);
     const auto canScrollHorizontal = props.scrollEnabled && m_contentSize.width > m_layoutMetrics.frame.size.width;
     const auto canScrollVertical = props.scrollEnabled && m_contentSize.height > m_layoutMetrics.frame.size.height;
     m_element.HorizontalScrollMode(
@@ -338,6 +350,31 @@ void ScrollViewComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMa
         canScrollVertical ? xaml::Controls::ScrollMode::Auto : xaml::Controls::ScrollMode::Disabled);
     ScrollViewUWPImplementation(m_element).SetHorizontal(canScrollHorizontal && !canScrollVertical);
     m_needsScrollModeUpdate = false;
+  }
+
+  if (m_needsBorderUpdate) {
+    auto const borderMetrics = props.resolveBorderMetrics(m_layoutMetrics);
+    m_element.BorderThickness(xaml::ThicknessHelper::FromLengths(
+        borderMetrics.borderWidths.left,
+        borderMetrics.borderWidths.top,
+        borderMetrics.borderWidths.right,
+        borderMetrics.borderWidths.bottom));
+
+    xaml::CornerRadius cornerRadius;
+    cornerRadius.BottomLeft = borderMetrics.borderRadii.bottomLeft;
+    cornerRadius.BottomRight = borderMetrics.borderRadii.bottomRight;
+    cornerRadius.TopLeft = borderMetrics.borderRadii.topLeft;
+    cornerRadius.TopRight = borderMetrics.borderRadii.topRight;
+
+    if (borderMetrics.borderWidths != facebook::react::BorderWidths{} &&
+        m_element.ReadLocalValue(xaml::Controls::Control::BorderBrushProperty()) ==
+            xaml::DependencyProperty::UnsetValue()) {
+      m_element.BorderBrush(DefaultBrushStore::Instance().GetDefaultBorderBrush());
+    }
+
+    m_element.CornerRadius(cornerRadius);
+
+    m_needsBorderUpdate = false;
   }
 }
 

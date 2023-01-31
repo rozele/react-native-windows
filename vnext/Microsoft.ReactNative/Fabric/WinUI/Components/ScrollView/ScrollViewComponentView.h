@@ -51,6 +51,7 @@ struct ScrollViewComponentView : BaseComponentView {
   bool m_isScrollingFromInertia = false;
   bool m_isScrolling = false;
   bool m_needsScrollModeUpdate = false;
+  bool m_needsBorderUpdate = false;
   facebook::react::Size m_contentSize{};
   facebook::react::LayoutMetrics m_layoutMetrics{};
   float m_zoomFactor{1.0f};
