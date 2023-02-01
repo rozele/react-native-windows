@@ -16,10 +16,6 @@
 #include <react/renderer/debug/debugStringConvertibleUtils.h>
 #include <react/renderer/graphics/conversions.h>
 
-#ifdef USE_WINUI_FABRIC
-#include <react/renderer/components/view/conversionsWindows.h>
-#endif
-
 namespace facebook::react {
 
 ViewProps::ViewProps(
@@ -29,6 +25,7 @@ ViewProps::ViewProps(
     bool shouldSetRawProps)
     : YogaStylableProps(context, sourceProps, rawProps, shouldSetRawProps),
       AccessibilityProps(context, sourceProps, rawProps),
+      HostPlatformViewProps(context, sourceProps, rawProps, shouldSetRawProps),
       opacity(
           CoreFeatures::enablePropIteratorSetter ? sourceProps.opacity
                                                  : convertRawProp(
@@ -269,59 +266,6 @@ ViewProps::ViewProps(
                     {}))
 
 #endif
-#ifdef USE_WINUI_FABRIC
-      ,
-      focusable(
-          CoreFeatures::enablePropIteratorSetter ? sourceProps.focusable
-                                                 : convertRawProp(
-                                                       context,
-                                                       rawProps,
-                                                       "focusable",
-                                                       sourceProps.focusable,
-                                                       {})),
-      enableFocusRing(
-          CoreFeatures::enablePropIteratorSetter ? sourceProps.enableFocusRing
-                                                 : convertRawProp(
-                                                       context,
-                                                       rawProps,
-                                                       "enableFocusRing",
-                                                       sourceProps.enableFocusRing,
-                                                       true)),
-      overflowAnchor(
-          CoreFeatures::enablePropIteratorSetter ? sourceProps.overflowAnchor
-                                                 : convertRawProp(
-                                                       context,
-                                                       rawProps,
-                                                       "overflowAnchor",
-                                                       sourceProps.overflowAnchor,
-                                                       {})),
-      tooltip(
-          CoreFeatures::enablePropIteratorSetter ? sourceProps.tooltip
-                                                 : convertRawProp(
-                                                       context,
-                                                       rawProps,
-                                                       "tooltip",
-                                                       sourceProps.tooltip,
-                                                       {})),
-      keyDownEvents(
-          CoreFeatures::enablePropIteratorSetter
-              ? sourceProps.keyDownEvents
-              : convertRawProp(
-                    context,
-                    rawProps,
-                    "keyDownEvents",
-                    sourceProps.keyDownEvents,
-                    {})),
-      keyUpEvents(
-          CoreFeatures::enablePropIteratorSetter
-              ? sourceProps.keyUpEvents
-              : convertRawProp(
-                    context,
-                    rawProps,
-                    "keyUpEvents",
-                    sourceProps.keyUpEvents,
-                    {}))
-#endif
           {};
 
 #define VIEW_EVENT_CASE(eventType, eventString)     \
@@ -345,6 +289,7 @@ void ViewProps::setProp(
   // reuse the same values.
   YogaStylableProps::setProp(context, hash, propName, value);
   AccessibilityProps::setProp(context, hash, propName, value);
+  HostPlatformViewProps::setProp(context, hash, propName, value);
 
   switch (hash) {
     RAW_SET_PROP_SWITCH_CASE_BASIC(opacity, (Float)1.0);
@@ -417,16 +362,6 @@ void ViewProps::setProp(
     SET_CASCADED_RECTANGLE_CORNERS(borderRadii, "border", "Radius", value);
     SET_CASCADED_RECTANGLE_EDGES(borderColors, "border", "Color", value);
     SET_CASCADED_RECTANGLE_EDGES(borderStyles, "border", "Style", value);
-#ifdef USE_WINUI_FABRIC
-    VIEW_EVENT_CASE(ViewEvents::Offset::MouseEnter, "onMouseEnter");
-    VIEW_EVENT_CASE(ViewEvents::Offset::MouseLeave, "onMouseLeave");
-    RAW_SET_PROP_SWITCH_CASE_BASIC(focusable, false);
-    RAW_SET_PROP_SWITCH_CASE_BASIC(enableFocusRing, true);
-    RAW_SET_PROP_SWITCH_CASE_BASIC(overflowAnchor, {});
-    RAW_SET_PROP_SWITCH_CASE_BASIC(tooltip, {});
-    RAW_SET_PROP_SWITCH_CASE_BASIC(keyDownEvents, {});
-    RAW_SET_PROP_SWITCH_CASE_BASIC(keyUpEvents, {});
-#endif
   }
 }
 

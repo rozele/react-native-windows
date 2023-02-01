@@ -6,7 +6,7 @@
 #include <JSValue.h>
 #include <React.h>
 #include <folly/dynamic.h>
-#include <react/renderer/components/view/KeyEvent.h>
+#include <react/renderer/components/view/windows/KeyEvent.h>
 #include <optional>
 #include <set>
 #include "CppWinRTIncludes.h"

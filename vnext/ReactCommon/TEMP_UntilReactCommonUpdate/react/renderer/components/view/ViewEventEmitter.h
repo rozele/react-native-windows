@@ -15,7 +15,7 @@
 
 #include "TouchEventEmitter.h"
 #ifdef USE_WINUI_FABRIC
-#include "KeyEvent.h"
+#include <react/renderer/components/view/windows/KeyEvent.h>
 #endif
 
 namespace facebook {

@@ -349,7 +349,7 @@ void FabricTouchEventHandler::UpdatePointersInViews(
         if (const auto view = std::static_pointer_cast<BaseComponentView const>(
                 uiManager->GetViewRegistry().findComponentViewWithTag(reactTag))) {
           if (std::static_pointer_cast<facebook::react::ViewProps const>(view->props())
-                  ->events[facebook::react::ViewEvents::Offset::MouseLeave]) {
+                  ->windowsEvents[facebook::react::WindowsViewEvents::Offset::MouseLeave]) {
             if (const auto emitter = view->GetEventEmitter(reactTag)) {
               emitter->onMouseLeave(TouchForPointer(pointer));
             }
@@ -370,7 +370,7 @@ void FabricTouchEventHandler::UpdatePointersInViews(
       if (const auto view = std::static_pointer_cast<BaseComponentView const>(
               uiManager->GetViewRegistry().findComponentViewWithTag(reactTag))) {
         if (std::static_pointer_cast<facebook::react::ViewProps const>(view->props())
-                ->events[facebook::react::ViewEvents::Offset::MouseEnter]) {
+                ->windowsEvents[facebook::react::WindowsViewEvents::Offset::MouseEnter]) {
           if (const auto emitter = view->GetEventEmitter(reactTag)) {
             emitter->onMouseEnter(TouchForPointer(pointer));
           }

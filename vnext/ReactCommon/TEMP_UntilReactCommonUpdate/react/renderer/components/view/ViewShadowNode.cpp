@@ -63,7 +63,9 @@ void ViewShadowNode::initialize() noexcept {
 #ifdef USE_WINUI_FABRIC
   formsStackingContext = formsStackingContext ||
       viewProps.pointerEvents == PointerEventsMode::BoxOnly ||
-      viewProps.overflowAnchor == "none";
+      viewProps.overflowAnchor == "none" ||
+      viewProps.windowsEvents.bits.any() ||
+      viewProps.focusable;
 #endif
 
   bool formsView = formsStackingContext ||
@@ -78,10 +80,6 @@ void ViewShadowNode::initialize() noexcept {
       viewProps.hasTVPreferredFocus ||
       viewProps.needsOffscreenAlphaCompositing ||
       viewProps.renderToHardwareTextureAndroid;
-#endif
-
-#ifdef USE_WINUI_FABRIC
-  formsView = formsView || viewProps.focusable;
 #endif
 
   if (formsView) {

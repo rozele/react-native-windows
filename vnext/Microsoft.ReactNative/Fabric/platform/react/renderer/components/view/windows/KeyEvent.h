@@ -7,12 +7,9 @@
 
 #pragma once
 
-#include <react/renderer/core/ReactPrimitives.h>
-#include <react/renderer/debug/DebugStringConvertible.h>
 #include <react/renderer/graphics/Float.h>
 
-namespace facebook {
-namespace react {
+namespace facebook::react {
 
 /*
  * Describes an individual key event.
@@ -72,17 +69,4 @@ struct KeyEvent : BaseKeyEvent {
   Float timestamp{};
 };
 
-#if RN_DEBUG_STRING_CONVERTIBLE
-
-// TODO(): Add debug utilities for HandledKeyEvent and KeyEvent
-std::string getDebugName(BaseKeyEvent const &keyEvent);
-std::vector<DebugStringConvertibleObject> getDebugProps(
-    BaseKeyEvent const &keyEvent,
-    DebugStringConvertibleOptions options);
-
-#endif
-
-
-
-} // namespace react
-} // namespace facebook
+} // namespace facebook::react

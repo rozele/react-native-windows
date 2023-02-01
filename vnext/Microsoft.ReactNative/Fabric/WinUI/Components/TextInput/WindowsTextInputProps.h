@@ -5,7 +5,7 @@
 
 #include <react/renderer/components/rnwcore/Props.h>
 #include <react/renderer/components/text/BaseTextProps.h>
-#include <react/renderer/components/view/KeyEvent.h>
+#include <react/renderer/components/view/windows/KeyEvent.h>
 #include <react/renderer/core/propsConversions.h>
 
 namespace facebook::react {

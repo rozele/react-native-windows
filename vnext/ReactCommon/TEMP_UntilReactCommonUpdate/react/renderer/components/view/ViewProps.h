@@ -9,6 +9,7 @@
 
 #include <react/renderer/components/view/AccessibilityProps.h>
 #include <react/renderer/components/view/YogaStylableProps.h>
+#include <react/renderer/components/view/HostPlatformViewProps.h>
 #include <react/renderer/components/view/primitives.h>
 #include <react/renderer/core/LayoutMetrics.h>
 #include <react/renderer/core/Props.h>
@@ -19,10 +20,6 @@
 
 #include <optional>
 
-#ifdef USE_WINUI_FABRIC
-#include <react/renderer/components/view/KeyEvent.h>
-#endif
-
 namespace facebook {
 namespace react {
 
@@ -30,7 +27,7 @@ class ViewProps;
 
 using SharedViewProps = std::shared_ptr<ViewProps const>;
 
-class ViewProps : public YogaStylableProps, public AccessibilityProps {
+class ViewProps : public YogaStylableProps, public AccessibilityProps, public HostPlatformViewProps {
  public:
   ViewProps() = default;
   ViewProps(
@@ -98,16 +95,6 @@ class ViewProps : public YogaStylableProps, public AccessibilityProps {
   bool needsOffscreenAlphaCompositing{false};
   bool renderToHardwareTextureAndroid{false};
 
-#endif
-
-#ifdef USE_WINUI_FABRIC
-  bool focusable{false};
-  bool enableFocusRing{true};
-  std::optional<std::string> overflowAnchor{};
-  std::optional<std::string> tooltip{};
-
-  std::vector<HandledKeyEvent> keyDownEvents{};
-  std::vector<HandledKeyEvent> keyUpEvents{};
 #endif
 
 #pragma mark - Convenience Methods
