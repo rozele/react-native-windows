@@ -228,10 +228,10 @@ void ParagraphComponentView::updateState(
     }
 
     const auto run = xaml::Documents::Run();
-    const auto tag = fragment.parentShadowView.tag;
-    SetTag(run, tag);
-    // TODO(T140425180): use the `pressable` prop to determine whether we need to hit test.
-    if (fragment.parentShadowView.eventEmitter) {
+    if (fragment.textAttributes.isPressable.has_value() && *fragment.textAttributes.isPressable &&
+        fragment.parentShadowView.eventEmitter) {
+      const auto tag = fragment.parentShadowView.tag;
+      SetTag(run, tag);
       m_fragmentEventEmitters[tag] =
           std::static_pointer_cast<facebook::react::ViewEventEmitter const>(fragment.parentShadowView.eventEmitter);
     }

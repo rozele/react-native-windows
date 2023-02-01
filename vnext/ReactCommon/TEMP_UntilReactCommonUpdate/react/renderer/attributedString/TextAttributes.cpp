@@ -92,6 +92,14 @@ void TextAttributes::apply(TextAttributes textAttributes) {
   isHighlighted = textAttributes.isHighlighted.has_value()
       ? textAttributes.isHighlighted
       : isHighlighted;
+#ifdef USE_WINUI_FABRIC
+  // TextAttributes "inherits" the isPressable value from ancestors, so this
+  // only applies the current node's value for isPressable if it is truthy.
+  isPressable =
+      textAttributes.isPressable.has_value() && *textAttributes.isPressable
+          ? textAttributes.isPressable
+          : isPressable;
+#endif
   layoutDirection = textAttributes.layoutDirection.has_value()
       ? textAttributes.layoutDirection
       : layoutDirection;
@@ -119,7 +127,9 @@ bool TextAttributes::operator==(const TextAttributes &rhs) const {
              textDecorationStyle,
              textShadowOffset,
              textShadowColor,
-#ifndef USE_WINUI_FABRIC
+#ifdef USE_WINUI_FABRIC
+             isPressable,
+#else
              isHighlighted,
 #endif
              layoutDirection,
@@ -141,7 +151,9 @@ bool TextAttributes::operator==(const TextAttributes &rhs) const {
              rhs.textDecorationStyle,
              rhs.textShadowOffset,
              rhs.textShadowColor,
-#ifndef USE_WINUI_FABRIC
+#ifdef USE_WINUI_FABRIC
+             rhs.isPressable,
+#else
              rhs.isHighlighted,
 #endif
              rhs.layoutDirection,
@@ -211,6 +223,9 @@ SharedDebugStringConvertibleList TextAttributes::getDebugProps() const {
 
       // Special
       debugStringConvertibleItem("isHighlighted", isHighlighted),
+#ifdef USE_WINUI_FABRIC
+      debugStringConvertibleItem("isPressable", isPressable),
+#endif
       debugStringConvertibleItem("layoutDirection", layoutDirection),
       debugStringConvertibleItem("accessibilityRole", accessibilityRole),
   };
