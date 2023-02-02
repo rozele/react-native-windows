@@ -215,8 +215,7 @@ void WindowsTextInputComponentView::updateProps(
 
   if (oldTextInputProps.selectionColor != newTextInputProps.selectionColor) {
     if (newTextInputProps.selectionColor) {
-      m_element.SelectionHighlightColor(
-          xaml::Media::SolidColorBrush(newTextInputProps.selectionColor.AsWindowsColor()));
+      m_element.SelectionHighlightColor(SolidBrushFromColor(newTextInputProps.selectionColor.AsWindowsColor()));
     } else {
       m_element.ClearValue(xaml::Controls::TextBox::SelectionHighlightColorProperty());
     }

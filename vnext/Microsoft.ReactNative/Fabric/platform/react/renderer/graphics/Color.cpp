@@ -21,7 +21,7 @@ xaml::Media::Brush SharedColor::AsWindowsBrush() const {
   if (!m_color->m_platformColor.empty()) {
     return Microsoft::ReactNative::BrushFromColorObject(winrt::to_hstring(m_color->m_platformColor));
   }
-  return xaml::Media::SolidColorBrush(m_color->m_color);
+  return Microsoft::ReactNative::SolidBrushFromColor(m_color->m_color);
 }
 #endif // CORE_ABI
 

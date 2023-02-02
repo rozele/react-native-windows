@@ -93,7 +93,7 @@ void ParagraphComponentView::updateProps(
   if (oldViewProps.backgroundColor != newViewProps.backgroundColor) {
     if (m_inheritsBackground.size() > 0) {
       const auto newBrush = newViewProps.backgroundColor ? newViewProps.backgroundColor.AsWindowsBrush()
-                                                         : xaml::Media::SolidColorBrush{winrt::Colors::Transparent()};
+                                                         : facebook::react::clearColor().AsWindowsBrush();
       assert(m_inheritsBackground.size() == m_element.TextHighlighters().Size());
       for (auto i = 0; i < m_inheritsBackground.size(); ++i) {
         if (m_inheritsBackground[i]) {
