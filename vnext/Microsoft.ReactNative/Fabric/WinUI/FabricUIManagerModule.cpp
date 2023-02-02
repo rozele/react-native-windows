@@ -63,16 +63,23 @@ FabicUIManagerProperty() noexcept {
   return props.Get(FabicUIManagerProperty()).Value();
 }
 
-/*static*/ facebook::react::SurfaceId SurfaceIdForView(IComponentView const *view) {
+/*static*/ winrt::Microsoft::ReactNative::ReactRootView FabricUIManager::RootViewForView(IComponentView const *view) {
   auto element = static_cast<BaseComponentView const *>(view)->Element();
   do {
     const auto rootView = element.try_as<winrt::Microsoft::ReactNative::ReactRootView>();
     if (rootView) {
-      return static_cast<facebook::react::SurfaceId>(rootView.GetTag());
+      return rootView;
     }
     element = element.Parent().try_as<xaml::FrameworkElement>();
-
   } while (element);
+
+  return nullptr;
+}
+
+/*static*/ facebook::react::SurfaceId SurfaceIdForView(IComponentView const *view) {
+  if (const auto rootView = FabricUIManager::RootViewForView(view)) {
+    return static_cast<facebook::react::SurfaceId>(rootView.GetTag());
+  }
 
   return -1;
 }

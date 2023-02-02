@@ -22,6 +22,7 @@ struct FabricUIManager final : public std::enable_shared_from_this<FabricUIManag
   ~FabricUIManager();
 
   static std::shared_ptr<FabricUIManager> FromProperties(const winrt::Microsoft::ReactNative::ReactPropertyBag &props);
+  static winrt::Microsoft::ReactNative::ReactRootView RootViewForView(IComponentView const *view);
 
   REACT_INIT(Initialize)
   void Initialize(winrt::Microsoft::ReactNative::ReactContext const &reactContext) noexcept;

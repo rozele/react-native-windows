@@ -5,8 +5,11 @@
 
 #include "ViewComponentView.h"
 
+#include <Fabric/WinUI/FabricUIManagerModule.h>
+#include <ReactRootView.h>
 #include <UI.Composition.h>
 #include <UI.Xaml.Controls.h>
+#include <UI.Xaml.Input.h>
 #include <Utils/ResourceBrushUtils.h>
 #include <Utils/ValueUtils.h>
 #include <Views/FrameworkElementTransferProperties.h>
@@ -140,7 +143,16 @@ const facebook::react::SharedViewEventEmitter &BaseComponentView::GetEventEmitte
 }
 
 void BaseComponentView::handleCommand(std::string const &commandName, folly::dynamic const &arg) noexcept {
-  assert(false); // Unhandled command
+  if (commandName == "focus") {
+    xaml::Input::FocusManager::TryFocusAsync(Element(), xaml::FocusState::Programmatic);
+  } else if (commandName == "blur") {
+    const auto element = Element();
+    if (element == xaml::Input::FocusManager::GetFocusedElement(element.XamlRoot())) {
+      if (const auto rootView = FabricUIManager::RootViewForView(this)) {
+        rootView.as<winrt::Microsoft::ReactNative::implementation::ReactRootView>()->blur(element);
+      }
+    }
+  }
 }
 
 facebook::react::Props::Shared BaseComponentView::props() const noexcept {
