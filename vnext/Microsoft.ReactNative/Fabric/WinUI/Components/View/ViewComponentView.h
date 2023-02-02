@@ -70,6 +70,7 @@ struct ViewComponentView : BaseComponentView {
  private:
   bool isFocusable() const noexcept;
   bool isAccessible() const noexcept;
+  bool isHoverable() const noexcept;
 
   bool m_needsBorderUpdate{false};
   facebook::react::LayoutMetrics m_layoutMetrics;

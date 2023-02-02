@@ -315,6 +315,12 @@ bool ViewComponentView::isAccessible() const noexcept {
   return false; // HasDynamicAutomationProperties(view);
 }
 
+bool ViewComponentView::isHoverable() const noexcept {
+  const auto &props = *std::static_pointer_cast<const facebook::react::ViewProps>(m_props);
+  return props.windowsEvents[facebook::react::WindowsViewEvents::Offset::MouseEnter] ||
+      props.windowsEvents[facebook::react::WindowsViewEvents::Offset::MouseLeave];
+}
+
 void ViewComponentView::updateState(
     facebook::react::State::Shared const &state,
     facebook::react::State::Shared const &oldState) noexcept {}
@@ -357,6 +363,11 @@ void ViewComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMask) no
     m_panel.CornerRadius(cornerRadius);
 
     m_needsBorderUpdate = false;
+  }
+
+  if (m_panel.ReadLocalValue(xaml::Controls::Panel::BackgroundProperty()) == xaml::DependencyProperty::UnsetValue() &&
+      isHoverable()) {
+    m_panel.Background(facebook::react::clearColor().AsWindowsBrush());
   }
 
   if (isFocusable() && !m_control) {
