@@ -10,13 +10,9 @@
 #include <memory>
 #include <mutex>
 
+#include <react/renderer/components/view/HostPlatformViewEventEmitter.h>
 #include <react/renderer/core/LayoutMetrics.h>
 #include <react/renderer/core/ReactPrimitives.h>
-
-#include "TouchEventEmitter.h"
-#ifdef USE_WINUI_FABRIC
-#include <react/renderer/components/view/windows/KeyEvent.h>
-#endif
 
 namespace facebook {
 namespace react {
@@ -25,9 +21,9 @@ class ViewEventEmitter;
 
 using SharedViewEventEmitter = std::shared_ptr<const ViewEventEmitter>;
 
-class ViewEventEmitter : public TouchEventEmitter {
+class ViewEventEmitter : public HostPlatformViewEventEmitter {
  public:
-  using TouchEventEmitter::TouchEventEmitter;
+  using HostPlatformViewEventEmitter::HostPlatformViewEventEmitter;
 
 #pragma mark - Accessibility
 
@@ -70,20 +66,6 @@ class ViewEventEmitter : public TouchEventEmitter {
 
   mutable std::shared_ptr<LayoutEventState> layoutEventState_{
       std::make_shared<LayoutEventState>()};
-
-#ifdef USE_WINUI_FABRIC
- public:
-#pragma mark - Mouse Events
-
-  void onMouseEnter(const Touch &touch) const;
-  void onMouseLeave(const Touch &touch) const;
-
-#pragma mark - Keyboard Events
-
- public:
-  void onKeyUp(const KeyEvent &keyEvent) const;
-  void onKeyDown(const KeyEvent &keyEvent) const;
-#endif
 };
 
 } // namespace react
