@@ -361,6 +361,29 @@ void ViewComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMask) no
 
   if (isFocusable() && !m_control) {
     m_control = winrt::Microsoft::ReactNative::ViewControl{};
+
+    const auto weakControl = winrt::make_weak(m_control);
+    std::weak_ptr<const facebook::react::ViewEventEmitter> weakEmitter = m_eventEmitter;
+    m_control.GotFocus([weakControl, weakEmitter](auto &&, auto &&args) {
+      if (const auto emitter = weakEmitter.lock()) {
+        if (const auto control = weakControl.get()) {
+          if (args.OriginalSource() == control) {
+            emitter->onFocus();
+          }
+        }
+      }
+    });
+
+    m_control.LostFocus([weakControl, weakEmitter](auto &&, auto &&args) {
+      if (const auto emitter = weakEmitter.lock()) {
+        if (const auto control = weakControl.get()) {
+          if (args.OriginalSource() == control) {
+            emitter->onBlur();
+          }
+        }
+      }
+    });
+
     m_control.UseSystemFocusVisuals(props.enableFocusRing);
 
     // -- Transfer properties to new element

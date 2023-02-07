@@ -24,6 +24,11 @@ class WindowsViewEventEmitter : public TouchEventEmitter {
 
   void onKeyDown(KeyEvent const &keyEvent) const;
   void onKeyUp(KeyEvent const &keyEvent) const;
+
+#pragma mark - Focus Events
+
+  void onFocus() const;
+  void onBlur() const;
 };
 
 } // namespace facebook::react

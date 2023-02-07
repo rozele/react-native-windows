@@ -72,4 +72,14 @@ void WindowsViewEventEmitter::onKeyUp(KeyEvent const &keyEvent) const {
       EventPriority::AsynchronousBatched);
 }
 
+#pragma mark - Focus Events
+
+void WindowsViewEventEmitter::onFocus() const {
+  dispatchEvent("focus");
+}
+
+void WindowsViewEventEmitter::onBlur() const {
+  dispatchEvent("blur");
+}
+
 } // namespace facebook::react
