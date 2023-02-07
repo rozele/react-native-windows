@@ -75,7 +75,12 @@ ComponentViewDescriptor const &ComponentViewRegistry::dequeueComponentViewWithCo
     view = std::make_shared<ViewComponentView>();
   }
 
-  SetTag(view->Element(), tag);
+  const auto element = view->Element();
+  SetTag(element, tag);
+#ifdef DEBUG
+  element.Name(L"<reacttag>: " + std::to_wstring(tag));
+#endif
+
   auto it = m_registry.insert({tag, ComponentViewDescriptor{view, componentHandle}});
 
 #else
