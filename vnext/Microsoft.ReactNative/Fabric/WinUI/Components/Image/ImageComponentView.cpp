@@ -22,6 +22,7 @@ namespace Microsoft::ReactNative {
 ImageComponentView::ImageComponentView() : m_element(ReactImage::Create()) {
   static auto const defaultProps = std::make_shared<facebook::react::ImageProps const>();
   m_props = defaultProps;
+  m_element->ResizeMode(defaultProps->resizeMode);
 }
 
 ImageComponentView::~ImageComponentView() {
