@@ -22,15 +22,10 @@ ImageComponentView::ImageComponentView(winrt::Microsoft::ReactNative::ReactConte
     : m_context(reactContext), m_element(ReactImage::Create()) {
   static auto const defaultProps = std::make_shared<facebook::react::ImageProps const>();
   m_props = defaultProps;
+}
 
-  m_onLoadEndToken = m_element->OnLoadEnd([=](const auto &, const bool &succeeded) {
-    if (succeeded) {
-      std::static_pointer_cast<const facebook::react::ImageEventEmitter>(m_eventEmitter)->onLoad();
-    } else {
-      std::static_pointer_cast<const facebook::react::ImageEventEmitter>(m_eventEmitter)->onError();
-    }
-    std::static_pointer_cast<const facebook::react::ImageEventEmitter>(m_eventEmitter)->onLoadEnd();
-  });
+ImageComponentView::~ImageComponentView() {
+  m_element->OnLoadEnd(m_onLoadEndToken);
 }
 
 std::vector<facebook::react::ComponentDescriptorProvider>
@@ -87,6 +82,24 @@ void ImageComponentView::updateProps(
   }
 
   Super::updateProps(props, oldProps);
+}
+
+void ImageComponentView::updateEventEmitter(facebook::react::EventEmitter::Shared const &eventEmitter) noexcept {
+  std::weak_ptr<facebook::react::EventEmitter const> weakEmitter = eventEmitter;
+  m_element->OnLoadEnd(m_onLoadEndToken);
+  m_onLoadEndToken = m_element->OnLoadEnd([weakEmitter](auto &&, const bool &succeeded) {
+    if (const auto eventEmitter = weakEmitter.lock()) {
+      const auto imageEventEmitter = std::static_pointer_cast<const facebook::react::ImageEventEmitter>(eventEmitter);
+      if (succeeded) {
+        imageEventEmitter->onLoad();
+      } else {
+        imageEventEmitter->onError();
+      }
+      imageEventEmitter->onLoadEnd();
+    }
+  });
+
+  Super::updateEventEmitter(eventEmitter);
 }
 
 void ImageComponentView::updateState(
