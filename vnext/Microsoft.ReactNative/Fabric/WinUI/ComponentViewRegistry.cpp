@@ -55,7 +55,7 @@ ComponentViewDescriptor const &ComponentViewRegistry::dequeueComponentViewWithCo
   } else if (componentHandle == facebook::react::ScrollViewShadowNode::Handle()) {
     view = std::make_shared<ScrollViewComponentView>();
   } else if (componentHandle == facebook::react::ImageShadowNode::Handle()) {
-    view = std::make_shared<ImageComponentView>(m_context);
+    view = std::make_shared<ImageComponentView>();
   } else if (componentHandle == facebook::react::SliderShadowNode::Handle()) {
     view = std::make_shared<SliderComponentView>();
   } else if (componentHandle == facebook::react::SwitchShadowNode::Handle()) {

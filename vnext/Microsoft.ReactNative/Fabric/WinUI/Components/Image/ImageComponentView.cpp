@@ -18,8 +18,7 @@
 
 namespace Microsoft::ReactNative {
 
-ImageComponentView::ImageComponentView(winrt::Microsoft::ReactNative::ReactContext const &reactContext)
-    : m_context(reactContext), m_element(ReactImage::Create()) {
+ImageComponentView::ImageComponentView() : m_element(ReactImage::Create()) {
   static auto const defaultProps = std::make_shared<facebook::react::ImageProps const>();
   m_props = defaultProps;
 }
@@ -41,27 +40,18 @@ void ImageComponentView::updateProps(
 
   if (oldImageProps.sources != newImageProps.sources) {
     if (newImageProps.sources.empty()) {
-      // TODO clear image
+      // TODO(T145214627): Clear image source
     } else {
-      ReactImageSource ris;
-      ris.uri = newImageProps.sources[0].uri;
-      ris.width = newImageProps.sources[0].size.width;
-      ris.height = newImageProps.sources[0].size.height;
-      ris.scale = newImageProps.sources[0].scale;
-
-      auto contextSelf =
-          winrt::get_self<winrt::Microsoft::ReactNative::implementation::ReactContext>(m_context.Handle());
-      ris.bundleRootPath = contextSelf->GetInner().SettingsSnapshot().BundleRootPath();
-
-      // TODO headers, method, __packager_asset?
-      // Assume packager_asset for now...
-      if (/*packager_assert && */ ris.uri.find("file://") == 0) {
-        ris.uri.replace(0, 7, ris.bundleRootPath);
-      }
+      // TODO(T145212483): Wire up headers values when available
+      ReactImageSource imageSource;
+      imageSource.uri = newImageProps.sources[0].uri;
+      imageSource.width = newImageProps.sources[0].size.width;
+      imageSource.height = newImageProps.sources[0].size.height;
+      imageSource.scale = newImageProps.sources[0].scale;
 
       // Delay this until finalizeUpdates since the event emitter isn't set until after initial updateProps
       m_needsOnLoadStart = true;
-      m_element->Source(ris);
+      m_element->Source(imageSource);
     }
   }
 
@@ -73,7 +63,7 @@ void ImageComponentView::updateProps(
     if (newImageProps.tintColor) {
       m_element->TintColor(newImageProps.tintColor.AsWindowsColor());
     } else {
-      m_element->TintColor(winrt::Colors::Transparent());
+      m_element->TintColor(facebook::react::clearColor().AsWindowsColor());
     }
   }
 
