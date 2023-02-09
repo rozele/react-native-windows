@@ -6,6 +6,7 @@
 #include "ScrollViewComponentView.h"
 
 #include <UI.Xaml.Controls.h>
+#include <Utils/ResourceBrushUtils.h>
 #include <Utils/ValueUtils.h>
 #include <Views/Impl/ScrollViewUWPImplementation.h>
 
@@ -331,11 +332,13 @@ void ScrollViewComponentView::updateState(
     m_element.InvalidateArrange();
   }
 }
+
 void ScrollViewComponentView::updateLayoutMetrics(
     facebook::react::LayoutMetrics const &layoutMetrics,
     facebook::react::LayoutMetrics const &oldLayoutMetrics) noexcept {
   Super::updateLayoutMetrics(layoutMetrics, oldLayoutMetrics);
   m_layoutMetrics = layoutMetrics;
+  m_needsBorderUpdate = true;
   m_needsScrollModeUpdate = true;
 }
 
