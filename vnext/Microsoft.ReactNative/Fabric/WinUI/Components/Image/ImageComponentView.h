@@ -28,6 +28,9 @@ struct ImageComponentView : BaseComponentView {
   void updateEventEmitter(facebook::react::EventEmitter::Shared const &eventEmitter) noexcept override;
   void updateState(facebook::react::State::Shared const &state, facebook::react::State::Shared const &oldState) noexcept
       override;
+  void updateLayoutMetrics(
+      facebook::react::LayoutMetrics const &layoutMetrics,
+      facebook::react::LayoutMetrics const &oldLayoutMetrics) noexcept override;
   void finalizeUpdates(RNComponentViewUpdateMask updateMask) noexcept override;
   void prepareForRecycle() noexcept override;
 
@@ -35,6 +38,8 @@ struct ImageComponentView : BaseComponentView {
 
  private:
   bool m_needsOnLoadStart{false};
+  bool m_needsBorderUpdate{false};
+  facebook::react::LayoutMetrics m_layoutMetrics{};
   winrt::com_ptr<ReactImage> m_element{nullptr};
   winrt::event_token m_onLoadEndToken;
 };

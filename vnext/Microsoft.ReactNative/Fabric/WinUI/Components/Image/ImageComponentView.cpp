@@ -6,6 +6,7 @@
 #include "ImageComponentView.h"
 
 #include <UI.Xaml.Controls.h>
+#include <Utils/ResourceBrushUtils.h>
 #include <Utils/ValueUtils.h>
 
 #include <IReactContext.h>
@@ -71,6 +72,19 @@ void ImageComponentView::updateProps(
     m_element->ResizeMode(newImageProps.resizeMode);
   }
 
+  if (oldImageProps.borderColors != newImageProps.borderColors) {
+    if (newImageProps.borderColors.all) {
+      m_element->BorderBrush(newImageProps.borderColors.all->AsWindowsBrush());
+    } else {
+      m_element->ClearValue(xaml::Controls::Grid::BorderBrushProperty());
+    }
+  }
+
+  if (oldImageProps.borderStyles != newImageProps.borderStyles ||
+      oldImageProps.borderRadii != newImageProps.borderRadii) {
+    m_needsBorderUpdate = true;
+  }
+
   Super::updateProps(props, oldProps);
 }
 
@@ -96,10 +110,44 @@ void ImageComponentView::updateState(
     facebook::react::State::Shared const &state,
     facebook::react::State::Shared const &oldState) noexcept {}
 
+void ImageComponentView::updateLayoutMetrics(
+    facebook::react::LayoutMetrics const &layoutMetrics,
+    facebook::react::LayoutMetrics const &oldLayoutMetrics) noexcept {
+  Super::updateLayoutMetrics(layoutMetrics, oldLayoutMetrics);
+  m_layoutMetrics = layoutMetrics;
+  m_needsBorderUpdate = true;
+}
+
 void ImageComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMask) noexcept {
-  if (m_needsOnLoadStart) {
+  if (m_needsOnLoadStart && m_eventEmitter) {
     std::static_pointer_cast<const facebook::react::ImageEventEmitter>(m_eventEmitter)->onLoadStart();
     m_needsOnLoadStart = false;
+  }
+
+  if (m_needsBorderUpdate) {
+    const auto &props = *std::static_pointer_cast<const facebook::react::ImageProps>(m_props);
+    auto const borderMetrics = props.resolveBorderMetrics(m_layoutMetrics);
+    m_element->BorderThickness(xaml::ThicknessHelper::FromLengths(
+        borderMetrics.borderWidths.left,
+        borderMetrics.borderWidths.top,
+        borderMetrics.borderWidths.right,
+        borderMetrics.borderWidths.bottom));
+
+    xaml::CornerRadius cornerRadius;
+    cornerRadius.BottomLeft = borderMetrics.borderRadii.bottomLeft;
+    cornerRadius.BottomRight = borderMetrics.borderRadii.bottomRight;
+    cornerRadius.TopLeft = borderMetrics.borderRadii.topLeft;
+    cornerRadius.TopRight = borderMetrics.borderRadii.topRight;
+
+    if (borderMetrics.borderWidths != facebook::react::BorderWidths{} &&
+        m_element->ReadLocalValue(xaml::Controls::Grid::BorderBrushProperty()) ==
+            xaml::DependencyProperty::UnsetValue()) {
+      m_element->BorderBrush(DefaultBrushStore::Instance().GetDefaultBorderBrush());
+    }
+
+    m_element->CornerRadius(cornerRadius);
+
+    m_needsBorderUpdate = false;
   }
 }
 
