@@ -183,6 +183,14 @@ void ScrollViewComponentView::unmountChildComponentView(
   m_contentPanel.Children().RemoveAt(index);
 }
 
+void ScrollViewComponentView::ReplaceChild(xaml::FrameworkElement const &oldView, xaml::FrameworkElement const &view) {
+  uint32_t index;
+  if (m_contentPanel.Children().IndexOf(oldView.as<xaml::UIElement>(), index)) {
+    m_contentPanel.Children().RemoveAt(index);
+    m_contentPanel.Children().InsertAt(index, view.as<xaml::UIElement>());
+  }
+}
+
 void ScrollViewComponentView::updateProps(
     facebook::react::Props::Shared const &props,
     facebook::react::Props::Shared const &oldProps) noexcept {

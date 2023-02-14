@@ -155,6 +155,10 @@ void BaseComponentView::handleCommand(std::string const &commandName, folly::dyn
   }
 }
 
+void BaseComponentView::ReplaceChild(xaml::FrameworkElement const &oldView, xaml::FrameworkElement const &view) {
+  assert(false);
+}
+
 facebook::react::Props::Shared BaseComponentView::props() const noexcept {
   return m_props;
 }
@@ -271,6 +275,14 @@ void ViewComponentView::mountChildComponentView(const IComponentView &childCompo
 
 void ViewComponentView::unmountChildComponentView(const IComponentView &childComponentView, uint32_t index) noexcept {
   m_panel.Children().RemoveAt(index);
+}
+
+void ViewComponentView::ReplaceChild(xaml::FrameworkElement const &oldView, xaml::FrameworkElement const &view) {
+  uint32_t index;
+  if (m_panel.Children().IndexOf(oldView.as<xaml::UIElement>(), index)) {
+    m_panel.Children().RemoveAt(index);
+    m_panel.Children().InsertAt(index, view.as<xaml::UIElement>());
+  }
 }
 
 void ViewComponentView::updateProps(
