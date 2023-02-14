@@ -28,17 +28,11 @@ class WindowsTextInputEventEmitter : public ViewEventEmitter {
     int end;
   };
 
-  struct OnChange {
-    int eventCount;
-    int target;
-    std::string text;
-  };
-
   struct OnSelectionChange {
     Selection selection;
   };
 
-  void onChange(OnChange value) const;
+  void onChange(WindowsTextInputMetrics const &textInputMetrics) const;
   void onSelectionChange(const OnSelectionChange &value) const;
   void onSubmitEditing(WindowsTextInputMetrics const &textInputMetrics) const;
 };

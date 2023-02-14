@@ -8,6 +8,7 @@
 #include <Fabric/WinUI/FabricKeyboardEventHandler.h>
 #include <UI.Xaml.Controls.h>
 #include <UI.Xaml.Input.h>
+#include <Utils/PropertyUtils.h>
 #include <Utils/ResourceBrushUtils.h>
 #include <Utils/ValueUtils.h>
 #include <XamlView.h>
@@ -16,12 +17,29 @@
 #include "WindowsTextInputShadowNode.h"
 #include "WindowsTextInputState.h"
 
+void updateTextAlignment(
+    xaml::Controls::TextBox &textBox,
+    std::optional<facebook::react::TextAlignment> const &newAlignment) {
+  if (newAlignment == facebook::react::TextAlignment::Right) {
+    textBox.TextAlignment(xaml::TextAlignment::Right);
+  } else if (newAlignment == facebook::react::TextAlignment::Left) {
+    textBox.TextAlignment(xaml::TextAlignment::Left);
+  } else if (newAlignment == facebook::react::TextAlignment::Center) {
+    textBox.TextAlignment(xaml::TextAlignment::Center);
+  } else if (newAlignment == facebook::react::TextAlignment::Justified) {
+    textBox.TextAlignment(xaml::TextAlignment::Justify);
+  } else {
+    textBox.TextAlignment(xaml::TextAlignment::DetectFromContent);
+  }
+}
+
 namespace Microsoft::ReactNative {
 
 facebook::react::AttributedString WindowsTextInputComponentView::getAttributedString() const {
   // Use BaseTextShadowNode to get attributed string from children
   const auto &props = *std::static_pointer_cast<const facebook::react::WindowsTextInputProps>(m_props);
 
+  const auto textBox = m_control.try_as<xaml::Controls::TextBox>();
   auto childTextAttributes = facebook::react::TextAttributes::defaultTextAttributes();
 
   childTextAttributes.apply(props.textAttributes);
@@ -31,7 +49,7 @@ facebook::react::AttributedString WindowsTextInputComponentView::getAttributedSt
 
   // BaseTextShadowNode only gets children. We must detect and prepend text
   // value attributes manually.
-  auto text = winrt::to_string(m_element.Text());
+  const auto text = to_string(textBox ? textBox.Text() : m_control.as<xaml::Controls::PasswordBox>().Password());
   if (!text.empty()) {
     auto textAttributes = facebook::react::TextAttributes::defaultTextAttributes();
     textAttributes.apply(props.textAttributes);
@@ -45,43 +63,98 @@ facebook::react::AttributedString WindowsTextInputComponentView::getAttributedSt
   return attributedString;
 }
 
-WindowsTextInputComponentView::WindowsTextInputComponentView() {
+WindowsTextInputComponentView::WindowsTextInputComponentView(
+    const winrt::Microsoft::ReactNative::ReactContext &context) {
   static auto const defaultProps = std::make_shared<facebook::react::WindowsTextInputProps const>();
+  m_layoutMetrics = facebook::react::EmptyLayoutMetrics;
+  m_context = context;
   m_props = defaultProps;
+  registerEvents();
+}
 
-  m_textChangedRevoker =
-      m_element.TextChanged(winrt::auto_revoke, [this](auto sender, xaml::Controls::TextChangedEventArgs args) {
-        auto data = m_state->getData();
-        data.attributedString = getAttributedString();
-        data.mostRecentEventCount = m_nativeEventCount;
-        m_state->updateState(std::move(data));
-
-        if (m_eventEmitter && !m_comingFromJS) {
-          auto emitter = std::static_pointer_cast<const facebook::react::WindowsTextInputEventEmitter>(m_eventEmitter);
-          facebook::react::WindowsTextInputEventEmitter::OnChange onChangeArgs;
-          onChangeArgs.text = winrt::to_string(m_element.Text());
-          onChangeArgs.eventCount = ++m_nativeEventCount;
-          emitter->onChange(onChangeArgs);
-        }
-      });
-
-  m_SelectionChangedRevoker = m_element.SelectionChanged(winrt::auto_revoke, [this](auto sender, auto args) {
-    if (m_eventEmitter) {
-      auto emitter = std::static_pointer_cast<const facebook::react::WindowsTextInputEventEmitter>(m_eventEmitter);
-      facebook::react::WindowsTextInputEventEmitter::OnSelectionChange onSelectionChangeArgs;
-      onSelectionChangeArgs.selection.start = m_element.SelectionStart();
-      onSelectionChangeArgs.selection.end = m_element.SelectionStart() + m_element.SelectionLength();
-      emitter->onSelectionChange(onSelectionChangeArgs);
+void WindowsTextInputComponentView::ReparentView(xaml::Controls::Control oldView) {
+  if (const auto parent = oldView.Parent()) {
+    const auto parentTag = static_cast<facebook::react::Tag>(GetTag(parent));
+    if (const auto uiManager =
+            FabricUIManager::FromProperties(winrt::Microsoft::ReactNative::ReactPropertyBag(m_context.Properties()))) {
+      SetTag(m_control, GetTag(oldView));
+      updateLayoutMetrics(m_layoutMetrics, facebook::react::EmptyLayoutMetrics);
+      if (auto parentView = std::static_pointer_cast<BaseComponentView>(
+              uiManager->GetViewRegistry().findComponentViewWithTag(parentTag))) {
+        parentView->ReplaceChild(oldView, m_control);
+      } else {
+        assert(false);
+      }
     }
-  });
+  }
+}
+
+void WindowsTextInputComponentView::registerEvents() noexcept {
+  if (const auto textBox = m_control.try_as<xaml::Controls::TextBox>()) {
+    auto tag = GetTag(textBox);
+    m_passwordBoxPasswordChangedRevoker = {};
+    m_passwordBoxPasswordChangingRevoker = {};
+    m_textChangingRevoker = textBox.TextChanging(winrt::auto_revoke, [this](const auto &sender, auto &&) {
+      const auto textBox = sender.as<xaml::Controls::TextBox>();
+      if (m_eventEmitter) {
+        auto emitter = std::static_pointer_cast<const facebook::react::WindowsTextInputEventEmitter>(m_eventEmitter);
+        facebook::react::WindowsTextInputMetrics textInputMetricsArgs;
+        textInputMetricsArgs.text = winrt::to_string(textBox.Text());
+        textInputMetricsArgs.eventCount = m_nativeEventCount++;
+        emitter->onChange(textInputMetricsArgs);
+      }
+    });
+    m_SelectionChangedRevoker = textBox.SelectionChanged(winrt::auto_revoke, [this](const auto &sender, auto args) {
+      const auto textBox = sender.as<xaml::Controls::TextBox>();
+      if (m_eventEmitter) {
+        auto emitter = std::static_pointer_cast<const facebook::react::WindowsTextInputEventEmitter>(m_eventEmitter);
+        facebook::react::WindowsTextInputEventEmitter::OnSelectionChange onSelectionChangeArgs;
+        onSelectionChangeArgs.selection.start = textBox.SelectionStart();
+        onSelectionChangeArgs.selection.end = textBox.SelectionStart() + textBox.SelectionLength();
+        emitter->onSelectionChange(onSelectionChangeArgs);
+      }
+    });
+  } else {
+    m_textChangingRevoker = {};
+    m_SelectionChangedRevoker = {};
+    auto passwordBox = m_control.try_as<xaml::Controls::PasswordBox>();
+
+    // IPasswordBox4 includes the APIs where PasswordChanging was introduced.
+    // PasswordChanging is favored over PasswordChanged as it will not result in lost characters when typing fast
+    if (passwordBox.try_as<xaml::Controls::IPasswordBox4>()) {
+      m_passwordBoxPasswordChangingRevoker =
+          passwordBox.PasswordChanging(winrt::auto_revoke, [this](const auto &sender, auto &&) {
+            const auto passwordBox = m_control.as<xaml::Controls::PasswordBox>();
+            if (m_eventEmitter) {
+              auto emitter =
+                  std::static_pointer_cast<const facebook::react::WindowsTextInputEventEmitter>(m_eventEmitter);
+              facebook::react::WindowsTextInputMetrics textInputMetricsArgs;
+              textInputMetricsArgs.text = winrt::to_string(passwordBox.Password());
+              textInputMetricsArgs.eventCount = m_nativeEventCount++;
+              emitter->onChange(textInputMetricsArgs);
+            }
+          });
+    } else {
+      m_passwordBoxPasswordChangedRevoker =
+          passwordBox.PasswordChanged(winrt::auto_revoke, [this](const auto &sender, auto &&) {
+            const auto passwordBox = m_control.as<xaml::Controls::PasswordBox>();
+            if (m_eventEmitter) {
+              auto emitter =
+                  std::static_pointer_cast<const facebook::react::WindowsTextInputEventEmitter>(m_eventEmitter);
+              facebook::react::WindowsTextInputMetrics textInputMetricsArgs;
+              textInputMetricsArgs.text = winrt::to_string(passwordBox.Password());
+              textInputMetricsArgs.eventCount = m_nativeEventCount++;
+              emitter->onChange(textInputMetricsArgs);
+            }
+          });
+    }
+  }
   registerPreviewKeyDown();
 }
 
 void WindowsTextInputComponentView::registerPreviewKeyDown() noexcept {
-  // TODO(T142459741): Implement support for multi-line and encrypted textBox
-  const auto tag = GetTag(m_element);
-  m_controlPreviewKeyDownRevoker =
-      m_element.PreviewKeyDown(winrt::auto_revoke, [=](auto &&, xaml::Input::KeyRoutedEventArgs const &args) {
+  m_controlPreviewKeyDownRevoker = m_control.PreviewKeyDown(
+      winrt::auto_revoke, [this](const auto &sender, xaml::Input::KeyRoutedEventArgs const &args) {
         const auto &props = *std::static_pointer_cast<const facebook::react::WindowsTextInputProps>(m_props);
         auto shouldSubmit = !args.Handled();
         if (shouldSubmit) {
@@ -99,15 +172,21 @@ void WindowsTextInputComponentView::registerPreviewKeyDown() noexcept {
           }
         }
         if (shouldSubmit && m_eventEmitter) {
+          const auto textBox = sender.try_as<xaml::Controls::TextBox>();
           auto emitter = std::static_pointer_cast<const facebook::react::WindowsTextInputEventEmitter>(m_eventEmitter);
           facebook::react::WindowsTextInputMetrics textInputMetricsArgs;
-          textInputMetricsArgs.text = winrt::to_string(m_element.Text());
+          textInputMetricsArgs.text =
+              winrt::to_string(textBox ? textBox.Text() : sender.as<xaml::Controls::PasswordBox>().Password());
           textInputMetricsArgs.eventCount = m_nativeEventCount;
-          textInputMetricsArgs.selectionRange.location = m_element.SelectionStart();
-          textInputMetricsArgs.selectionRange.length = m_element.SelectionLength();
+          if (textBox) {
+            textInputMetricsArgs.selectionRange.location = textBox.SelectionStart();
+            textInputMetricsArgs.selectionRange.length = textBox.SelectionLength();
+          }
           emitter->onSubmitEditing(textInputMetricsArgs);
           if (props.clearTextOnSubmit) {
-            m_element.ClearValue(xaml::Controls::TextBox::TextProperty());
+            const auto textProperty =
+                textBox ? xaml::Controls::TextBox::TextProperty() : xaml::Controls::PasswordBox::PasswordProperty();
+            sender.as<xaml::Controls::Control>().ClearValue(textProperty);
           }
           if (props.multiline) {
             args.Handled(true);
@@ -117,6 +196,7 @@ void WindowsTextInputComponentView::registerPreviewKeyDown() noexcept {
 }
 
 void WindowsTextInputComponentView::handleCommand(std::string const &commandName, folly::dynamic const &arg) noexcept {
+  auto textBox = m_control.try_as<xaml::Controls::TextBox>();
   if (commandName == "setTextAndSelection") {
     auto eventCount = arg[0].asInt();
 
@@ -127,8 +207,8 @@ void WindowsTextInputComponentView::handleCommand(std::string const &commandName
       m_comingFromJS = true;
       SetText(winrt::to_hstring(text));
 
-      if (!(begin < 0 || end < 0 || begin > end)) {
-        m_element.Select(static_cast<int32_t>(begin), static_cast<int32_t>(end - begin));
+      if (textBox && !(begin < 0 || end < 0 || begin > end)) {
+        textBox.Select(static_cast<int32_t>(begin), static_cast<int32_t>(end - begin));
       }
       m_comingFromJS = false;
     }
@@ -142,47 +222,168 @@ WindowsTextInputComponentView::supplementalComponentDescriptorProviders() noexce
   return {};
 }
 
+void WindowsTextInputComponentView::updatePropsTextBox(
+    facebook::react::Props::Shared const &props,
+    facebook::react::Props::Shared const &oldProps) noexcept {
+  const auto &oldTextInputProps = *std::static_pointer_cast<const facebook::react::WindowsTextInputProps>(m_props);
+  const auto &newTextInputProps = *std::static_pointer_cast<const facebook::react::WindowsTextInputProps>(props);
+  auto textBox = m_control.as<xaml::Controls::TextBox>();
+
+  // Props shared between both PasswordBox and TextBox, but not shared with xaml::Controls::Control
+  if (oldTextInputProps.maxLength != newTextInputProps.maxLength) {
+    textBox.MaxLength(newTextInputProps.maxLength);
+  }
+  if (oldTextInputProps.selectionColor != newTextInputProps.selectionColor) {
+    if (newTextInputProps.selectionColor) {
+      textBox.SelectionHighlightColor(SolidBrushFromColor(newTextInputProps.selectionColor.AsWindowsColor()));
+    } else {
+      textBox.ClearValue(xaml::Controls::TextBox::SelectionHighlightColorProperty());
+    }
+  }
+  if (oldTextInputProps.placeholder != newTextInputProps.placeholder) {
+    textBox.PlaceholderText(winrt::to_hstring(newTextInputProps.placeholder));
+  }
+  if (oldTextInputProps.editable != newTextInputProps.editable) {
+    textBox.IsReadOnly(!newTextInputProps.editable);
+  }
+  if (oldTextInputProps.placeholderTextColor != newTextInputProps.placeholderTextColor) {
+    if (newTextInputProps.placeholderTextColor) {
+      textBox.PlaceholderForeground(
+          xaml::Media::SolidColorBrush(newTextInputProps.placeholderTextColor.AsWindowsColor()));
+    } else {
+      textBox.ClearValue(xaml::Controls::TextBox::PlaceholderForegroundProperty());
+    }
+  }
+
+  // Props specific to TextBox
+  if (oldTextInputProps.textAttributes.alignment != newTextInputProps.textAttributes.alignment) {
+    if (newTextInputProps.textAttributes.alignment) {
+      updateTextAlignment(textBox, newTextInputProps.textAttributes.alignment);
+    } else {
+      textBox.ClearValue(xaml::Controls::TextBox::TextAlignmentProperty());
+    }
+  }
+  if (oldTextInputProps.multiline != newTextInputProps.multiline) {
+    textBox.TextWrapping(newTextInputProps.multiline ? xaml::TextWrapping::Wrap : xaml::TextWrapping::NoWrap);
+    textBox.AcceptsReturn(newTextInputProps.multiline);
+  }
+  if (oldTextInputProps.selection.start != newTextInputProps.selection.start ||
+      oldTextInputProps.selection.end != newTextInputProps.selection.end) {
+    textBox.Select(
+        newTextInputProps.selection.start, newTextInputProps.selection.end - newTextInputProps.selection.start);
+  }
+  if (oldTextInputProps.autoCapitalize != newTextInputProps.autoCapitalize) {
+    if (newTextInputProps.autoCapitalize == "characters") {
+      textBox.CharacterCasing(xaml::Controls::CharacterCasing::Upper);
+    } else { // anything else turns off autoCap (should be "None" but
+             // we don't support "words"/"senetences" yet)
+      textBox.CharacterCasing(xaml::Controls::CharacterCasing::Normal);
+    }
+  }
+}
+
+void WindowsTextInputComponentView::updatePropsPasswordBox(
+    facebook::react::Props::Shared const &props,
+    facebook::react::Props::Shared const &oldProps) noexcept {
+  const auto &oldTextInputProps = *std::static_pointer_cast<const facebook::react::WindowsTextInputProps>(m_props);
+  const auto &newTextInputProps = *std::static_pointer_cast<const facebook::react::WindowsTextInputProps>(props);
+  auto passwordBox = m_control.as<xaml::Controls::PasswordBox>();
+  if (oldTextInputProps.maxLength != newTextInputProps.maxLength) {
+    passwordBox.MaxLength(newTextInputProps.maxLength);
+  }
+  if (oldTextInputProps.selectionColor != newTextInputProps.selectionColor) {
+    if (newTextInputProps.selectionColor) {
+      passwordBox.SelectionHighlightColor(
+          xaml::Media::SolidColorBrush(newTextInputProps.selectionColor.AsWindowsColor()));
+    } else {
+      passwordBox.ClearValue(xaml::Controls::PasswordBox::SelectionHighlightColorProperty());
+    }
+  }
+  if (oldTextInputProps.placeholder != newTextInputProps.placeholder) {
+    passwordBox.PlaceholderText(winrt::to_hstring(newTextInputProps.placeholder));
+  }
+  if (oldTextInputProps.editable != newTextInputProps.editable) {
+    passwordBox.IsEnabled(newTextInputProps.editable);
+  }
+  if (oldTextInputProps.placeholderTextColor != newTextInputProps.placeholderTextColor) {
+    // TODO(T145117327): Implement setPasswordBoxPlaceholderForeground
+  }
+}
+
 void WindowsTextInputComponentView::updateProps(
     facebook::react::Props::Shared const &props,
     facebook::react::Props::Shared const &oldProps) noexcept {
   const auto &oldTextInputProps = *std::static_pointer_cast<const facebook::react::WindowsTextInputProps>(m_props);
   const auto &newTextInputProps = *std::static_pointer_cast<const facebook::react::WindowsTextInputProps>(props);
 
+  auto textBox = m_control.try_as<xaml::Controls::TextBox>();
+  auto passwordBox = m_control.try_as<xaml::Controls::PasswordBox>();
+  auto isTextBox = static_cast<bool>(textBox);
+
+  if (oldTextInputProps.secureTextEntry != newTextInputProps.secureTextEntry) {
+    xaml::Controls::Control newControl = xaml::Controls::TextBox();
+    if (newTextInputProps.secureTextEntry)
+      newControl = xaml::Controls::PasswordBox();
+    isTextBox = !newTextInputProps.secureTextEntry;
+    const auto oldControl = m_control;
+    m_control = newControl;
+
+    // Re-calling some functions to provide the new control with the same state, props, etc as the old control
+    ReparentView(oldControl);
+    registerEvents();
+
+    // Resetting m_props as updateProps uses it instead of oldProps that's passed in
+    // Setting secureTextEntry to  ensure m_props is in the same state as m_control with secureTextEntry
+    // prop already processed
+    auto defaultProps = facebook::react::WindowsTextInputProps();
+    defaultProps.secureTextEntry = newTextInputProps.secureTextEntry;
+    m_props = std::make_shared<facebook::react::WindowsTextInputProps const>(defaultProps);
+
+    updateProps(props, {});
+    registerPreviewKeyDown();
+
+    if (newTextInputProps.secureTextEntry) {
+      m_control.as<xaml::Controls::PasswordBox>().Password(textBox.Text());
+    } else {
+      m_control.as<xaml::Controls::TextBox>().Text(passwordBox.Password());
+    }
+  }
+
   if (oldTextInputProps.textAttributes.foregroundColor != newTextInputProps.textAttributes.foregroundColor) {
     if (newTextInputProps.textAttributes.foregroundColor) {
       const auto newColorBrush = newTextInputProps.textAttributes.foregroundColor.AsWindowsBrush();
-      m_element.Foreground(newColorBrush);
-      UpdateControlForegroundResourceBrushes(m_element, newColorBrush);
+      m_control.Foreground(newColorBrush);
+      UpdateControlForegroundResourceBrushes(m_control, newColorBrush);
     } else {
       // TODO: T142202708 ForegroundColor does not update when reset to undefined
-      m_element.ClearValue(xaml::Controls::Control::ForegroundProperty());
-      UpdateControlForegroundResourceBrushes(m_element, nullptr);
+      m_control.ClearValue(xaml::Controls::Control::ForegroundProperty());
+      UpdateControlForegroundResourceBrushes(m_control, nullptr);
     }
   }
 
   if (oldTextInputProps.textAttributes.fontSize != newTextInputProps.textAttributes.fontSize) {
     if (std::isnan(newTextInputProps.textAttributes.fontSize)) {
-      m_element.FontSize(facebook::react::TextAttributes::defaultTextAttributes().fontSize);
+      m_control.FontSize(facebook::react::TextAttributes::defaultTextAttributes().fontSize);
     } else {
-      m_element.FontSize(newTextInputProps.textAttributes.fontSize);
+      m_control.FontSize(newTextInputProps.textAttributes.fontSize);
     }
   }
 
   if (oldTextInputProps.textAttributes.fontWeight != newTextInputProps.textAttributes.fontWeight) {
-    m_element.FontWeight(winrt::Windows::UI::Text::FontWeight{static_cast<uint16_t>(
+    m_control.FontWeight(winrt::Windows::UI::Text::FontWeight{static_cast<uint16_t>(
         newTextInputProps.textAttributes.fontWeight.value_or(static_cast<facebook::react::FontWeight>(400)))});
   }
 
   if (oldTextInputProps.textAttributes.fontStyle != newTextInputProps.textAttributes.fontStyle) {
     switch (newTextInputProps.textAttributes.fontStyle.value_or(facebook::react::FontStyle::Normal)) {
       case facebook::react::FontStyle::Italic:
-        m_element.FontStyle(winrt::Windows::UI::Text::FontStyle::Italic);
+        m_control.FontStyle(winrt::Windows::UI::Text::FontStyle::Italic);
         break;
       case facebook::react::FontStyle::Normal:
-        m_element.FontStyle(winrt::Windows::UI::Text::FontStyle::Normal);
+        m_control.FontStyle(winrt::Windows::UI::Text::FontStyle::Normal);
         break;
       case facebook::react::FontStyle::Oblique:
-        m_element.FontStyle(winrt::Windows::UI::Text::FontStyle::Oblique);
+        m_control.FontStyle(winrt::Windows::UI::Text::FontStyle::Oblique);
         break;
       default:
         assert(false);
@@ -191,90 +392,39 @@ void WindowsTextInputComponentView::updateProps(
 
   if (oldTextInputProps.textAttributes.fontFamily != newTextInputProps.textAttributes.fontFamily) {
     if (newTextInputProps.textAttributes.fontFamily.empty())
-      m_element.FontFamily(xaml::Media::FontFamily(L"Segoe UI"));
+      m_control.FontFamily(xaml::Media::FontFamily(L"Segoe UI"));
     else
-      m_element.FontFamily(xaml::Media::FontFamily(
+      m_control.FontFamily(xaml::Media::FontFamily(
           Microsoft::Common::Unicode::Utf8ToUtf16(newTextInputProps.textAttributes.fontFamily)));
   }
 
   if (oldTextInputProps.allowFontScaling != newTextInputProps.allowFontScaling) {
-    m_element.IsTextScaleFactorEnabled(newTextInputProps.allowFontScaling);
+    m_control.IsTextScaleFactorEnabled(newTextInputProps.allowFontScaling);
   }
-
-  if (oldTextInputProps.maxLength != newTextInputProps.maxLength) {
-    m_element.MaxLength(newTextInputProps.maxLength);
-  }
-
-  if (oldTextInputProps.placeholder != newTextInputProps.placeholder) {
-    m_element.PlaceholderText(winrt::to_hstring(newTextInputProps.placeholder));
-  }
-
-  if (oldTextInputProps.editable != newTextInputProps.editable) {
-    m_element.IsReadOnly(!newTextInputProps.editable);
-  }
-
-  if (oldTextInputProps.selectionColor != newTextInputProps.selectionColor) {
-    if (newTextInputProps.selectionColor) {
-      m_element.SelectionHighlightColor(SolidBrushFromColor(newTextInputProps.selectionColor.AsWindowsColor()));
-    } else {
-      m_element.ClearValue(xaml::Controls::TextBox::SelectionHighlightColorProperty());
-    }
-  }
-
-  if (oldTextInputProps.placeholderTextColor != newTextInputProps.placeholderTextColor) {
-    if (newTextInputProps.placeholderTextColor) {
-      m_element.PlaceholderForeground(newTextInputProps.placeholderTextColor.AsWindowsBrush());
-    } else {
-      m_element.ClearValue(xaml::Controls::TextBox::PlaceholderForegroundProperty());
-    }
-  }
-
-  if (oldTextInputProps.textAttributes.alignment != newTextInputProps.textAttributes.alignment) {
-    if (newTextInputProps.textAttributes.alignment) {
-      updateTextAlignment(newTextInputProps.textAttributes.alignment);
-    } else {
-      m_element.ClearValue(xaml::Controls::TextBox::TextAlignmentProperty());
-    }
-  }
-
-    if (oldTextInputProps.multiline != newTextInputProps.multiline) {
-      m_element.TextWrapping(newTextInputProps.multiline ? xaml::TextWrapping::Wrap : xaml::TextWrapping::NoWrap);
-      m_element.AcceptsReturn(newTextInputProps.multiline);
-    }
-
-  if (oldTextInputProps.selection.start != newTextInputProps.selection.start ||
-      oldTextInputProps.selection.end != newTextInputProps.selection.end) {
-    m_element.Select(
-        newTextInputProps.selection.start, newTextInputProps.selection.end - newTextInputProps.selection.start);
-  }
-
-  if (oldTextInputProps.autoCapitalize != newTextInputProps.autoCapitalize) {
-    if (newTextInputProps.autoCapitalize == "characters") {
-      m_element.CharacterCasing(xaml::Controls::CharacterCasing::Upper);
-    } else { // anything else turns off autoCap (should be "None" but
-             // we don't support "words"/"senetences" yet)
-      m_element.CharacterCasing(xaml::Controls::CharacterCasing::Normal);
-    }
-  }
-
   if (oldTextInputProps.backgroundColor != newTextInputProps.backgroundColor) {
     if (newTextInputProps.backgroundColor) {
       const auto newBackgroundBrush = newTextInputProps.backgroundColor.AsWindowsBrush();
-      m_element.Background(newBackgroundBrush);
-      UpdateControlBackgroundResourceBrushes(m_element, newBackgroundBrush);
+      m_control.Background(newBackgroundBrush);
+      UpdateControlBackgroundResourceBrushes(m_control, newBackgroundBrush);
     } else {
       // TODO: T142203681 Background color does not update when reset to undefined
-      m_element.ClearValue(xaml::Controls::Control::BackgroundProperty());
-      UpdateControlBackgroundResourceBrushes(m_element, nullptr);
+      m_control.ClearValue(xaml::Controls::Control::BackgroundProperty());
+      UpdateControlBackgroundResourceBrushes(m_control, nullptr);
     }
   }
 
   if (oldTextInputProps.borderColors != newTextInputProps.borderColors) {
     if (newTextInputProps.borderColors.all) {
-      m_element.BorderBrush(newTextInputProps.borderColors.all->AsWindowsBrush());
+      m_control.BorderBrush(newTextInputProps.borderColors.all->AsWindowsBrush());
     } else {
-      m_element.ClearValue(xaml::Controls::Control::BorderBrushProperty());
+      m_control.ClearValue(xaml::Controls::Control::BorderBrushProperty());
     }
+  }
+
+  if (isTextBox) {
+    updatePropsTextBox(props, oldProps);
+  } else {
+    updatePropsPasswordBox(props, oldProps);
   }
 
   Super::updateProps(props, oldProps);
@@ -284,11 +434,12 @@ void WindowsTextInputComponentView::updateState(
     facebook::react::State::Shared const &state,
     facebook::react::State::Shared const &oldState) noexcept {
   m_state = std::static_pointer_cast<facebook::react::WindowsTextInputShadowNode::ConcreteState const>(state);
-
-  if (!m_state) {
-    assert(false && "State is `null` for <TextInput> component.");
-    m_element.Text(L"");
-    return;
+  if (const auto textBox = m_control.try_as<xaml::Controls::TextBox>()) {
+    if (!m_state) {
+      assert(false && "State is `null` for <TextInput> component.");
+      textBox.Text(L"");
+      return;
+    }
   }
 
   auto data = m_state->getData();
@@ -309,32 +460,28 @@ void WindowsTextInputComponentView::updateState(
 }
 
 void WindowsTextInputComponentView::SetText(winrt::hstring text) noexcept {
-  auto oldCursor = m_element.SelectionStart();
-  auto oldSelectionLength = m_element.SelectionLength();
-  auto oldValue = m_element.Text();
-  auto newValue = text;
-  if (oldValue != newValue) {
-    m_element.Text(newValue);
-    if (oldValue.size() == newValue.size()) {
-      m_element.SelectionStart(oldCursor);
-    } else {
-      m_element.SelectionStart(newValue.size());
+  if (const auto textBox = m_control.try_as<xaml::Controls::TextBox>()) {
+    auto oldCursor = textBox.SelectionStart();
+    // TODO(T145950982): Update selection behavior to match Paper's
+    auto oldSelectionLength = textBox.SelectionLength();
+    auto oldValue = textBox.Text();
+    auto newValue = text;
+    if (oldValue != newValue) {
+      textBox.Text(newValue);
+      if (oldValue.size() == newValue.size()) {
+        textBox.SelectionStart(oldCursor);
+      } else {
+        textBox.SelectionStart(newValue.size());
+      }
     }
-  }
-}
 
-void WindowsTextInputComponentView::updateTextAlignment(
-    std::optional<facebook::react::TextAlignment> const &newAlignment) {
-  if (newAlignment == facebook::react::TextAlignment::Right) {
-    m_element.TextAlignment(xaml::TextAlignment::Right);
-  } else if (newAlignment == facebook::react::TextAlignment::Left) {
-    m_element.TextAlignment(xaml::TextAlignment::Left);
-  } else if (newAlignment == facebook::react::TextAlignment::Center) {
-    m_element.TextAlignment(xaml::TextAlignment::Center);
-  } else if (newAlignment == facebook::react::TextAlignment::Justified) {
-    m_element.TextAlignment(xaml::TextAlignment::Justify);
   } else {
-    m_element.TextAlignment(xaml::TextAlignment::DetectFromContent);
+    auto passwordBox = m_control.as<xaml::Controls::PasswordBox>();
+    auto oldValue = passwordBox.Password();
+    auto newValue = text;
+    if (oldValue != newValue) {
+      passwordBox.Password(newValue);
+    }
   }
 }
 
@@ -343,16 +490,16 @@ void WindowsTextInputComponentView::updateLayoutMetrics(
     facebook::react::LayoutMetrics const &oldLayoutMetrics) noexcept {
   // Set Position & Size Properties
 
-  m_element.BorderThickness(
+  m_control.BorderThickness(
       {layoutMetrics.borderWidth.left,
        layoutMetrics.borderWidth.top,
        layoutMetrics.borderWidth.right,
        layoutMetrics.borderWidth.bottom});
 
   // TODO(T142315946): Why is minHeight needed?
-  m_element.MinHeight(0);
+  m_control.MinHeight(0);
 
-  m_element.Padding({
+  m_control.Padding({
       layoutMetrics.contentInsets.left - layoutMetrics.borderWidth.left,
       layoutMetrics.contentInsets.top - layoutMetrics.borderWidth.top,
       layoutMetrics.contentInsets.right - layoutMetrics.borderWidth.right,
@@ -360,16 +507,17 @@ void WindowsTextInputComponentView::updateLayoutMetrics(
   });
 
   // TODO(T142315971): why is measurement required?
-  const auto height = m_element.Height();
-  const auto width = m_element.Width();
-  m_element.ClearValue(xaml::FrameworkElement::HeightProperty());
-  m_element.ClearValue(xaml::FrameworkElement::WidthProperty());
-  m_element.Measure({std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity()});
-  auto ds = m_element.DesiredSize();
-  m_element.Height(height);
-  m_element.Width(width);
+  const auto height = m_control.Height();
+  const auto width = m_control.Width();
+  m_control.ClearValue(xaml::FrameworkElement::HeightProperty());
+  m_control.ClearValue(xaml::FrameworkElement::WidthProperty());
+  m_control.Measure({std::numeric_limits<float>::infinity(), std::numeric_limits<float>::infinity()});
+  auto ds = m_control.DesiredSize();
+  m_control.Height(height);
+  m_control.Width(width);
 
   Super::updateLayoutMetrics(layoutMetrics, oldLayoutMetrics);
+  m_layoutMetrics = layoutMetrics;
 }
 void WindowsTextInputComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMask) noexcept {
   // m_element.FinalizeProperties();
@@ -377,7 +525,7 @@ void WindowsTextInputComponentView::finalizeUpdates(RNComponentViewUpdateMask up
 void WindowsTextInputComponentView::prepareForRecycle() noexcept {}
 
 const xaml::FrameworkElement WindowsTextInputComponentView::Element() const noexcept {
-  return m_element;
+  return m_control;
 }
 
 } // namespace Microsoft::ReactNative

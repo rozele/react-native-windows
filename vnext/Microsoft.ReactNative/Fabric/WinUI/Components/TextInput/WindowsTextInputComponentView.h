@@ -5,6 +5,8 @@
 
 #include <Fabric/WinUI/ComponentView.h>
 #include <Fabric/WinUI/Components/View/ViewComponentView.h>
+#include <Fabric/WinUI/FabricUIManagerModule.h>
+#include <ReactContext.h>
 #include "WindowsTextInputProps.h"
 #include "WindowsTextInputShadowNode.h"
 
@@ -12,7 +14,7 @@ namespace Microsoft::ReactNative {
 
 struct WindowsTextInputComponentView : BaseComponentView {
   using Super = BaseComponentView;
-  WindowsTextInputComponentView();
+  WindowsTextInputComponentView(const winrt::Microsoft::ReactNative::ReactContext &context);
 
   std::vector<facebook::react::ComponentDescriptorProvider> supplementalComponentDescriptorProviders() noexcept
       override;
@@ -30,15 +32,28 @@ struct WindowsTextInputComponentView : BaseComponentView {
   virtual const xaml::FrameworkElement Element() const noexcept override;
 
  private:
+  void registerEvents() noexcept;
   void registerPreviewKeyDown() noexcept;
   void SetText(winrt::hstring text) noexcept;
-  void updateTextAlignment(std::optional<facebook::react::TextAlignment> const &newAlignment);
   facebook::react::AttributedString getAttributedString() const;
+  void updatePropsTextBox(
+      facebook::react::Props::Shared const &props,
+      facebook::react::Props::Shared const &oldProps) noexcept;
+  void updatePropsPasswordBox(
+      facebook::react::Props::Shared const &props,
+      facebook::react::Props::Shared const &oldProps) noexcept;
+  void ReparentView(xaml::Controls::Control oldView);
 
-  xaml::Controls::TextBox m_element;
-  xaml::Controls::TextBox::TextChanged_revoker m_textChangedRevoker;
+  xaml::Controls::Control m_control{xaml::Controls::TextBox()};
+  winrt::Microsoft::ReactNative::ReactContext m_context;
+
   xaml::Controls::TextBox::SelectionChanged_revoker m_SelectionChangedRevoker;
   xaml::Controls::TextBox::PreviewKeyDown_revoker m_controlPreviewKeyDownRevoker;
+  xaml::Controls::TextBox::TextChanging_revoker m_textChangingRevoker;
+  xaml::Controls::PasswordBox::PasswordChanging_revoker m_passwordBoxPasswordChangingRevoker;
+  xaml::Controls::PasswordBox::PasswordChanged_revoker m_passwordBoxPasswordChangedRevoker;
+
+  facebook::react::LayoutMetrics m_layoutMetrics;
   std::shared_ptr<facebook::react::WindowsTextInputShadowNode::ConcreteState const> m_state;
   int64_t m_mostRecentEventCount{0};
   int m_nativeEventCount{0};

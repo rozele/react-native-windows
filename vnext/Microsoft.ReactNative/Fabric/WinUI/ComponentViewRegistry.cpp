@@ -61,7 +61,7 @@ ComponentViewDescriptor const &ComponentViewRegistry::dequeueComponentViewWithCo
   } else if (componentHandle == facebook::react::SwitchShadowNode::Handle()) {
     view = std::make_shared<SwitchComponentView>();
   } else if (componentHandle == facebook::react::WindowsTextInputShadowNode::Handle()) {
-    view = std::make_shared<WindowsTextInputComponentView>();
+    view = std::make_shared<WindowsTextInputComponentView>(m_context);
   } else if (componentHandle == facebook::react::ActivityIndicatorViewShadowNode::Handle()) {
     view = std::make_shared<ActivityIndicatorComponentView>();
   } else {

@@ -23,12 +23,11 @@ static jsi::Value textInputMetricsPayload(jsi::Runtime &runtime, WindowsTextInpu
   return payload;
 };
 
-void WindowsTextInputEventEmitter::onChange(OnChange event) const {
-  dispatchEvent("change", [event = std::move(event)](jsi::Runtime &runtime) {
+void WindowsTextInputEventEmitter::onChange(WindowsTextInputMetrics const &textInputMetrics) const {
+  dispatchEvent("change", [textInputMetrics = std::move(textInputMetrics)](jsi::Runtime &runtime) {
     auto payload = jsi::Object(runtime);
-    payload.setProperty(runtime, "eventCount", event.eventCount);
-    payload.setProperty(runtime, "target", event.target);
-    payload.setProperty(runtime, "text", event.text);
+    payload.setProperty(runtime, "eventCount", textInputMetrics.eventCount);
+    payload.setProperty(runtime, "text", textInputMetrics.text);
     return payload;
   });
 }

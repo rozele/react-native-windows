@@ -387,6 +387,7 @@ void ScrollViewComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMa
 
     m_needsBorderUpdate = false;
   }
+  SetTag(m_contentPanel, GetTag(m_element));
 }
 
 void ScrollViewComponentView::handleCommand(std::string const &commandName, folly::dynamic const &arg) noexcept {
