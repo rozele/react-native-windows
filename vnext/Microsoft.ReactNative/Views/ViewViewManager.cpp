@@ -290,6 +290,7 @@ void ViewViewManager::GetNativeProps(const winrt::Microsoft::ReactNative::IJSVal
   winrt::Microsoft::ReactNative::WriteProperty(writer, L"enableFocusRing", L"boolean");
   winrt::Microsoft::ReactNative::WriteProperty(writer, L"tabIndex", L"number");
   winrt::Microsoft::ReactNative::WriteProperty(writer, L"overflowAnchor", L"string");
+  winrt::Microsoft::ReactNative::WriteProperty(writer, L"collapsable", L"boolean");
 }
 
 bool ViewViewManager::UpdateProperty(
