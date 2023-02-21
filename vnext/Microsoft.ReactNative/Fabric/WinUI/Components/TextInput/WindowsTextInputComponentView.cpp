@@ -217,11 +217,6 @@ void WindowsTextInputComponentView::handleCommand(std::string const &commandName
   }
 }
 
-std::vector<facebook::react::ComponentDescriptorProvider>
-WindowsTextInputComponentView::supplementalComponentDescriptorProviders() noexcept {
-  return {};
-}
-
 void WindowsTextInputComponentView::updatePropsTextBox(
     facebook::react::Props::Shared const &props,
     facebook::react::Props::Shared const &oldProps) noexcept {

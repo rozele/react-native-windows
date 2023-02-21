@@ -152,11 +152,6 @@ ScrollViewComponentView::ScrollViewComponentView() {
       });
 }
 
-std::vector<facebook::react::ComponentDescriptorProvider>
-ScrollViewComponentView::supplementalComponentDescriptorProviders() noexcept {
-  return {};
-}
-
 void ScrollViewComponentView::mountChildComponentView(
     const IComponentView &childComponentView,
     uint32_t index) noexcept {

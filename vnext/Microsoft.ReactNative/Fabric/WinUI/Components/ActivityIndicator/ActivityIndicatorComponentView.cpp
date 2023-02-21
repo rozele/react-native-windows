@@ -18,11 +18,6 @@ ActivityIndicatorComponentView::ActivityIndicatorComponentView() : m_element(xam
   m_props = defaultProps;
 }
 
-std::vector<facebook::react::ComponentDescriptorProvider>
-ActivityIndicatorComponentView::supplementalComponentDescriptorProviders() noexcept {
-  return {};
-}
-
 void ActivityIndicatorComponentView::updateProps(
     facebook::react::Props::Shared const &props,
     facebook::react::Props::Shared const &oldProps) noexcept {

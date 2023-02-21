@@ -41,11 +41,6 @@ void SwitchComponentView::handleCommand(std::string const &commandName, folly::d
   }
 }
 
-std::vector<facebook::react::ComponentDescriptorProvider>
-SwitchComponentView::supplementalComponentDescriptorProviders() noexcept {
-  return {};
-}
-
 void SwitchComponentView::updateProps(
     facebook::react::Props::Shared const &props,
     facebook::react::Props::Shared const &oldProps) noexcept {

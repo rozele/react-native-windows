@@ -29,11 +29,6 @@ ImageComponentView::~ImageComponentView() {
   m_element->OnLoadEnd(m_onLoadEndToken);
 }
 
-std::vector<facebook::react::ComponentDescriptorProvider>
-ImageComponentView::supplementalComponentDescriptorProviders() noexcept {
-  return {};
-}
-
 void ImageComponentView::updateProps(
     facebook::react::Props::Shared const &props,
     facebook::react::Props::Shared const &oldProps) noexcept {

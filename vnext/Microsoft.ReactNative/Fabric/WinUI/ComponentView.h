@@ -21,8 +21,6 @@ enum class RNComponentViewUpdateMask : std::uint_fast8_t {
 DEFINE_ENUM_FLAG_OPERATORS(RNComponentViewUpdateMask);
 
 struct IComponentView {
-  virtual std::vector<facebook::react::ComponentDescriptorProvider>
-  supplementalComponentDescriptorProviders() noexcept = 0;
   virtual void mountChildComponentView(const IComponentView &childComponentView, uint32_t index) noexcept = 0;
   virtual void unmountChildComponentView(const IComponentView &childComponentView, uint32_t index) noexcept = 0;
   virtual void updateProps(

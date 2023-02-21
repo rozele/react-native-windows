@@ -15,8 +15,6 @@ struct ParagraphComponentView : BaseComponentView {
   using Super = BaseComponentView;
   ParagraphComponentView(winrt::Microsoft::ReactNative::ReactContext const &reactContext);
 
-  std::vector<facebook::react::ComponentDescriptorProvider> supplementalComponentDescriptorProviders() noexcept
-      override;
   void updateProps(facebook::react::Props::Shared const &props, facebook::react::Props::Shared const &oldProps) noexcept
       override;
   const facebook::react::SharedViewEventEmitter &GetEventEmitter(facebook::react::Tag tag) const noexcept override;

@@ -264,11 +264,6 @@ ViewComponentView::ViewComponentView() {
   m_props = defaultProps;
 }
 
-std::vector<facebook::react::ComponentDescriptorProvider>
-ViewComponentView::supplementalComponentDescriptorProviders() noexcept {
-  return {};
-}
-
 void ViewComponentView::mountChildComponentView(const IComponentView &childComponentView, uint32_t index) noexcept {
   m_panel.Children().InsertAt(index, static_cast<const BaseComponentView &>(childComponentView).Element());
 }

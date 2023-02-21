@@ -31,11 +31,6 @@ SliderComponentView::SliderComponentView() : m_element(xaml::Controls::Slider())
   });
 }
 
-std::vector<facebook::react::ComponentDescriptorProvider>
-SliderComponentView::supplementalComponentDescriptorProviders() noexcept {
-  return {};
-}
-
 void SliderComponentView::updateProps(
     facebook::react::Props::Shared const &props,
     facebook::react::Props::Shared const &oldProps) noexcept {

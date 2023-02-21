@@ -30,11 +30,6 @@ ParagraphComponentView::ParagraphComponentView(winrt::Microsoft::ReactNative::Re
   m_element.TextWrapping(xaml::TextWrapping::Wrap); // Default behavior in React Native
 }
 
-std::vector<facebook::react::ComponentDescriptorProvider>
-ParagraphComponentView::supplementalComponentDescriptorProviders() noexcept {
-  return {};
-}
-
 void ParagraphComponentView::updateProps(
     facebook::react::Props::Shared const &props,
     facebook::react::Props::Shared const &oldProps) noexcept {
