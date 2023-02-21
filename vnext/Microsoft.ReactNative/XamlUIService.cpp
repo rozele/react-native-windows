@@ -11,6 +11,12 @@
 #include "Views/ShadowNodeBase.h"
 #include "XamlView.h"
 
+#ifdef USE_WINUI_FABRIC
+#include <Fabric/WinUI/Components/LegacyABIView/LegacyABIViewEventEmitter.h>
+#include <Fabric/WinUI/Components/View/ViewComponentView.h>
+#include <Fabric/WinUI/FabricUIManagerModule.h>
+#endif
+
 namespace winrt::Microsoft::ReactNative::implementation {
 
 XamlUIService::XamlUIService(Mso::CntPtr<Mso::React::IReactContext> &&context) noexcept : m_context(context) {}
@@ -36,6 +42,29 @@ void XamlUIService::DispatchEvent(
     xaml::FrameworkElement const &view,
     hstring const &eventName,
     JSValueArgWriter const &eventDataArgWriter) noexcept {
+#ifdef USE_WINUI_FABRIC
+  if (const auto fabricUIManager =
+          ::Microsoft::ReactNative::FabricUIManager::FromProperties(ReactPropertyBag(m_context->Properties()))) {
+    const auto tag = static_cast<facebook::react::Tag>(::Microsoft::ReactNative::GetTag(view));
+    if (const auto baseComponentView = std::static_pointer_cast<::Microsoft::ReactNative::BaseComponentView const>(
+            fabricUIManager->GetViewRegistry().findComponentViewWithTag(tag))) {
+      if (baseComponentView->IsLegacyABIView()) {
+        if (const auto eventEmitter = std::static_pointer_cast<facebook::react::LegacyABIViewEventEmitter const>(
+                baseComponentView->GetEventEmitter(tag))) {
+          auto paramsWriter = winrt::make_self<DynamicWriter>();
+          eventDataArgWriter(*paramsWriter);
+          eventEmitter->dispatchEvent(winrt::to_string(eventName), paramsWriter->TakeValue());
+        }
+      } else {
+        // We should not call XamlUIService::DispatchEvent except from ABI IViewManagers
+        assert(false);
+      }
+
+      return;
+    }
+  }
+
+#endif
   auto paramsWriter = winrt::make_self<DynamicWriter>();
   paramsWriter->WriteArrayBegin();
   paramsWriter->WriteInt64(::Microsoft::ReactNative::GetTag(view));

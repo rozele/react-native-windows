@@ -13,6 +13,9 @@ namespace Microsoft::ReactNative {
 
 struct BaseComponentView : IComponentView {
   virtual const xaml::FrameworkElement Element() const noexcept = 0;
+  virtual bool IsLegacyABIView() const noexcept {
+    return false;
+  }
   comp::CompositionPropertySet EnsureCenterPointPropertySet() noexcept;
   virtual void OnPointerEvent(winrt::Microsoft::ReactNative::ReactPointerEventArgs const &args) const noexcept;
   virtual void mountChildComponentView(const IComponentView &childComponentView, uint32_t index) noexcept;

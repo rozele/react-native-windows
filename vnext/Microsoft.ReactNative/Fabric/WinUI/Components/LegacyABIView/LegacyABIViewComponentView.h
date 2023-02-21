@@ -29,6 +29,10 @@ struct LegacyABIViewComponentView : BaseComponentView {
   void prepareForRecycle() noexcept override;
   void ReplaceChild(xaml::FrameworkElement const &oldView, xaml::FrameworkElement const &view) noexcept;
 
+  bool IsLegacyABIView() const noexcept override {
+    return true;
+  }
+
   virtual const xaml::FrameworkElement Element() const noexcept override;
 
  private:
