@@ -141,7 +141,9 @@ struct WindowData {
           m_reactRootView = winrt::Microsoft::ReactNative::ReactRootView();
           m_reactRootView.ComponentName(appName);
           m_reactRootView.ReactNativeHost(host);
+#ifdef USE_WINUI_FABRIC
           m_reactRootView.ExperimentalUseFabric(m_useFabric);
+#endif
           rootElement.Children().Clear();
           rootElement.Children().Append(m_reactRootView);
         }
