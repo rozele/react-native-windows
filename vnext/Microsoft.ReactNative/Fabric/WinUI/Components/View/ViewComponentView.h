@@ -27,7 +27,7 @@ struct BaseComponentView : IComponentView {
   virtual const facebook::react::SharedViewEventEmitter &GetEventEmitter(facebook::react::Tag tag) const noexcept;
   void handleCommand(std::string const &commandName, folly::dynamic const &arg) noexcept override;
   facebook::react::Props::Shared props() const noexcept override;
-  virtual void ReplaceChild(xaml::FrameworkElement const &oldView, xaml::FrameworkElement const &view);
+  virtual void ReplaceChild(xaml::FrameworkElement const &oldView, xaml::FrameworkElement const &view) noexcept;
 
  protected:
   facebook::react::SharedViewEventEmitter m_eventEmitter;
@@ -63,7 +63,7 @@ struct ViewComponentView : BaseComponentView {
       facebook::react::LayoutMetrics const &oldLayoutMetrics) noexcept override;
   void finalizeUpdates(RNComponentViewUpdateMask updateMask) noexcept override;
   void prepareForRecycle() noexcept override;
-  void ReplaceChild(xaml::FrameworkElement const &oldView, xaml::FrameworkElement const &view) override;
+  void ReplaceChild(xaml::FrameworkElement const &oldView, xaml::FrameworkElement const &view) noexcept override;
 
   virtual const xaml::FrameworkElement Element() const noexcept;
 

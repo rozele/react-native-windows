@@ -14,6 +14,10 @@ namespace winrt::Microsoft::ReactNative {
 class ViewManagersProvider final : public Mso::React::ViewManagerProvider2 {
   std::vector<std::unique_ptr<::Microsoft::ReactNative::IViewManager>> GetViewManagers(
       Mso::CntPtr<Mso::React::IReactContext> const &reactContext) override;
+#ifdef USE_WINUI_FABRIC
+  const std::vector<IViewManager> GetViewManagerInterfaces(
+      Mso::CntPtr<Mso::React::IReactContext> const &reactContext) override;
+#endif
 
  public:
   ViewManagersProvider() noexcept;

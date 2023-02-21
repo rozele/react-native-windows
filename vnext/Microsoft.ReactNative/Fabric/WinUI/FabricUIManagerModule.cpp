@@ -20,7 +20,6 @@
 #include <SchedulerSettings.h>
 #include <UI.Xaml.Controls.h>
 #include <react/components/rnwcore/ComponentDescriptors.h>
-#include <react/renderer/componentregistry/ComponentDescriptorProviderRegistry.h>
 #include <react/renderer/components/image/ImageComponentDescriptor.h>
 #ifndef CORE_ABI
 #include <react/renderer/components/slider/SliderComponentDescriptor.h>
@@ -28,7 +27,6 @@
 #include <react/renderer/components/text/ParagraphComponentDescriptor.h>
 #include <react/renderer/components/text/RawTextComponentDescriptor.h>
 #include <react/renderer/components/text/TextComponentDescriptor.h>
-#include <react/renderer/components/textinput/iostextinput/TextInputComponentDescriptor.h>
 #include <react/renderer/components/view/ViewComponentDescriptor.h>
 #include <react/renderer/scheduler/AsynchronousEventBeat.h>
 #include <react/renderer/scheduler/Scheduler.h>
@@ -38,6 +36,7 @@
 #include <runtimeexecutor/ReactCommon/RuntimeExecutor.h>
 #include <winrt/Windows.Graphics.Display.h>
 #ifndef CORE_ABI
+#include "Components/LegacyABIView/LegacyABIViewComponentDescriptor.h"
 #include "Components/TextInput/WindowsTextInputComponentDescriptor.h"
 #endif // CORE_ABI
 #include "Unicode.h"
@@ -51,7 +50,7 @@ namespace Microsoft::ReactNative {
 
 winrt::Microsoft::ReactNative::ReactPropertyId<
     winrt::Microsoft::ReactNative::ReactNonAbiValue<std::shared_ptr<FabricUIManager>>>
-FabicUIManagerProperty() noexcept {
+FabricUIManagerProperty() noexcept {
   winrt::Microsoft::ReactNative::ReactPropertyId<
       winrt::Microsoft::ReactNative::ReactNonAbiValue<std::shared_ptr<FabricUIManager>>>
       propId{L"ReactNative.Fabric", L"UIManager"};
@@ -60,7 +59,7 @@ FabicUIManagerProperty() noexcept {
 
 /*static*/ std::shared_ptr<FabricUIManager> FabricUIManager::FromProperties(
     const winrt::Microsoft::ReactNative::ReactPropertyBag &props) {
-  return props.Get(FabicUIManagerProperty()).Value();
+  return props.Get(FabricUIManagerProperty()).Value();
 }
 
 /*static*/ winrt::Microsoft::ReactNative::ReactRootView FabricUIManager::RootViewForView(IComponentView const *view) {
@@ -75,6 +74,36 @@ FabicUIManagerProperty() noexcept {
 
   return nullptr;
 }
+
+#ifndef CORE_ABI
+winrt::Microsoft::ReactNative::ReactPropertyId<
+    winrt::Microsoft::ReactNative::ReactNonAbiValue<std::unique_ptr<FabricUIManagerSettings>>>
+FabricUIManagerSettingsProperty() noexcept {
+  static winrt::Microsoft::ReactNative::ReactPropertyId<
+      winrt::Microsoft::ReactNative::ReactNonAbiValue<std::unique_ptr<FabricUIManagerSettings>>>
+      prop{L"ReactNative.Fabric", L"Settings"};
+  return prop;
+}
+
+FabricUIManagerSettings::FabricUIManagerSettings(
+    std::vector<winrt::Microsoft::ReactNative::IViewManager> &&viewManagers)
+    : viewManagers(std::move(viewManagers)) {}
+
+/*static*/ void FabricUIManager::SetSettings(
+    winrt::Microsoft::ReactNative::IReactPropertyBag const &properties,
+    std::unique_ptr<FabricUIManagerSettings> &&settings) noexcept {
+  properties.Set(
+      FabricUIManagerSettingsProperty().Handle(),
+      winrt::Microsoft::ReactNative::ReactNonAbiValue<std::unique_ptr<FabricUIManagerSettings>>{
+          std::in_place, std::move(settings)});
+}
+
+/*static*/ std::vector<winrt::Microsoft::ReactNative::IViewManager> FabricUIManager::GetViewManagers(
+    winrt::Microsoft::ReactNative::ReactPropertyBag const &properties) noexcept {
+  auto settings = properties.Get(FabricUIManagerSettingsProperty());
+  return (*settings)->viewManagers;
+}
+#endif
 
 /*static*/ facebook::react::SurfaceId SurfaceIdForView(IComponentView const *view) {
   if (const auto rootView = FabricUIManager::RootViewForView(view)) {
@@ -138,39 +167,6 @@ class PlatformRunLoopObserver final : public facebook::react::RunLoopObserver {
   mutable xaml::Media::CompositionTarget::Rendering_revoker m_rendering;
 };
 
-std::shared_ptr<facebook::react::ComponentDescriptorProviderRegistry const> sharedProviderRegistry() {
-  static auto providerRegistry = []() -> std::shared_ptr<facebook::react::ComponentDescriptorProviderRegistry> {
-    auto providerRegistry = std::make_shared<facebook::react::ComponentDescriptorProviderRegistry>();
-    providerRegistry->add(facebook::react::concreteComponentDescriptorProvider<
-                          facebook::react::ActivityIndicatorViewComponentDescriptor>());
-    providerRegistry->add(
-        facebook::react::concreteComponentDescriptorProvider<facebook::react::ImageComponentDescriptor>());
-    providerRegistry->add(
-        facebook::react::concreteComponentDescriptorProvider<facebook::react::ParagraphComponentDescriptor>());
-    providerRegistry->add(
-        facebook::react::concreteComponentDescriptorProvider<facebook::react::RawTextComponentDescriptor>());
-    providerRegistry->add(
-        facebook::react::concreteComponentDescriptorProvider<facebook::react::ScrollViewComponentDescriptor>());
-#ifndef CORE_ABI
-    providerRegistry->add(
-        facebook::react::concreteComponentDescriptorProvider<facebook::react::SliderComponentDescriptor>());
-#endif // CORE_ABI
-    providerRegistry->add(
-        facebook::react::concreteComponentDescriptorProvider<facebook::react::SwitchComponentDescriptor>());
-    providerRegistry->add(
-        facebook::react::concreteComponentDescriptorProvider<facebook::react::TextComponentDescriptor>());
-    providerRegistry->add(
-        facebook::react::concreteComponentDescriptorProvider<facebook::react::ViewComponentDescriptor>());
-#ifndef CORE_ABI
-    providerRegistry->add(
-        facebook::react::concreteComponentDescriptorProvider<facebook::react::WindowsTextInputComponentDescriptor>());
-#endif // CORE_ABI
-    return providerRegistry;
-  }();
-
-  return providerRegistry;
-}
-
 void FabricUIManager::installFabricUIManager() noexcept {
   std::shared_ptr<const facebook::react::ReactNativeConfig> config =
       std::make_shared<const ReactNativeConfigProperties>(m_context);
@@ -205,20 +201,27 @@ void FabricUIManager::installFabricUIManager() noexcept {
 
   auto toolbox = facebook::react::SchedulerToolbox{};
   toolbox.contextContainer = contextContainer;
-  toolbox.componentRegistryFactory = [](facebook::react::EventDispatcher::Weak const &eventDispatcher,
-                                        facebook::react::ContextContainer::Shared const &contextContainer)
+  toolbox.componentRegistryFactory = [weakSelf = weak_from_this()](
+                                         facebook::react::EventDispatcher::Weak const &eventDispatcher,
+                                         facebook::react::ContextContainer::Shared const &contextContainer)
       -> facebook::react::ComponentDescriptorRegistry::Shared {
-    auto registry = sharedProviderRegistry()->createComponentDescriptorRegistry({eventDispatcher, contextContainer});
-    // Enabling the fallback component will require us to run the view component codegen to generate
-    // UnimplementedNativeViewComponentDescriptor
-    /*
-    auto mutableRegistry = std::const_pointer_cast<facebook::react::ComponentDescriptorRegistry>(registry);
-    mutableRegistry->setFallbackComponentDescriptor(
-        std::make_shared<facebook::react::UnimplementedNativeViewComponentDescriptor>(
-            facebook::react::ComponentDescriptorParameters{
-                eventDispatcher, contextContainer, nullptr}));
-    */
-    return registry;
+    if (const auto self = weakSelf.lock()) {
+      auto registry =
+          self->sharedProviderRegistry()->createComponentDescriptorRegistry({eventDispatcher, contextContainer});
+      // Enabling the fallback component will require us to run the view component codegen to generate
+      // UnimplementedNativeViewComponentDescriptor
+      /*
+      auto mutableRegistry = std::const_pointer_cast<facebook::react::ComponentDescriptorRegistry>(registry);
+      mutableRegistry->setFallbackComponentDescriptor(
+          std::make_shared<facebook::react::UnimplementedNativeViewComponentDescriptor>(
+              facebook::react::ComponentDescriptorParameters{
+                  eventDispatcher, contextContainer, nullptr}));
+      */
+      return registry;
+    }
+
+    assert(false);
+    return nullptr;
   };
   toolbox.runtimeExecutor = runtimeExecutor;
   toolbox.synchronousEventBeatFactory = synchronousBeatFactory;
@@ -363,6 +366,53 @@ void FabricUIManager::didMountComponentsWithRootTag(facebook::react::SurfaceId s
     children.Append(static_cast<ViewComponentView &>(*rootComponentViewDescriptor.view).Element());
   }
 #endif // CORE_ABI
+}
+
+std::shared_ptr<facebook::react::ComponentDescriptorProviderRegistry const> FabricUIManager::sharedProviderRegistry() {
+  std::vector<std::string> viewManagerNames;
+#ifndef CORE_ABI
+  const auto settings = m_context.Properties().Get(FabricUIManagerSettingsProperty());
+  const auto viewManagers = (*settings)->viewManagers;
+#else
+#endif
+  auto providerRegistry = std::make_shared<facebook::react::ComponentDescriptorProviderRegistry>();
+  providerRegistry->add(facebook::react::concreteComponentDescriptorProvider<
+                        facebook::react::ActivityIndicatorViewComponentDescriptor>());
+  providerRegistry->add(
+      facebook::react::concreteComponentDescriptorProvider<facebook::react::ImageComponentDescriptor>());
+  providerRegistry->add(
+      facebook::react::concreteComponentDescriptorProvider<facebook::react::ParagraphComponentDescriptor>());
+  providerRegistry->add(
+      facebook::react::concreteComponentDescriptorProvider<facebook::react::RawTextComponentDescriptor>());
+  providerRegistry->add(
+      facebook::react::concreteComponentDescriptorProvider<facebook::react::ScrollViewComponentDescriptor>());
+#ifndef CORE_ABI
+  providerRegistry->add(
+      facebook::react::concreteComponentDescriptorProvider<facebook::react::SliderComponentDescriptor>());
+#endif // CORE_ABI
+  providerRegistry->add(
+      facebook::react::concreteComponentDescriptorProvider<facebook::react::SwitchComponentDescriptor>());
+  providerRegistry->add(
+      facebook::react::concreteComponentDescriptorProvider<facebook::react::TextComponentDescriptor>());
+  providerRegistry->add(
+      facebook::react::concreteComponentDescriptorProvider<facebook::react::ViewComponentDescriptor>());
+#ifndef CORE_ABI
+  providerRegistry->add(
+      facebook::react::concreteComponentDescriptorProvider<facebook::react::WindowsTextInputComponentDescriptor>());
+  for (const auto viewManager : viewManagers) {
+    const auto flavor = std::make_shared<std::string const>(winrt::to_string(viewManager.Name()));
+    const facebook::react::ComponentName componentName = flavor->c_str();
+    const auto componentHandle = reinterpret_cast<facebook::react::ComponentHandle>(componentName);
+    providerRegistry->add(facebook::react::ComponentDescriptorProvider{
+        componentHandle,
+        componentName,
+        flavor,
+        &facebook::react::concreteComponentDescriptorConstructor<facebook::react::LegacyABIViewComponentDescriptor>});
+    m_registry.registerLegacyABIViewManager(componentHandle, viewManager);
+  }
+#endif // CORE_ABI
+
+  return providerRegistry;
 }
 
 struct RemoveDeleteMetadata {
@@ -586,7 +636,7 @@ void FabricUIManager::Initialize(winrt::Microsoft::ReactNative::ReactContext con
 
   m_registry.Initialize(reactContext);
 
-  m_context.Properties().Set(FabicUIManagerProperty(), shared_from_this());
+  m_context.Properties().Set(FabricUIManagerProperty(), shared_from_this());
 
   /*
   EventBeatManager eventBeatManager = new EventBeatManager(mReactApplicationContext);

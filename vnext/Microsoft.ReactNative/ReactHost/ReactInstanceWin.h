@@ -105,6 +105,9 @@ class ReactInstanceWin final : public Mso::ActiveObject<IReactInstanceInternal> 
   void InitUIMessageThread() noexcept;
 #ifndef CORE_ABI
   void InitUIManager() noexcept;
+#ifdef USE_WINUI_FABRIC
+  void InitFabricUIManager() noexcept;
+#endif
 #endif
   std::string GetBytecodeFileName() noexcept;
   std::function<void()> GetLiveReloadCallback() noexcept;

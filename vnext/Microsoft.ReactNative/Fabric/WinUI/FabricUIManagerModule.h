@@ -4,6 +4,7 @@
 
 #include <NativeModules.h>
 #include <React.h>
+#include <react/renderer/componentregistry/ComponentDescriptorProviderRegistry.h>
 #include <react/renderer/scheduler/SchedulerDelegate.h>
 #include <react/renderer/scheduler/SurfaceManager.h>
 #include "ComponentViewRegistry.h"
@@ -15,6 +16,16 @@ class ReactNativeConfig;
 
 namespace Microsoft::ReactNative {
 
+#ifndef CORE_ABI
+// Settings to configure the FabricUIManager -- these should be pushed to the instance settings before the creation of
+// the FabricUIManager
+struct FabricUIManagerSettings {
+  FabricUIManagerSettings(std::vector<winrt::Microsoft::ReactNative::IViewManager> &&viewManagers);
+  FabricUIManagerSettings(FabricUIManagerSettings const &) = delete;
+  std::vector<winrt::Microsoft::ReactNative::IViewManager> viewManagers;
+};
+#endif
+
 REACT_MODULE(FabricUIManager)
 struct FabricUIManager final : public std::enable_shared_from_this<FabricUIManager>,
                                facebook::react::SchedulerDelegate {
@@ -23,6 +34,13 @@ struct FabricUIManager final : public std::enable_shared_from_this<FabricUIManag
 
   static std::shared_ptr<FabricUIManager> FromProperties(const winrt::Microsoft::ReactNative::ReactPropertyBag &props);
   static winrt::Microsoft::ReactNative::ReactRootView RootViewForView(IComponentView const *view);
+#ifndef CORE_ABI
+  static void SetSettings(
+      winrt::Microsoft::ReactNative::IReactPropertyBag const &properties,
+      std::unique_ptr<FabricUIManagerSettings> &&settings) noexcept;
+  static std::vector<winrt::Microsoft::ReactNative::IViewManager> GetViewManagers(
+      winrt::Microsoft::ReactNative::ReactPropertyBag const &properties) noexcept;
+#endif
 
   REACT_INIT(Initialize)
   void Initialize(winrt::Microsoft::ReactNative::ReactContext const &reactContext) noexcept;
@@ -61,7 +79,7 @@ struct FabricUIManager final : public std::enable_shared_from_this<FabricUIManag
       // facebook::react::RCTMountingTransactionObserverCoordinator& observerCoordinator,
       facebook::react::SurfaceId surfaceId);
   void didMountComponentsWithRootTag(facebook::react::SurfaceId surfaceId) noexcept;
-
+  std::shared_ptr<facebook::react::ComponentDescriptorProviderRegistry const> sharedProviderRegistry();
   winrt::Microsoft::ReactNative::ReactContext m_context;
   std::shared_ptr<facebook::react::Scheduler> m_scheduler;
   std::shared_ptr<facebook::react::SurfaceManager> m_surfaceManager;

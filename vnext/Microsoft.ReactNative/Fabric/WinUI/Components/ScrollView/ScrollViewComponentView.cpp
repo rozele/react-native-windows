@@ -178,7 +178,9 @@ void ScrollViewComponentView::unmountChildComponentView(
   m_contentPanel.Children().RemoveAt(index);
 }
 
-void ScrollViewComponentView::ReplaceChild(xaml::FrameworkElement const &oldView, xaml::FrameworkElement const &view) {
+void ScrollViewComponentView::ReplaceChild(
+    xaml::FrameworkElement const &oldView,
+    xaml::FrameworkElement const &view) noexcept {
   uint32_t index;
   if (m_contentPanel.Children().IndexOf(oldView.as<xaml::UIElement>(), index)) {
     m_contentPanel.Children().RemoveAt(index);

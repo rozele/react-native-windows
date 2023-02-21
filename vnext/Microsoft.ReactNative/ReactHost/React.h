@@ -169,6 +169,10 @@ struct NativeModuleProvider2 {
 struct ViewManagerProvider2 {
   virtual std::vector<std::unique_ptr<::Microsoft::ReactNative::IViewManager>> GetViewManagers(
       Mso::CntPtr<IReactContext> const &reactContext) = 0;
+#ifdef USE_WINUI_FABRIC
+  virtual const std::vector<winrt::Microsoft::ReactNative::IViewManager> GetViewManagerInterfaces(
+      Mso::CntPtr<IReactContext> const &reactContext) = 0;
+#endif
 };
 
 //! A simple struct that describes the basic properties/needs of an SDX. Whenever a new SDX is

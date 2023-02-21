@@ -394,6 +394,9 @@ void ReactInstanceWin::Initialize() noexcept {
 #ifndef CORE_ABI
   // InitUIManager uses m_legacyReactInstance
   InitUIManager();
+#ifdef USE_WINUI_FABRIC
+  InitFabricUIManager();
+#endif
 
   Microsoft::ReactNative::DevMenuManager::InitDevMenu(m_reactContext, [weakReactHost = m_weakReactHost]() noexcept {
     Microsoft::ReactNative::ShowConfigureBundlerDialog(weakReactHost);
@@ -785,6 +788,22 @@ void ReactInstanceWin::InitUIManager() noexcept {
       implementation::LayoutService::LayoutServiceProperty().Handle(),
       winrt::make<implementation::LayoutService>(m_reactContext));
 }
+
+#ifdef USE_WINUI_FABRIC
+void ReactInstanceWin::InitFabricUIManager() noexcept {
+  std::vector<winrt::Microsoft::ReactNative::IViewManager> viewManagers;
+
+  // Custom view managers
+  if (m_options.ViewManagerProvider) {
+    viewManagers = m_options.ViewManagerProvider->GetViewManagerInterfaces(m_reactContext);
+  }
+
+  auto fabricUIManagerSettings =
+      std::make_unique<Microsoft::ReactNative::FabricUIManagerSettings>(std::move(viewManagers));
+  Microsoft::ReactNative::FabricUIManager::SetSettings(
+      m_reactContext->Properties(), std::move(fabricUIManagerSettings));
+}
+#endif
 #endif
 
 facebook::react::NativeLoggingHook ReactInstanceWin::GetLoggingCallback() noexcept {

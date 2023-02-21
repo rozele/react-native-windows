@@ -155,7 +155,9 @@ void BaseComponentView::handleCommand(std::string const &commandName, folly::dyn
   }
 }
 
-void BaseComponentView::ReplaceChild(xaml::FrameworkElement const &oldView, xaml::FrameworkElement const &view) {
+void BaseComponentView::ReplaceChild(
+    xaml::FrameworkElement const &oldView,
+    xaml::FrameworkElement const &view) noexcept {
   assert(false);
 }
 
@@ -272,7 +274,9 @@ void ViewComponentView::unmountChildComponentView(const IComponentView &childCom
   m_panel.Children().RemoveAt(index);
 }
 
-void ViewComponentView::ReplaceChild(xaml::FrameworkElement const &oldView, xaml::FrameworkElement const &view) {
+void ViewComponentView::ReplaceChild(
+    xaml::FrameworkElement const &oldView,
+    xaml::FrameworkElement const &view) noexcept {
   uint32_t index;
   if (m_panel.Children().IndexOf(oldView.as<xaml::UIElement>(), index)) {
     m_panel.Children().RemoveAt(index);

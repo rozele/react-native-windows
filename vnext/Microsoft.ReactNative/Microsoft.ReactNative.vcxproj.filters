@@ -768,6 +768,21 @@
     <ClCompile Include="Fabric\WinUI\Components\Image\ImageComponentView.cpp">
       <Filter>Fabric\WinUI\Components\Image</Filter>
     </ClCompile>
+    <ClCompile Include="Fabric\WinUI\Components\LegacyABIView\LegacyABIViewComponentDescriptor.cpp">
+      <Filter>Fabric\WinUI\Components\LegacyABIView</Filter>
+    </ClCompile>
+    <ClCompile Include="Fabric\WinUI\Components\LegacyABIView\LegacyABIViewComponentView.cpp">
+      <Filter>Fabric\WinUI\Components\LegacyABIView</Filter>
+    </ClCompile>
+    <ClCompile Include="Fabric\WinUI\Components\LegacyABIView\LegacyABIViewEventEmitter.cpp">
+      <Filter>Fabric\WinUI\Components\LegacyABIView</Filter>
+    </ClCompile>
+    <ClCompile Include="Fabric\WinUI\Components\LegacyABIView\LegacyABIViewProps.cpp">
+      <Filter>Fabric\WinUI\Components\LegacyABIView</Filter>
+    </ClCompile>
+    <ClCompile Include="Fabric\WinUI\Components\LegacyABIView\LegacyABIViewShadowNode.cpp">
+      <Filter>Fabric\WinUI\Components\LegacyABIView</Filter>
+    </ClCompile>
     <ClCompile Include="Fabric\WinUI\Components\ScrollView\ScrollViewComponentView.cpp">
       <Filter>Fabric\WinUI\Components\ScrollView</Filter>
     </ClCompile>
@@ -820,6 +835,24 @@
     </ClInclude>
     <ClInclude Include="Fabric\WinUI\Components\Image\ImageComponentView.h">
       <Filter>Fabric\WinUI\Components\Image</Filter>
+    </ClInclude>
+    <ClInclude Include="Fabric\WinUI\Components\LegacyABIView\LegacyABIViewComponentDescriptor.h">
+      <Filter>Fabric\WinUI\Components\LegacyABIView</Filter>
+    </ClInclude>
+    <ClInclude Include="Fabric\WinUI\Components\LegacyABIView\LegacyABIViewComponentView.h">
+      <Filter>Fabric\WinUI\Components\LegacyABIView</Filter>
+    </ClInclude>
+    <ClInclude Include="Fabric\WinUI\Components\LegacyABIView\LegacyABIViewEventEmitter.h">
+      <Filter>Fabric\WinUI\Components\LegacyABIView</Filter>
+    </ClInclude>
+    <ClInclude Include="Fabric\WinUI\Components\LegacyABIView\LegacyABIViewProps.h">
+      <Filter>Fabric\WinUI\Components\LegacyABIView</Filter>
+    </ClInclude>
+    <ClInclude Include="Fabric\WinUI\Components\LegacyABIView\LegacyABIViewShadowNode.h">
+      <Filter>Fabric\WinUI\Components\LegacyABIView</Filter>
+    </ClInclude>
+    <ClInclude Include="Fabric\WinUI\Components\LegacyABIView\LegacyABIViewState.h">
+      <Filter>Fabric\WinUI\Components\LegacyABIView</Filter>
     </ClInclude>
     <ClInclude Include="Fabric\WinUI\Components\ScrollView\ScrollViewComponentView.h">
       <Filter>Fabric\WinUI\Components\ScrollView</Filter>
@@ -964,6 +997,9 @@
     </Filter>
     <Filter Include="Fabric\WinUI\Components\Image">
       <UniqueIdentifier>{4195b963-3ba6-4a47-a884-95dfcce2ff92}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Fabric\WinUI\Components\LegacyABIView">
+      <UniqueIdentifier>{c6870229-e3d0-4601-91bf-bfd1103d4d14}</UniqueIdentifier>
     </Filter>
     <Filter Include="Fabric\WinUI\Components\ScrollView">
       <UniqueIdentifier>{2c5b3101-ba16-4ede-b02f-6d42f3a64e7b}</UniqueIdentifier>

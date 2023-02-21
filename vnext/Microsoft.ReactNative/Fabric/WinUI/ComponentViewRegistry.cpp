@@ -27,6 +27,7 @@
 
 #include "Components/ActivityIndicator/ActivityIndicatorComponentView.h"
 #include "Components/Image/ImageComponentView.h"
+#include "Components/LegacyABIView/LegacyABIViewComponentView.h"
 #include "Components/ScrollView/ScrollViewComponentView.h"
 #include "Components/Slider/SliderComponentView.h"
 #include "Components/Switch/SwitchComponentView.h"
@@ -64,15 +65,24 @@ ComponentViewDescriptor const &ComponentViewRegistry::dequeueComponentViewWithCo
     view = std::make_shared<WindowsTextInputComponentView>(m_context);
   } else if (componentHandle == facebook::react::ActivityIndicatorViewShadowNode::Handle()) {
     view = std::make_shared<ActivityIndicatorComponentView>();
-  } else {
-    // Just to keep track of what kinds of shadownodes we are being used verify we know about them here
-    assert(
-        componentHandle == facebook::react::RawTextShadowNode::Handle() ||
-        componentHandle == facebook::react::TextInputShadowNode::Handle() ||
-        componentHandle == facebook::react::RootShadowNode::Handle() ||
-        componentHandle == facebook::react::ViewShadowNode::Handle());
-
+  } else if (componentHandle == facebook::react::ViewShadowNode::Handle()) {
     view = std::make_shared<ViewComponentView>();
+  } else {
+#ifndef CORE_ABI
+    const auto iter = m_legacyABIViewManagers.find(componentHandle);
+    if (iter != m_legacyABIViewManagers.end()) {
+      view = std::make_shared<LegacyABIViewComponentView>(iter->second);
+    } else
+#endif
+    {
+      // Just to keep track of what kinds of shadownodes we are being used verify we know about them here
+      assert(
+          componentHandle == facebook::react::RawTextShadowNode::Handle() ||
+          componentHandle == facebook::react::TextInputShadowNode::Handle() ||
+          componentHandle == facebook::react::RootShadowNode::Handle());
+
+      view = std::make_shared<ViewComponentView>();
+    }
   }
 
   const auto element = view->Element();
@@ -116,5 +126,11 @@ void ComponentViewRegistry::enqueueComponentViewWithComponentHandle(
 #ifndef CORE_ABI
   SetTag(static_cast<ViewComponentView &>(*componentViewDescriptor.view).Element(), InvalidTag);
 #endif // CORE_ABI
+}
+
+void ComponentViewRegistry::registerLegacyABIViewManager(
+    facebook::react::ComponentHandle const &handle,
+    winrt::Microsoft::ReactNative::IViewManager const &viewManager) noexcept {
+  m_legacyABIViewManagers.emplace(handle, viewManager);
 }
 } // namespace Microsoft::ReactNative

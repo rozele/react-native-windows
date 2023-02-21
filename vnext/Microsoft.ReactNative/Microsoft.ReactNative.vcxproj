@@ -429,6 +429,12 @@
     <ClInclude Include="Fabric\WinUI\FabricUIManagerModule.h" />
     <ClInclude Include="Fabric\WinUI\Components\ActivityIndicator\ActivityIndicatorComponentView.h" />
     <ClInclude Include="Fabric\WinUI\Components\Image\ImageComponentView.h" />
+    <ClInclude Include="Fabric\WinUI\Components\LegacyABIView\LegacyABIViewComponentDescriptor.h" />
+    <ClInclude Include="Fabric\WinUI\Components\LegacyABIView\LegacyABIViewComponentView.h" />
+    <ClInclude Include="Fabric\WinUI\Components\LegacyABIView\LegacyABIViewEventEmitter.h" />
+    <ClInclude Include="Fabric\WinUI\Components\LegacyABIView\LegacyABIViewProps.h" />
+    <ClInclude Include="Fabric\WinUI\Components\LegacyABIView\LegacyABIViewShadowNode.h" />
+    <ClInclude Include="Fabric\WinUI\Components\LegacyABIView\LegacyABIViewState.h" />
     <ClInclude Include="Fabric\WinUI\Components\ScrollView\ScrollViewComponentView.h" />
     <ClInclude Include="Fabric\WinUI\Components\Slider\SliderComponentView.h" />
     <ClInclude Include="Fabric\WinUI\Components\Switch\SwitchComponentView.h" />
@@ -449,6 +455,11 @@
     <ClCompile Include="Fabric\WinUI\FabricUIManagerModule.cpp" />
     <ClCompile Include="Fabric\WinUI\Components\ActivityIndicator\ActivityIndicatorComponentView.cpp" />
     <ClCompile Include="Fabric\WinUI\Components\Image\ImageComponentView.cpp" />
+    <ClCompile Include="Fabric\WinUI\Components\LegacyABIView\LegacyABIViewComponentDescriptor.cpp" />
+    <ClCompile Include="Fabric\WinUI\Components\LegacyABIView\LegacyABIViewComponentView.cpp" />
+    <ClCompile Include="Fabric\WinUI\Components\LegacyABIView\LegacyABIViewEventEmitter.cpp" />
+    <ClCompile Include="Fabric\WinUI\Components\LegacyABIView\LegacyABIViewProps.cpp" />
+    <ClCompile Include="Fabric\WinUI\Components\LegacyABIView\LegacyABIViewShadowNode.cpp" />
     <ClCompile Include="Fabric\WinUI\Components\ScrollView\ScrollViewComponentView.cpp" />
     <ClCompile Include="Fabric\WinUI\Components\Slider\SliderComponentView.cpp" />
     <ClCompile Include="Fabric\WinUI\Components\Switch\SwitchComponentView.cpp" />

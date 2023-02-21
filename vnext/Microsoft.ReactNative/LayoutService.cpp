@@ -7,6 +7,11 @@
 #include <Modules/NativeUIManager.h>
 #include <Modules/PaperUIManagerModule.h>
 
+#ifdef USE_WINUI_FABRIC
+#include <Fabric/WinUI/Components/View/ViewComponentView.h>
+#include <Fabric/WinUI/FabricUIManagerModule.h>
+#endif
+
 namespace winrt::Microsoft::ReactNative::implementation {
 
 LayoutService::LayoutService(Mso::CntPtr<Mso::React::IReactContext> &&context) noexcept : m_context(context) {}
@@ -29,6 +34,16 @@ void LayoutService::ApplyLayoutForAllNodes() noexcept {
 }
 
 void LayoutService::ApplyLayout(int64_t reactTag, float width, float height) noexcept {
+#ifdef USE_WINUI_FABRIC
+  if (const auto fabricUIManager =
+          ::Microsoft::ReactNative::FabricUIManager::FromProperties(ReactPropertyBag(m_context->Properties()))) {
+    if (const auto baseComponentView = std::static_pointer_cast<::Microsoft::ReactNative::BaseComponentView>(
+            fabricUIManager->GetViewRegistry().findComponentViewWithTag(static_cast<facebook::react::Tag>(reactTag)))) {
+      // TODO(T146190459): Wire up LayoutService functionality for Fabric
+      return;
+    }
+  }
+#endif
   if (auto uiManager = ::Microsoft::ReactNative::GetNativeUIManager(*m_context).lock()) {
     uiManager->ApplyLayout(reactTag, width, height);
   }

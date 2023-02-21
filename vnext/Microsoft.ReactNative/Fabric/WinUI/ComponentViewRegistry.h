@@ -3,9 +3,9 @@
 
 #pragma once
 
-#include "ComponentView.h"
-
 #include <Microsoft.ReactNative.Cxx/ReactContext.h>
+#include <winrt/Microsoft.ReactNative.h>
+#include "ComponentView.h"
 
 namespace Microsoft::ReactNative {
 
@@ -28,10 +28,15 @@ class ComponentViewRegistry final {
       facebook::react::ComponentHandle componentHandle,
       facebook::react::Tag tag,
       ComponentViewDescriptor componentViewDescriptor) noexcept;
+  void registerLegacyABIViewManager(
+      facebook::react::ComponentHandle const &handle,
+      winrt::Microsoft::ReactNative::IViewManager const &viewManager) noexcept;
 
  private:
-  std::unordered_map<facebook::react::Tag, ComponentViewDescriptor> m_registry;
   winrt::Microsoft::ReactNative::ReactContext m_context;
+  std::unordered_map<facebook::react::Tag, ComponentViewDescriptor> m_registry;
+  std::unordered_map<facebook::react::ComponentHandle, winrt::Microsoft::ReactNative::IViewManager>
+      m_legacyABIViewManagers;
 };
 
 } // namespace Microsoft::ReactNative
