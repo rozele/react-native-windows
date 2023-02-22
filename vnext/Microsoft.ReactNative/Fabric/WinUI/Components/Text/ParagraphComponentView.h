@@ -7,7 +7,7 @@
 #include <Fabric/WinUI/Components/View/ViewComponentView.h>
 #include <Fabric/WinUI/FabricTouchEventHandler.h>
 #include <Microsoft.ReactNative.Cxx/ReactContext.h>
-#include <react/renderer/components/text/ParagraphProps.h>
+#include <react/renderer/components/text/ParagraphShadowNode.h>
 
 namespace Microsoft::ReactNative {
 
@@ -29,15 +29,19 @@ struct ParagraphComponentView : BaseComponentView {
  private:
   void ToggleTouchEvents(bool selectable);
   xaml::Documents::Hyperlink CreateHyperlink(facebook::react::Tag tag);
+  void RebuildTextFromState() noexcept;
 
   xaml::Controls::TextBlock m_element;
   std::unordered_map<facebook::react::Tag, facebook::react::SharedViewEventEmitter> m_fragmentEventEmitters{};
-  std::vector<bool> m_inheritsBackground{};
 
   winrt::Microsoft::ReactNative::ReactContext m_context;
   std::shared_ptr<FabricTouchEventHandler> m_touchEventHandler;
   std::shared_ptr<bool> m_selectionChanged = std::make_shared<bool>(false);
   winrt::event_revoker<xaml::Controls::ITextBlock> m_selectionChangedRevoker;
+
+  std::shared_ptr<facebook::react::ParagraphShadowNode::ConcreteState const> m_state;
+  bool m_isOptimizedText{false};
+  bool m_rebuildText{false};
 };
 
 } // namespace Microsoft::ReactNative

@@ -7,6 +7,7 @@
 
 #include <IReactContext.h>
 #include <UI.Input.h>
+#include <UI.Text.h>
 #include <UI.Xaml.Controls.h>
 #include <UI.Xaml.Documents.h>
 #include <UI.Xaml.Input.h>
@@ -22,6 +23,57 @@
 
 namespace Microsoft::ReactNative {
 
+template <class T>
+void SetTextDecorations(
+    T const &element,
+    std::optional<facebook::react::TextDecorationLineType> const &textDecorationLineType) {
+  using facebook::react::TextDecorationLineType;
+  using text::TextDecorations;
+
+  // TODO: Do we need an API version check here?
+  if (textDecorationLineType.has_value()) {
+    switch (textDecorationLineType.value()) {
+      case TextDecorationLineType::Underline:
+        element.TextDecorations(TextDecorations::Underline);
+        break;
+      case TextDecorationLineType::Strikethrough:
+        element.TextDecorations(TextDecorations::Strikethrough);
+        break;
+      case TextDecorationLineType::UnderlineStrikethrough:
+        element.TextDecorations(TextDecorations::Underline | TextDecorations::Strikethrough);
+        break;
+      case facebook::react::TextDecorationLineType::None:
+        element.TextDecorations(TextDecorations::None);
+        break;
+      default:
+        assert(false);
+    }
+  } else {
+    element.ClearValue(T::TextDecorationsProperty());
+  }
+}
+
+template <class T>
+void SetFontStyle(T const &element, std::optional<facebook::react::FontStyle> const &fontStyle) {
+  if (fontStyle.has_value()) {
+    switch (fontStyle.value()) {
+      case facebook::react::FontStyle::Italic:
+        element.FontStyle(text::FontStyle::Italic);
+        break;
+      case facebook::react::FontStyle::Normal:
+        element.FontStyle(text::FontStyle::Normal);
+        break;
+      case facebook::react::FontStyle::Oblique:
+        element.FontStyle(text::FontStyle::Oblique);
+        break;
+      default:
+        assert(false);
+    }
+  } else {
+    element.ClearValue(T::FontStyleProperty());
+  }
+}
+
 ParagraphComponentView::ParagraphComponentView(winrt::Microsoft::ReactNative::ReactContext const &reactContext)
     : m_context(reactContext) {
   static auto const defaultProps = std::make_shared<facebook::react::ParagraphProps const>();
@@ -36,66 +88,61 @@ void ParagraphComponentView::updateProps(
   const auto &oldViewProps = *std::static_pointer_cast<const facebook::react::ParagraphProps>(m_props);
   const auto &newViewProps = *std::static_pointer_cast<const facebook::react::ParagraphProps>(props);
 
+  auto updatedFontProperties = false;
+
   if (oldViewProps.textAttributes.foregroundColor != newViewProps.textAttributes.foregroundColor) {
-    if (newViewProps.textAttributes.foregroundColor)
+    updatedFontProperties = true;
+    if (newViewProps.textAttributes.foregroundColor) {
       m_element.Foreground(newViewProps.textAttributes.foregroundColor.AsWindowsBrush());
-    else
+    } else {
       m_element.ClearValue(::xaml::Controls::TextBlock::ForegroundProperty());
-  }
-
-  if (oldViewProps.textAttributes.fontSize != newViewProps.textAttributes.fontSize) {
-    if (std::isnan(newViewProps.textAttributes.fontSize))
-      m_element.ClearValue(::xaml::Controls::TextBlock::FontSizeProperty());
-    else
-      m_element.FontSize(newViewProps.textAttributes.fontSize);
-  }
-
-  if (oldViewProps.textAttributes.fontWeight != newViewProps.textAttributes.fontWeight) {
-    m_element.FontWeight(
-        winrt::Windows::UI::Text::FontWeight{static_cast<uint16_t>(newViewProps.textAttributes.fontWeight.value_or(
-            static_cast<facebook::react::FontWeight>(DWRITE_FONT_WEIGHT_REGULAR)))});
-  }
-
-  if (oldViewProps.textAttributes.fontStyle != newViewProps.textAttributes.fontStyle) {
-    switch (newViewProps.textAttributes.fontStyle.value_or(facebook::react::FontStyle::Normal)) {
-      case facebook::react::FontStyle::Italic:
-        m_element.FontStyle(winrt::Windows::UI::Text::FontStyle::Italic);
-        break;
-      case facebook::react::FontStyle::Normal:
-        m_element.FontStyle(winrt::Windows::UI::Text::FontStyle::Normal);
-        break;
-      case facebook::react::FontStyle::Oblique:
-        m_element.FontStyle(winrt::Windows::UI::Text::FontStyle::Oblique);
-        break;
-      default:
-        assert(false);
     }
   }
 
+  if (oldViewProps.textAttributes.fontSize != newViewProps.textAttributes.fontSize) {
+    updatedFontProperties = true;
+    if (std::isnan(newViewProps.textAttributes.fontSize)) {
+      m_element.ClearValue(::xaml::Controls::TextBlock::FontSizeProperty());
+    } else {
+      m_element.FontSize(newViewProps.textAttributes.fontSize);
+    }
+  }
+
+  if (oldViewProps.textAttributes.fontWeight != newViewProps.textAttributes.fontWeight) {
+    updatedFontProperties = true;
+    if (newViewProps.textAttributes.fontWeight.has_value()) {
+      m_element.FontWeight(text::FontWeight{static_cast<uint16_t>(newViewProps.textAttributes.fontWeight.value())});
+    } else {
+      m_element.ClearValue(::xaml::Controls::TextBlock::FontWeightProperty());
+    }
+  }
+
+  if (oldViewProps.textAttributes.fontStyle != newViewProps.textAttributes.fontStyle) {
+    updatedFontProperties = true;
+    SetFontStyle(m_element, newViewProps.textAttributes.fontStyle);
+  }
+
+  if (oldViewProps.textAttributes.textDecorationLineType != newViewProps.textAttributes.textDecorationLineType) {
+    // TODO: Do we need an API version check here?
+    updatedFontProperties = true;
+    SetTextDecorations(m_element, newViewProps.textAttributes.textDecorationLineType);
+  }
+
   if (oldViewProps.textAttributes.fontFamily != newViewProps.textAttributes.fontFamily) {
-    if (newViewProps.textAttributes.fontFamily.empty())
-      m_element.FontFamily(xaml::Media::FontFamily(L"Segoe UI"));
-    else
+    updatedFontProperties = true;
+    if (!newViewProps.textAttributes.fontFamily.empty()) {
       m_element.FontFamily(
           xaml::Media::FontFamily(Microsoft::Common::Unicode::Utf8ToUtf16(newViewProps.textAttributes.fontFamily)));
+    } else {
+      m_element.ClearValue(xaml::Controls::TextBlock::FontFamilyProperty());
+    }
   }
+
+  auto updatedBackgroundColor = oldViewProps.backgroundColor != newViewProps.backgroundColor;
 
   if (oldViewProps.isSelectable != newViewProps.isSelectable) {
     m_element.IsTextSelectionEnabled(newViewProps.isSelectable);
     ToggleTouchEvents(newViewProps.isSelectable);
-  }
-
-  if (oldViewProps.backgroundColor != newViewProps.backgroundColor) {
-    if (m_inheritsBackground.size() > 0) {
-      const auto newBrush = newViewProps.backgroundColor ? newViewProps.backgroundColor.AsWindowsBrush()
-                                                         : facebook::react::clearColor().AsWindowsBrush();
-      assert(m_inheritsBackground.size() == m_element.TextHighlighters().Size());
-      for (auto i = 0; i < m_inheritsBackground.size(); ++i) {
-        if (m_inheritsBackground[i]) {
-          m_element.TextHighlighters().GetAt(i).Background(newBrush);
-        }
-      }
-    }
   }
 
   if (oldViewProps.textAttributes.alignment != newViewProps.textAttributes.alignment) {
@@ -145,6 +192,14 @@ void ParagraphComponentView::updateProps(
   }
 
   Super::updateProps(props, oldProps);
+
+  // When text is optimized and font properties are updated, we need to rebuild
+  // the text from state in case the parent paragraph font properties no longer
+  // match the inline text font properties. When background color is reset, we
+  // need to unconditionally rebuild the text from state.
+  if (m_state && (updatedBackgroundColor || (m_isOptimizedText && updatedFontProperties))) {
+    m_rebuildText = true;
+  }
 }
 
 const facebook::react::SharedViewEventEmitter &ParagraphComponentView::GetEventEmitter(
@@ -181,7 +236,8 @@ Microsoft::ReactNative::TextTransform ConvertTextTransform(
 void ParagraphComponentView::updateState(
     facebook::react::State::Shared const &state,
     facebook::react::State::Shared const &oldState) noexcept {
-  const auto &newState = *std::static_pointer_cast<facebook::react::ParagraphShadowNode::ConcreteState const>(state);
+  m_state = std::static_pointer_cast<facebook::react::ParagraphShadowNode::ConcreteState const>(state);
+  const auto &newState = *m_state;
   const auto &attributedString = newState.getData().attributedString;
   if (oldState) {
     const auto &oldTextState =
@@ -192,41 +248,96 @@ void ParagraphComponentView::updateState(
     }
   }
 
-  m_element.Inlines().Clear();
+  m_rebuildText = true;
+}
+
+void ParagraphComponentView::RebuildTextFromState() noexcept {
+  const auto &attributedString = m_state->getData().attributedString;
+  const auto &viewProps = *std::static_pointer_cast<const facebook::react::ParagraphProps>(m_props);
+
+  // Clear properties that may have been set for optimized text
+  if (m_isOptimizedText) {
+    m_element.ClearValue(xaml::Controls::TextBlock::TextProperty());
+    if (viewProps.textAttributes.fontFamily.empty()) {
+      m_element.ClearValue(xaml::Controls::TextBlock::FontFamilyProperty());
+    }
+    if (!viewProps.textAttributes.fontWeight.has_value()) {
+      m_element.ClearValue(xaml::Controls::TextBlock::FontWeightProperty());
+    }
+    if (std::isnan(viewProps.textAttributes.fontSize)) {
+      m_element.ClearValue(xaml::Controls::TextBlock::FontSizeProperty());
+    }
+    if (!viewProps.textAttributes.foregroundColor) {
+      m_element.ClearValue(xaml::Controls::TextBlock::ForegroundProperty());
+    }
+    if (!viewProps.textAttributes.fontStyle.has_value()) {
+      m_element.ClearValue(xaml::Controls::TextBlock::FontStyleProperty());
+    }
+    if (!viewProps.textAttributes.textDecorationLineType.has_value()) {
+      m_element.ClearValue(xaml::Controls::TextBlock::TextDecorationsProperty());
+    }
+  } else {
+    m_element.Inlines().Clear();
+  }
+
   m_element.TextHighlighters().Clear();
-  m_inheritsBackground.clear();
   m_fragmentEventEmitters.clear();
 
-  // TODO(T142895298): Apply ViewProps::backgroundColor prop when no state change occurs
   int32_t position = 0;
-  const auto &viewProps = *std::static_pointer_cast<const facebook::react::ParagraphProps>(m_props);
   const auto defaultBackground = facebook::react::isColorMeaningful(viewProps.backgroundColor)
       ? viewProps.backgroundColor.AsWindowsBrush()
       : nullptr;
 
+  auto initialFragment = true;
+  auto canOptimize = true;
+  auto commonFontFamily = viewProps.textAttributes.fontFamily;
+  auto commonFontWeight = viewProps.textAttributes.fontWeight;
+  auto commonFontSize = viewProps.textAttributes.fontSize;
+  auto commonForegroundColor = viewProps.textAttributes.foregroundColor;
+  auto commonFontStyle = viewProps.textAttributes.fontStyle;
+  auto commonTextDecorationLineType = viewProps.textAttributes.textDecorationLineType;
+
+  winrt::hstring transformedText = L"";
   for (const auto &fragment : attributedString.getFragments()) {
     auto inlines = m_element.Inlines();
     const auto tag = fragment.parentShadowView.tag;
 
+    xaml::Documents::Span span{nullptr};
     if (fragment.textAttributes.accessibilityRole == facebook::react::AccessibilityRole::Link) {
-      auto hyperlink = CreateHyperlink(tag);
-      inlines.Append(hyperlink);
-      inlines = hyperlink.Inlines();
+      span = CreateHyperlink(tag);
+      inlines.Append(span);
+      inlines = span.Inlines();
+      canOptimize = false;
     }
 
-    if (auto tdlt = fragment.textAttributes.textDecorationLineType; tdlt &&
-        (*tdlt == facebook::react::TextDecorationLineType::Underline ||
-         *tdlt == facebook::react::TextDecorationLineType::UnderlineStrikethrough)) {
-      auto underline = xaml::Documents::Underline();
-      inlines.Append(underline);
-      inlines = underline.Inlines();
+    if (fragment.textAttributes.textDecorationLineType.has_value()) {
+      if (!span) {
+        span = xaml::Documents::Span{};
+        inlines.Append(span);
+        inlines = span.Inlines();
+      }
+
+      SetTextDecorations<xaml::Documents::TextElement>(span, fragment.textAttributes.textDecorationLineType);
+      if (initialFragment && !commonTextDecorationLineType.has_value()) {
+        commonTextDecorationLineType = fragment.textAttributes.textDecorationLineType;
+      } else if (fragment.textAttributes.textDecorationLineType != commonTextDecorationLineType) {
+        canOptimize = false;
+      }
     }
 
-    if (fragment.textAttributes.fontStyle == facebook::react::FontStyle::Italic ||
-        fragment.textAttributes.fontStyle == facebook::react::FontStyle::Oblique) {
-      auto italic = xaml::Documents::Italic();
-      inlines.Append(italic);
-      inlines = italic.Inlines();
+    if (fragment.textAttributes.fontStyle.has_value()) {
+      if (!span) {
+        span = xaml::Documents::Span{};
+        inlines.Append(span);
+        inlines = span.Inlines();
+      }
+
+      SetFontStyle<xaml::Documents::TextElement>(span, fragment.textAttributes.fontStyle);
+      if (initialFragment && !commonFontStyle.has_value()) {
+        commonFontStyle = fragment.textAttributes.fontStyle;
+      } else if (fragment.textAttributes.fontStyle != commonFontStyle) {
+        canOptimize = false;
+      }
     }
 
     const auto run = xaml::Documents::Run();
@@ -235,22 +346,53 @@ void ParagraphComponentView::updateState(
       SetTag(run, tag);
       m_fragmentEventEmitters[tag] =
           std::static_pointer_cast<facebook::react::ViewEventEmitter const>(fragment.parentShadowView.eventEmitter);
+      canOptimize = false;
     }
 
-    run.Text(TransformableText::TransformText(
-        winrt::to_hstring(fragment.string), ConvertTextTransform(fragment.textAttributes.textTransform)));
-    run.FontFamily(xaml::Media::FontFamily(
-        fragment.textAttributes.fontFamily.empty() ? L"Segoe UI"
-                                                   : winrt::to_hstring(fragment.textAttributes.fontFamily)));
+    const auto fragmentText = TransformableText::TransformText(
+        winrt::to_hstring(fragment.string), ConvertTextTransform(fragment.textAttributes.textTransform));
+    run.Text(fragmentText);
+    if (canOptimize) {
+      transformedText = transformedText + fragmentText;
+    }
 
-    run.FontWeight(
-        winrt::Windows::UI::Text::FontWeight{static_cast<uint16_t>(fragment.textAttributes.fontWeight.value_or(
-            static_cast<facebook::react::FontWeight>(DWRITE_FONT_WEIGHT_REGULAR)))});
+    if (!fragment.textAttributes.fontFamily.empty()) {
+      run.FontFamily(xaml::Media::FontFamily(winrt::to_hstring(fragment.textAttributes.fontFamily)));
+      if (initialFragment && commonFontFamily.empty()) {
+        commonFontFamily = fragment.textAttributes.fontFamily;
+      } else if (fragment.textAttributes.fontFamily != commonFontFamily) {
+        canOptimize = false;
+      }
+    }
 
-    run.FontSize(fragment.textAttributes.fontSize);
+    if (fragment.textAttributes.fontWeight.has_value()) {
+      run.FontWeight(
+          winrt::Windows::UI::Text::FontWeight{static_cast<uint16_t>(fragment.textAttributes.fontWeight.value())});
+      if (initialFragment && !commonFontWeight.has_value()) {
+        commonFontWeight = fragment.textAttributes.fontWeight;
+      } else if (fragment.textAttributes.fontWeight != commonFontWeight) {
+        canOptimize = false;
+      }
+    }
+
+    if (!std::isnan(fragment.textAttributes.fontSize)) {
+      run.FontSize(fragment.textAttributes.fontSize);
+      if (initialFragment && std::isnan(commonFontSize)) {
+        commonFontSize = fragment.textAttributes.fontSize;
+      } else if (fragment.textAttributes.fontSize != commonFontSize) {
+        canOptimize = false;
+      }
+    }
 
     const auto foreground = fragment.textAttributes.foregroundColor.AsWindowsBrush();
-    run.Foreground(foreground);
+    if (foreground) {
+      run.Foreground(foreground);
+      if (initialFragment && !commonForegroundColor) {
+        commonForegroundColor = fragment.textAttributes.foregroundColor;
+      } else if (fragment.textAttributes.foregroundColor != commonForegroundColor) {
+        canOptimize = false;
+      }
+    }
 
     inlines.Append(run);
 
@@ -272,13 +414,42 @@ void ParagraphComponentView::updateState(
     highlighter.Foreground(foreground);
     highlighter.Ranges().Append({position, length});
     m_element.TextHighlighters().Append(highlighter);
-    m_inheritsBackground.push_back(!hasNestedBackground);
 
     position += length;
+    initialFragment = false;
+  }
+
+  if (canOptimize) {
+    m_element.Inlines().Clear();
+    if (!commonFontFamily.empty() && viewProps.textAttributes.fontFamily.empty()) {
+      m_element.FontFamily(xaml::Media::FontFamily(winrt::to_hstring(commonFontFamily)));
+    }
+    if (commonFontWeight.has_value() && !viewProps.textAttributes.fontWeight.has_value()) {
+      m_element.FontWeight(winrt::Windows::UI::Text::FontWeight{static_cast<uint16_t>(commonFontWeight.value())});
+    }
+    if (!std::isnan(commonFontSize) && std::isnan(viewProps.textAttributes.fontSize)) {
+      m_element.FontSize(commonFontSize);
+    }
+    if (commonForegroundColor && !viewProps.textAttributes.foregroundColor) {
+      m_element.Foreground(commonForegroundColor.AsWindowsBrush());
+    }
+    if (commonFontStyle.has_value() && !viewProps.textAttributes.fontStyle) {
+      SetFontStyle(m_element, commonFontStyle);
+    }
+    if (commonTextDecorationLineType.has_value() && !viewProps.textAttributes.textDecorationLineType) {
+      SetTextDecorations(m_element, commonTextDecorationLineType);
+    }
+    m_element.Text(transformedText);
   }
 }
 
-void ParagraphComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMask) noexcept {}
+void ParagraphComponentView::finalizeUpdates(RNComponentViewUpdateMask updateMask) noexcept {
+  if (m_rebuildText) {
+    RebuildTextFromState();
+    m_rebuildText = false;
+  }
+}
+
 void ParagraphComponentView::prepareForRecycle() noexcept {}
 
 const xaml::FrameworkElement ParagraphComponentView::Element() const noexcept {
