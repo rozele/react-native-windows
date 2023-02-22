@@ -28,6 +28,7 @@ struct ParagraphComponentView : BaseComponentView {
 
  private:
   void ToggleTouchEvents(bool selectable);
+  xaml::Documents::Hyperlink CreateHyperlink(facebook::react::Tag tag);
 
   xaml::Controls::TextBlock m_element;
   std::unordered_map<facebook::react::Tag, facebook::react::SharedViewEventEmitter> m_fragmentEventEmitters{};

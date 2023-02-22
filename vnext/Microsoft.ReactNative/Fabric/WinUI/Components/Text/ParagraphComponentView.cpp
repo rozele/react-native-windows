@@ -206,6 +206,13 @@ void ParagraphComponentView::updateState(
 
   for (const auto &fragment : attributedString.getFragments()) {
     auto inlines = m_element.Inlines();
+    const auto tag = fragment.parentShadowView.tag;
+
+    if (fragment.textAttributes.accessibilityRole == facebook::react::AccessibilityRole::Link) {
+      auto hyperlink = CreateHyperlink(tag);
+      inlines.Append(hyperlink);
+      inlines = hyperlink.Inlines();
+    }
 
     if (auto tdlt = fragment.textAttributes.textDecorationLineType; tdlt &&
         (*tdlt == facebook::react::TextDecorationLineType::Underline ||
@@ -225,7 +232,6 @@ void ParagraphComponentView::updateState(
     const auto run = xaml::Documents::Run();
     if (fragment.textAttributes.isPressable.has_value() && *fragment.textAttributes.isPressable &&
         fragment.parentShadowView.eventEmitter) {
-      const auto tag = fragment.parentShadowView.tag;
       SetTag(run, tag);
       m_fragmentEventEmitters[tag] =
           std::static_pointer_cast<facebook::react::ViewEventEmitter const>(fragment.parentShadowView.eventEmitter);
@@ -335,6 +341,69 @@ void ParagraphComponentView::ToggleTouchEvents(bool isSelectable) {
     m_selectionChangedRevoker.revoke();
     *m_selectionChanged = false;
   }
+}
+
+struct KeyPressState {
+  std::optional<winrt::Windows::System::VirtualKey> lastKey;
+  xaml::UIElement::PreviewKeyUp_revoker keyUpRevoker;
+  xaml::UIElement::PointerReleased_revoker pointerReleasedRevoker;
+};
+
+xaml::Documents::Hyperlink ParagraphComponentView::CreateHyperlink(facebook::react::Tag tag) {
+  xaml::Documents::Hyperlink hyperlink{};
+
+  // Underline should be handled by base class using 'textDecorationLine' prop
+  hyperlink.UnderlineStyle(xaml::Documents::UnderlineStyle::None);
+
+  // Pointer click events should be handled by the TouchEventHandler. The only
+  // condition where we want to send "onClick" events is when the user invokes
+  // the hyperlink while it has focus by pressing "Enter" or "Space".
+  const auto keyPressState = std::make_shared<KeyPressState>();
+  hyperlink.GotFocus([keyPressState](auto &&sender, auto &&) {
+    const auto hyperlink = sender.as<xaml::Documents::Hyperlink>();
+    const auto textBlock = hyperlink.ContentStart().VisualParent().try_as<xaml::Controls::TextBlock>();
+    if (textBlock) {
+      keyPressState->keyUpRevoker = textBlock.PreviewKeyUp(
+          winrt::auto_revoke, [keyPressState](auto &&, xaml::Input::KeyRoutedEventArgs const &args) {
+            keyPressState->lastKey = args.Key();
+          });
+      keyPressState->pointerReleasedRevoker = textBlock.PointerReleased(
+          winrt::auto_revoke, [keyPressState](auto &&...) { keyPressState->lastKey = std::nullopt; });
+    }
+  });
+
+  hyperlink.LostFocus([keyPressState](auto &&...) {
+    keyPressState->keyUpRevoker.revoke();
+    keyPressState->pointerReleasedRevoker.revoke();
+    keyPressState->lastKey = std::nullopt;
+  });
+
+  hyperlink.Click([this, keyPressState, tag](winrt::IInspectable const &sender, auto &&) {
+    if (const auto eventEmitter = GetEventEmitter(tag)) {
+      const auto hyperlink = sender.as<xaml::Documents::Hyperlink>();
+      auto lastKey = keyPressState->lastKey;
+
+      // When the parent TextBlock is not selectable, `PointerPressed` events are
+      // marked `Handled` and thus do not reach the root view gesture handler.
+      // The last key state is cleared on `PointerReleased`, so this workaround
+      // treats `Click` events from pointers as `Enter` key presses.
+      // TODO(T88090620): Add pointer data to event for pointer `Click` events.
+      if (!lastKey) {
+        const auto textBlock = hyperlink.ContentStart().VisualParent().try_as<xaml::Controls::TextBlock>();
+        if (textBlock && !textBlock.IsTextSelectionEnabled()) {
+          lastKey = winrt::Windows::System::VirtualKey::Enter;
+        }
+      }
+
+      if (lastKey == winrt::Windows::System::VirtualKey::Enter ||
+          lastKey == winrt::Windows::System::VirtualKey::Space) {
+        keyPressState->lastKey = std::nullopt;
+        eventEmitter->onClick();
+      }
+    }
+  });
+
+  return hyperlink;
 }
 
 } // namespace Microsoft::ReactNative

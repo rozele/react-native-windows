@@ -218,5 +218,13 @@ void TouchEventEmitter::onPointerOut(const PointerEvent &event) const {
       EventPriority::AsynchronousBatched,
       RawEvent::Category::ContinuousStart);
 }
+#ifdef USE_WINUI_FABRIC
+
+void TouchEventEmitter::onClick() const {
+  dispatchUniqueEvent("click", [](jsi::Runtime &runtime) {
+    return jsi::Object(runtime);
+  });
+}
+#endif
 
 } // namespace facebook::react
