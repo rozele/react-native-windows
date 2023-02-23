@@ -11,9 +11,9 @@
 #include <Utils/PropertyUtils.h>
 #include <Utils/ResourceBrushUtils.h>
 #include <Utils/ValueUtils.h>
+#include <Utils/XamlIslandUtils.h>
 #include <XamlView.h>
 #include "Unicode.h"
-#include "Utils/XamlIslandUtils.h"
 #include "WindowsTextInputShadowNode.h"
 #include "WindowsTextInputState.h"
 
@@ -91,7 +91,7 @@ void WindowsTextInputComponentView::ReparentView(xaml::Controls::Control oldView
 
 void WindowsTextInputComponentView::registerEvents() noexcept {
   if (const auto textBox = m_control.try_as<xaml::Controls::TextBox>()) {
-    auto tag = GetTag(textBox);
+    EnsureUniqueTextFlyoutForXamlIsland(textBox);
     m_passwordBoxPasswordChangedRevoker = {};
     m_passwordBoxPasswordChangingRevoker = {};
     m_textChangingRevoker = textBox.TextChanging(winrt::auto_revoke, [this](const auto &sender, auto &&) {
@@ -118,6 +118,7 @@ void WindowsTextInputComponentView::registerEvents() noexcept {
     m_textChangingRevoker = {};
     m_SelectionChangedRevoker = {};
     auto passwordBox = m_control.try_as<xaml::Controls::PasswordBox>();
+    EnsureUniqueTextFlyoutForXamlIsland(passwordBox);
 
     // IPasswordBox4 includes the APIs where PasswordChanging was introduced.
     // PasswordChanging is favored over PasswordChanged as it will not result in lost characters when typing fast
@@ -316,9 +317,10 @@ void WindowsTextInputComponentView::updateProps(
   auto isTextBox = static_cast<bool>(textBox);
 
   if (oldTextInputProps.secureTextEntry != newTextInputProps.secureTextEntry) {
-    xaml::Controls::Control newControl = xaml::Controls::TextBox();
-    if (newTextInputProps.secureTextEntry)
-      newControl = xaml::Controls::PasswordBox();
+    const auto newControl = newTextInputProps.secureTextEntry
+        ? xaml::Controls::PasswordBox().as<xaml::Controls::Control>()
+        : xaml::Controls::TextBox();
+    
     isTextBox = !newTextInputProps.secureTextEntry;
     const auto oldControl = m_control;
     m_control = newControl;
@@ -335,7 +337,6 @@ void WindowsTextInputComponentView::updateProps(
     m_props = std::make_shared<facebook::react::WindowsTextInputProps const>(defaultProps);
 
     updateProps(props, {});
-    registerPreviewKeyDown();
 
     if (newTextInputProps.secureTextEntry) {
       m_control.as<xaml::Controls::PasswordBox>().Password(textBox.Text());

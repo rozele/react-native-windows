@@ -14,6 +14,7 @@
 #include <UI.Xaml.Media.h>
 #include <Utils/TransformableText.h>
 #include <Utils/ValueUtils.h>
+#include <Utils/XamlIslandUtils.h>
 #include <Views/Text/TextHitTestUtils.h>
 #include <dwrite.h>
 #include <react/renderer/components/text/ParagraphShadowNode.h>
@@ -507,10 +508,12 @@ void ParagraphComponentView::ToggleTouchEvents(bool isSelectable) {
     auto contextSelf = winrt::get_self<winrt::Microsoft::ReactNative::implementation::ReactContext>(m_context.Handle());
     m_touchEventHandler = std::make_shared<FabricTouchEventHandler>(contextSelf->GetInner());
     m_touchEventHandler->AddTouchHandlers(m_element, rootView, true);
+    EnsureUniqueTextFlyoutForXamlIsland(m_element);
   } else {
     m_touchEventHandler = nullptr;
     m_selectionChangedRevoker.revoke();
     *m_selectionChanged = false;
+    ClearUniqueTextFlyoutForXamlIsland(m_element);
   }
 }
 
