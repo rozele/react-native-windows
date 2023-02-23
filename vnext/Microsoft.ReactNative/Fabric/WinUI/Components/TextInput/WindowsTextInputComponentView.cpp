@@ -276,6 +276,9 @@ void WindowsTextInputComponentView::updatePropsTextBox(
       textBox.CharacterCasing(xaml::Controls::CharacterCasing::Normal);
     }
   }
+  if (oldTextInputProps.spellCheck != newTextInputProps.spellCheck) {
+    textBox.IsSpellCheckEnabled(newTextInputProps.spellCheck);
+  }
 }
 
 void WindowsTextInputComponentView::updatePropsPasswordBox(
@@ -320,7 +323,7 @@ void WindowsTextInputComponentView::updateProps(
     const auto newControl = newTextInputProps.secureTextEntry
         ? xaml::Controls::PasswordBox().as<xaml::Controls::Control>()
         : xaml::Controls::TextBox();
-    
+
     isTextBox = !newTextInputProps.secureTextEntry;
     const auto oldControl = m_control;
     m_control = newControl;
