@@ -72,7 +72,7 @@ WindowsTextInputComponentView::WindowsTextInputComponentView(
   registerEvents();
 }
 
-void WindowsTextInputComponentView::ReparentView(xaml::Controls::Control oldView) {
+void WindowsTextInputComponentView::ReparentView(xaml::Controls::Control oldView) noexcept {
   if (const auto parent = oldView.Parent()) {
     const auto parentTag = static_cast<facebook::react::Tag>(GetTag(parent));
     if (const auto uiManager =
@@ -95,16 +95,26 @@ void WindowsTextInputComponentView::registerEvents() noexcept {
     m_passwordBoxPasswordChangedRevoker = {};
     m_passwordBoxPasswordChangingRevoker = {};
     m_textChangingRevoker = textBox.TextChanging(winrt::auto_revoke, [this](const auto &sender, auto &&) {
+      if (m_comingFromJS) {
+        return;
+      }
+
+      UpdateState();
+
       const auto textBox = sender.as<xaml::Controls::TextBox>();
       if (m_eventEmitter) {
         auto emitter = std::static_pointer_cast<const facebook::react::WindowsTextInputEventEmitter>(m_eventEmitter);
         facebook::react::WindowsTextInputMetrics textInputMetricsArgs;
         textInputMetricsArgs.text = winrt::to_string(textBox.Text());
-        textInputMetricsArgs.eventCount = m_nativeEventCount++;
+        textInputMetricsArgs.eventCount = m_mostRecentEventCount;
         emitter->onChange(textInputMetricsArgs);
       }
     });
-    m_SelectionChangedRevoker = textBox.SelectionChanged(winrt::auto_revoke, [this](const auto &sender, auto args) {
+    m_selectionChangingRevoker = textBox.SelectionChanging(winrt::auto_revoke, [this](const auto &sender, auto args) {
+      if (m_comingFromJS) {
+        return;
+      }
+
       const auto textBox = sender.as<xaml::Controls::TextBox>();
       if (m_eventEmitter) {
         auto emitter = std::static_pointer_cast<const facebook::react::WindowsTextInputEventEmitter>(m_eventEmitter);
@@ -116,7 +126,7 @@ void WindowsTextInputComponentView::registerEvents() noexcept {
     });
   } else {
     m_textChangingRevoker = {};
-    m_SelectionChangedRevoker = {};
+    m_selectionChangingRevoker = {};
     auto passwordBox = m_control.try_as<xaml::Controls::PasswordBox>();
     EnsureUniqueTextFlyoutForXamlIsland(passwordBox);
 
@@ -125,26 +135,34 @@ void WindowsTextInputComponentView::registerEvents() noexcept {
     if (passwordBox.try_as<xaml::Controls::IPasswordBox4>()) {
       m_passwordBoxPasswordChangingRevoker =
           passwordBox.PasswordChanging(winrt::auto_revoke, [this](const auto &sender, auto &&) {
+            if (m_comingFromJS) {
+              return;
+            }
+
+            UpdateState();
+
             const auto passwordBox = m_control.as<xaml::Controls::PasswordBox>();
             if (m_eventEmitter) {
               auto emitter =
                   std::static_pointer_cast<const facebook::react::WindowsTextInputEventEmitter>(m_eventEmitter);
               facebook::react::WindowsTextInputMetrics textInputMetricsArgs;
               textInputMetricsArgs.text = winrt::to_string(passwordBox.Password());
-              textInputMetricsArgs.eventCount = m_nativeEventCount++;
+              textInputMetricsArgs.eventCount = m_mostRecentEventCount;
               emitter->onChange(textInputMetricsArgs);
             }
           });
     } else {
       m_passwordBoxPasswordChangedRevoker =
           passwordBox.PasswordChanged(winrt::auto_revoke, [this](const auto &sender, auto &&) {
-            const auto passwordBox = m_control.as<xaml::Controls::PasswordBox>();
+            UpdateState();
+
             if (m_eventEmitter) {
+              const auto passwordBox = m_control.as<xaml::Controls::PasswordBox>();
               auto emitter =
                   std::static_pointer_cast<const facebook::react::WindowsTextInputEventEmitter>(m_eventEmitter);
               facebook::react::WindowsTextInputMetrics textInputMetricsArgs;
               textInputMetricsArgs.text = winrt::to_string(passwordBox.Password());
-              textInputMetricsArgs.eventCount = m_nativeEventCount++;
+              textInputMetricsArgs.eventCount = m_mostRecentEventCount;
               emitter->onChange(textInputMetricsArgs);
             }
           });
@@ -178,7 +196,7 @@ void WindowsTextInputComponentView::registerPreviewKeyDown() noexcept {
           facebook::react::WindowsTextInputMetrics textInputMetricsArgs;
           textInputMetricsArgs.text =
               winrt::to_string(textBox ? textBox.Text() : sender.as<xaml::Controls::PasswordBox>().Password());
-          textInputMetricsArgs.eventCount = m_nativeEventCount;
+          textInputMetricsArgs.eventCount = m_mostRecentEventCount;
           if (textBox) {
             textInputMetricsArgs.selectionRange.location = textBox.SelectionStart();
             textInputMetricsArgs.selectionRange.length = textBox.SelectionLength();
@@ -200,19 +218,25 @@ void WindowsTextInputComponentView::handleCommand(std::string const &commandName
   auto textBox = m_control.try_as<xaml::Controls::TextBox>();
   if (commandName == "setTextAndSelection") {
     auto eventCount = arg[0].asInt();
-
-    if (eventCount >= m_nativeEventCount) {
-      auto text = arg[1].asString();
-      auto begin = arg[2].asInt();
-      auto end = arg[3].asInt();
-      m_comingFromJS = true;
-      SetText(winrt::to_hstring(text));
-
-      if (textBox && !(begin < 0 || end < 0 || begin > end)) {
-        textBox.Select(static_cast<int32_t>(begin), static_cast<int32_t>(end - begin));
-      }
-      m_comingFromJS = false;
+    if (m_mostRecentEventCount != eventCount) {
+      return;
     }
+
+    m_comingFromJS = true;
+
+    auto text = arg[1].asString();
+    if (text != getAttributedString().getString()) {
+      SetText(winrt::to_hstring(text));
+      UpdateState();
+    }
+
+    auto begin = arg[2].asInt();
+    auto end = arg[3].asInt();
+    if (textBox && !(begin < 0 || end < 0 || begin > end)) {
+      textBox.Select(static_cast<int32_t>(begin), static_cast<int32_t>(end - begin));
+    }
+
+    m_comingFromJS = false;
   } else {
     Super::handleCommand(commandName, arg);
   }
@@ -354,7 +378,7 @@ void WindowsTextInputComponentView::updateProps(
       m_control.Foreground(newColorBrush);
       UpdateControlForegroundResourceBrushes(m_control, newColorBrush);
     } else {
-      // TODO: T142202708 ForegroundColor does not update when reset to undefined
+      // TODO(T142202708): ForegroundColor does not update when reset to undefined
       m_control.ClearValue(xaml::Controls::Control::ForegroundProperty());
       UpdateControlForegroundResourceBrushes(m_control, nullptr);
     }
@@ -406,7 +430,7 @@ void WindowsTextInputComponentView::updateProps(
       m_control.Background(newBackgroundBrush);
       UpdateControlBackgroundResourceBrushes(m_control, newBackgroundBrush);
     } else {
-      // TODO: T142203681 Background color does not update when reset to undefined
+      // TODO(T142203681): Background color does not update when reset to undefined
       m_control.ClearValue(xaml::Controls::Control::BackgroundProperty());
       UpdateControlBackgroundResourceBrushes(m_control, nullptr);
     }
@@ -429,32 +453,37 @@ void WindowsTextInputComponentView::updateProps(
   Super::updateProps(props, oldProps);
 }
 
+void WindowsTextInputComponentView::UpdateState() noexcept {
+  if (!m_state) {
+    return;
+  }
+
+  auto data = m_state->getData();
+  data.attributedString = getAttributedString();
+  m_mostRecentEventCount += m_comingFromJS ? 0 : 1;
+  data.mostRecentEventCount = m_mostRecentEventCount;
+  m_state->updateState(std::move(data));
+}
+
 void WindowsTextInputComponentView::updateState(
     facebook::react::State::Shared const &state,
     facebook::react::State::Shared const &oldState) noexcept {
   m_state = std::static_pointer_cast<facebook::react::WindowsTextInputShadowNode::ConcreteState const>(state);
-  if (const auto textBox = m_control.try_as<xaml::Controls::TextBox>()) {
-    if (!m_state) {
-      assert(false && "State is `null` for <TextInput> component.");
-      textBox.Text(L"");
-      return;
-    }
-  }
 
   auto data = m_state->getData();
 
   if (!oldState) {
-    m_mostRecentEventCount = m_state->getData().mostRecentEventCount;
+    m_mostRecentEventCount = data.mostRecentEventCount;
   }
 
-  if (m_mostRecentEventCount == m_state->getData().mostRecentEventCount) {
-    m_comingFromState = true;
+  if (m_mostRecentEventCount == data.mostRecentEventCount) {
+    m_comingFromJS = true;
+
     // Only handle single/empty fragments right now -- ignore the other fragments
     SetText(
-        m_state->getData().attributedString.getFragments().size()
-            ? winrt::to_hstring(m_state->getData().attributedString.getFragments()[0].string)
-            : L"");
-    m_comingFromState = false;
+        data.attributedString.getFragments().size() ? winrt::to_hstring(data.attributedString.getFragments()[0].string)
+                                                    : L"");
+    m_comingFromJS = false;
   }
 }
 
@@ -473,7 +502,6 @@ void WindowsTextInputComponentView::SetText(winrt::hstring text) noexcept {
         textBox.SelectionStart(newValue.size());
       }
     }
-
   } else {
     auto passwordBox = m_control.as<xaml::Controls::PasswordBox>();
     auto oldValue = passwordBox.Password();

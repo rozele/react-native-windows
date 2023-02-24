@@ -16,7 +16,7 @@ namespace facebook {
 namespace react {
 
 WindowsTextInputState::WindowsTextInputState(
-    int64_t mostRecentEventCount,
+    int32_t mostRecentEventCount,
     AttributedString attributedString,
     AttributedString reactTreeAttributedString,
     ParagraphAttributes paragraphAttributes,
@@ -38,8 +38,8 @@ WindowsTextInputState::WindowsTextInputState(
       defaultThemePaddingBottom(defaultThemePaddingBottom) {}
 
 WindowsTextInputState::WindowsTextInputState(WindowsTextInputState const &previousState, folly::dynamic const &data)
-    : mostRecentEventCount(data.getDefault("mostRecentEventCount", previousState.mostRecentEventCount).getInt()),
-      cachedAttributedStringId(data.getDefault("opaqueCacheId", previousState.cachedAttributedStringId).getInt()),
+    : mostRecentEventCount(
+          static_cast<int32_t>(data.getDefault("mostRecentEventCount", previousState.mostRecentEventCount).getInt())),
       attributedString(previousState.attributedString),
       reactTreeAttributedString(previousState.reactTreeAttributedString),
       paragraphAttributes(previousState.paragraphAttributes),
@@ -53,26 +53,6 @@ WindowsTextInputState::WindowsTextInputState(WindowsTextInputState const &previo
           static_cast<float>(data.getDefault("themePaddingTop", previousState.defaultThemePaddingTop).getDouble())),
       defaultThemePaddingBottom(static_cast<float>(
           data.getDefault("themePaddingBottom", previousState.defaultThemePaddingBottom).getDouble())){};
-
-#ifdef ANDROID
-folly::dynamic AndroidTextInputState::getDynamic() const {
-  // Java doesn't need all fields, so we don't pass them all along.
-  folly::dynamic newState = folly::dynamic::object();
-
-  // If we have a `cachedAttributedStringId` we know that we're (1) not trying
-  // to set a new string, so we don't need to pass it along; (2) setState was
-  // called from Java to trigger a relayout with a `cachedAttributedStringId`,
-  // so Java has all up-to-date information and we should pass an empty map
-  // through.
-  if (cachedAttributedStringId == 0) {
-    newState["mostRecentEventCount"] = mostRecentEventCount;
-    newState["attributedString"] = toDynamic(attributedString);
-    newState["hash"] = newState["attributedString"]["hash"];
-    newState["paragraphAttributes"] = toDynamic(paragraphAttributes); // TODO: can we memoize this in Java?
-  }
-  return newState;
-}
-#endif
 
 } // namespace react
 } // namespace facebook

@@ -21,13 +21,7 @@ namespace react {
  */
 class WindowsTextInputState final {
  public:
-  int64_t mostRecentEventCount{0};
-
-  /**
-   * Stores an opaque cache ID used on the Java side to refer to a specific
-   * AttributedString for measurement purposes only.
-   */
-  int64_t cachedAttributedStringId{0};
+  int32_t mostRecentEventCount{0};
 
   /*
    * All content of <TextInput> component represented as an `AttributedString`.
@@ -74,7 +68,7 @@ class WindowsTextInputState final {
   float defaultThemePaddingBottom{NAN};
 
   WindowsTextInputState(
-      int64_t mostRecentEventCount,
+      int32_t mostRecentEventCount,
       AttributedString attributedString,
       AttributedString reactTreeAttributedString,
       ParagraphAttributes paragraphAttributes,
@@ -87,12 +81,6 @@ class WindowsTextInputState final {
 
   WindowsTextInputState() = default;
   WindowsTextInputState(WindowsTextInputState const &previousState, folly::dynamic const &data);
-  folly::dynamic getDynamic() const;
-  /* [Windows
-  MapBuffer getMapBuffer() const {
-    return MapBufferBuilder::EMPTY();
-  };
-     Windows] */
 };
 
 } // namespace react

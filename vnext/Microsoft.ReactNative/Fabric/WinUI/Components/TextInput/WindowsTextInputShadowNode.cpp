@@ -152,15 +152,6 @@ void WindowsTextInputShadowNode::updateStateIfNeeded() {
 Size WindowsTextInputShadowNode::measureContent(
     LayoutContext const &layoutContext,
     LayoutConstraints const &layoutConstraints) const {
-  if (getStateData().cachedAttributedStringId != 0) {
-    return textLayoutManager_
-        ->measureCachedSpannableById(
-            getStateData().cachedAttributedStringId,
-            {}, // [Windows] getConcreteProps().paragraphAttributes,
-            layoutConstraints)
-        .size;
-  }
-
   // Layout is called right after measure.
   // Measure is marked as `const`, and `layout` is not; so State can be updated
   // during layout, but not during `measure`. If State is out-of-date in layout,

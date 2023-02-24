@@ -40,12 +40,13 @@ struct WindowsTextInputComponentView : BaseComponentView {
   void updatePropsPasswordBox(
       facebook::react::Props::Shared const &props,
       facebook::react::Props::Shared const &oldProps) noexcept;
-  void ReparentView(xaml::Controls::Control oldView);
+  void ReparentView(xaml::Controls::Control oldView) noexcept;
+  void UpdateState() noexcept;
 
   xaml::Controls::Control m_control{xaml::Controls::TextBox()};
   winrt::Microsoft::ReactNative::ReactContext m_context;
 
-  xaml::Controls::TextBox::SelectionChanged_revoker m_SelectionChangedRevoker;
+  xaml::Controls::TextBox::SelectionChanging_revoker m_selectionChangingRevoker;
   xaml::Controls::TextBox::PreviewKeyDown_revoker m_controlPreviewKeyDownRevoker;
   xaml::Controls::TextBox::TextChanging_revoker m_textChangingRevoker;
   xaml::Controls::PasswordBox::PasswordChanging_revoker m_passwordBoxPasswordChangingRevoker;
@@ -53,10 +54,8 @@ struct WindowsTextInputComponentView : BaseComponentView {
 
   facebook::react::LayoutMetrics m_layoutMetrics;
   std::shared_ptr<facebook::react::WindowsTextInputShadowNode::ConcreteState const> m_state;
-  int64_t m_mostRecentEventCount{0};
-  int m_nativeEventCount{0};
+  int32_t m_mostRecentEventCount{0};
   bool m_comingFromJS{false};
-  bool m_comingFromState{false};
 };
 
 } // namespace Microsoft::ReactNative
