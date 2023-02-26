@@ -24,22 +24,14 @@ static jsi::Value textInputMetricsPayload(jsi::Runtime &runtime, WindowsTextInpu
 };
 
 void WindowsTextInputEventEmitter::onChange(WindowsTextInputMetrics const &textInputMetrics) const {
-  dispatchEvent("change", [textInputMetrics = std::move(textInputMetrics)](jsi::Runtime &runtime) {
-    auto payload = jsi::Object(runtime);
-    payload.setProperty(runtime, "eventCount", textInputMetrics.eventCount);
-    payload.setProperty(runtime, "text", textInputMetrics.text);
-    return payload;
+  dispatchEvent("change", [textInputMetrics](jsi::Runtime &runtime) {
+    return textInputMetricsPayload(runtime, textInputMetrics);
   });
 }
 
-void WindowsTextInputEventEmitter::onSelectionChange(const OnSelectionChange &event) const {
-  dispatchEvent("textInputSelectionChange", [event = std::move(event)](jsi::Runtime &runtime) {
-    auto payload = jsi::Object(runtime);
-    auto selection = jsi::Object(runtime);
-    selection.setProperty(runtime, "start", event.selection.start);
-    selection.setProperty(runtime, "end", event.selection.end);
-    payload.setProperty(runtime, "selection", selection);
-    return payload;
+void WindowsTextInputEventEmitter::onSelectionChange(WindowsTextInputMetrics const &textInputMetrics) const {
+  dispatchEvent("textInputSelectionChange", [textInputMetrics](jsi::Runtime &runtime) {
+    return textInputMetricsPayload(runtime, textInputMetrics);
   });
 }
 

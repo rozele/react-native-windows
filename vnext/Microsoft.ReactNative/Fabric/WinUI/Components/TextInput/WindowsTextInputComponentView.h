@@ -7,6 +7,7 @@
 #include <Fabric/WinUI/Components/View/ViewComponentView.h>
 #include <Fabric/WinUI/FabricUIManagerModule.h>
 #include <ReactContext.h>
+#include "WindowsTextInputEventEmitter.h"
 #include "WindowsTextInputProps.h"
 #include "WindowsTextInputShadowNode.h"
 
@@ -42,11 +43,13 @@ struct WindowsTextInputComponentView : BaseComponentView {
       facebook::react::Props::Shared const &oldProps) noexcept;
   void ReparentView(xaml::Controls::Control oldView) noexcept;
   void UpdateState() noexcept;
+  facebook::react::WindowsTextInputMetrics GetTextInputMetrics() noexcept;
 
   xaml::Controls::Control m_control{xaml::Controls::TextBox()};
   winrt::Microsoft::ReactNative::ReactContext m_context;
 
   xaml::Controls::TextBox::SelectionChanging_revoker m_selectionChangingRevoker;
+  xaml::Controls::TextBox::SelectionChanged_revoker m_selectionChangedRevoker;
   xaml::Controls::TextBox::PreviewKeyDown_revoker m_controlPreviewKeyDownRevoker;
   xaml::Controls::TextBox::TextChanging_revoker m_textChangingRevoker;
   xaml::Controls::PasswordBox::PasswordChanging_revoker m_passwordBoxPasswordChangingRevoker;
@@ -56,6 +59,7 @@ struct WindowsTextInputComponentView : BaseComponentView {
   std::shared_ptr<facebook::react::WindowsTextInputShadowNode::ConcreteState const> m_state;
   int32_t m_mostRecentEventCount{0};
   bool m_comingFromJS{false};
+  bool m_emitSelectionChanged{false};
 };
 
 } // namespace Microsoft::ReactNative
