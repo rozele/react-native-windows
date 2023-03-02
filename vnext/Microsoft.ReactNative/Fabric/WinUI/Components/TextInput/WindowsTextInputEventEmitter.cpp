@@ -23,6 +23,13 @@ static jsi::Value textInputMetricsPayload(jsi::Runtime &runtime, WindowsTextInpu
   return payload;
 };
 
+static jsi::Value keyPressMetricsPayload(jsi::Runtime &runtime, WindowsKeyPressMetrics const &keyPressMetrics) {
+  auto payload = jsi::Object(runtime);
+  payload.setProperty(runtime, "text", jsi::String::createFromUtf8(runtime, keyPressMetrics.text));
+  payload.setProperty(runtime, "eventCount", keyPressMetrics.eventCount);
+  return payload;
+};
+
 void WindowsTextInputEventEmitter::onChange(WindowsTextInputMetrics const &textInputMetrics) const {
   dispatchEvent("change", [textInputMetrics](jsi::Runtime &runtime) {
     return textInputMetricsPayload(runtime, textInputMetrics);
@@ -38,6 +45,12 @@ void WindowsTextInputEventEmitter::onSelectionChange(WindowsTextInputMetrics con
 void WindowsTextInputEventEmitter::onSubmitEditing(WindowsTextInputMetrics const &textInputMetrics) const {
   dispatchEvent("textInputSubmitEditing", [textInputMetrics](jsi::Runtime &runtime) {
     return textInputMetricsPayload(runtime, textInputMetrics);
+  });
+}
+
+void WindowsTextInputEventEmitter::onKeyPress(WindowsKeyPressMetrics const &keyPressMetrics) const {
+  dispatchEvent("textInputKeyPress", [keyPressMetrics](jsi::Runtime &runtime) {
+    return keyPressMetricsPayload(runtime, keyPressMetrics);
   });
 }
 

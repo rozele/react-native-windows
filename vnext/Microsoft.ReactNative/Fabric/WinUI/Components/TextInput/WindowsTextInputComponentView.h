@@ -54,6 +54,7 @@ struct WindowsTextInputComponentView : BaseComponentView {
   xaml::Controls::TextBox::TextChanging_revoker m_textChangingRevoker;
   xaml::Controls::PasswordBox::PasswordChanging_revoker m_passwordBoxPasswordChangingRevoker;
   xaml::Controls::PasswordBox::PasswordChanged_revoker m_passwordBoxPasswordChangedRevoker;
+  xaml::Controls::Control::CharacterReceived_revoker m_controlCharacterReceivedRevoker;
 
   facebook::react::LayoutMetrics m_layoutMetrics;
   std::shared_ptr<facebook::react::WindowsTextInputShadowNode::ConcreteState const> m_state;

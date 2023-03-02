@@ -165,6 +165,33 @@ void WindowsTextInputComponentView::registerEvents() noexcept {
       });
     }
   }
+
+  m_controlCharacterReceivedRevoker = m_control.CharacterReceived(
+      winrt::auto_revoke, [=](auto &&, xaml::Input::CharacterReceivedRoutedEventArgs const &args) {
+        if (m_comingFromJS) {
+          return;
+        }
+
+        std::string key;
+        wchar_t s[2] = L" ";
+        s[0] = args.Character();
+        key = Microsoft::Common::Unicode::Utf16ToUtf8(s, 1);
+
+        if (key.compare("\r") == 0) {
+          key = "Enter";
+        } else if (key.compare("\b") == 0) {
+          key = "Backspace";
+        }
+
+        facebook::react::WindowsKeyPressMetrics keyPressMetrics;
+        keyPressMetrics.text = key;
+        keyPressMetrics.eventCount = m_mostRecentEventCount;
+
+        if (const auto eventEmitter =
+                std::static_pointer_cast<const facebook::react::WindowsTextInputEventEmitter>(m_eventEmitter)) {
+          eventEmitter->onKeyPress(keyPressMetrics);
+        }
+      });
   registerPreviewKeyDown();
 }
 

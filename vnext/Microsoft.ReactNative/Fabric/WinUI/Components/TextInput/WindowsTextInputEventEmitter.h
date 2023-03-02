@@ -15,6 +15,12 @@ class WindowsTextInputMetrics {
   int eventCount{};
 };
 
+class WindowsKeyPressMetrics {
+ public:
+  std::string text;
+  int eventCount;
+};
+
 class WindowsTextInputEventEmitter : public ViewEventEmitter {
  public:
   using ViewEventEmitter::ViewEventEmitter;
@@ -27,6 +33,7 @@ class WindowsTextInputEventEmitter : public ViewEventEmitter {
   void onChange(WindowsTextInputMetrics const &textInputMetrics) const;
   void onSelectionChange(WindowsTextInputMetrics const &value) const;
   void onSubmitEditing(WindowsTextInputMetrics const &textInputMetrics) const;
+  void onKeyPress(WindowsKeyPressMetrics const &keyPressMetrics) const;
 };
 
 } // namespace facebook::react
