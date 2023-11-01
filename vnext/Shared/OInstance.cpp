@@ -55,6 +55,8 @@
 #endif
 #include <ReactCommon/CallInvoker.h>
 #include <ReactCommon/TurboModuleBinding.h>
+#include <react/renderer/runtimescheduler/RuntimeSchedulerBinding.h>
+#include <react/renderer/runtimescheduler/RuntimeSchedulerCallInvoker.h>
 #include "BaseScriptStoreImpl.h"
 #include "ChakraRuntimeHolder.h"
 
@@ -88,7 +90,12 @@ class OJSIExecutorFactory : public JSExecutorFactory {
     }
     bindNativeLogger(*runtimeHolder_->getRuntime(), logger);
 
-    auto turboModuleManager = std::make_shared<TurboModuleManager>(turboModuleRegistry_, jsCallInvoker_);
+    const auto runtimeScheduler = getRuntimeScheduler_();
+
+    RuntimeSchedulerBinding::createAndInstallIfNeeded(*runtimeHolder_->getRuntime(), runtimeScheduler);
+
+    auto turboModuleManager = std::make_shared<TurboModuleManager>(
+        turboModuleRegistry_, std::make_shared<RuntimeSchedulerCallInvoker>(runtimeScheduler));
 
     // TODO: The binding here should also add the proxys that convert cxxmodules into turbomodules
     // [@vmoroz] Note, that we must not use the RN TurboCxxModule.h code because it uses global
@@ -125,19 +132,19 @@ class OJSIExecutorFactory : public JSExecutorFactory {
       std::shared_ptr<TurboModuleRegistry> turboModuleRegistry,
       std::shared_ptr<LongLivedObjectCollection> longLivedObjectCollection,
       bool isProfilingEnabled,
-      std::shared_ptr<CallInvoker> jsCallInvoker) noexcept
+      std::function<std::shared_ptr<RuntimeScheduler>()> getRuntimeScheduler) noexcept
       : runtimeHolder_{std::move(runtimeHolder)},
         loggingHook_{std::move(loggingHook)},
         turboModuleRegistry_{std::move(turboModuleRegistry)},
         longLivedObjectCollection_{std::move(longLivedObjectCollection)},
-        jsCallInvoker_{std::move(jsCallInvoker)},
+        getRuntimeScheduler_{std::move(getRuntimeScheduler)},
         isProfilingEnabled_{isProfilingEnabled} {}
 
  private:
   std::shared_ptr<Microsoft::JSI::RuntimeHolderLazyInit> runtimeHolder_;
   std::shared_ptr<TurboModuleRegistry> turboModuleRegistry_;
   std::shared_ptr<LongLivedObjectCollection> longLivedObjectCollection_;
-  std::shared_ptr<CallInvoker> jsCallInvoker_;
+  std::function<std::shared_ptr<RuntimeScheduler>()> getRuntimeScheduler_;
   NativeLoggingHook loggingHook_;
   bool isProfilingEnabled_;
 };
@@ -302,7 +309,13 @@ InstanceImpl::InstanceImpl(
           m_turboModuleRegistry,
           m_longLivedObjectCollection,
           !m_devSettings->useFastRefresh,
-          m_innerInstance->getJSCallInvoker());
+          [this]() {
+            if (!m_runtimeScheduler) {
+              const auto runtimeExecutor = m_innerInstance->getRuntimeExecutor();
+              m_runtimeScheduler = std::make_shared<facebook::react::RuntimeScheduler>(runtimeExecutor);
+            }
+            return m_runtimeScheduler;
+          });
     } else {
       assert(m_devSettings->jsiEngineOverride != JSIEngineOverride::Default);
       switch (m_devSettings->jsiEngineOverride) {
@@ -352,7 +365,13 @@ InstanceImpl::InstanceImpl(
           m_turboModuleRegistry,
           m_longLivedObjectCollection,
           !m_devSettings->useFastRefresh,
-          m_innerInstance->getJSCallInvoker());
+          [this]() {
+            if (!m_runtimeScheduler) {
+              const auto runtimeExecutor = m_innerInstance->getRuntimeExecutor();
+              m_runtimeScheduler = std::make_shared<facebook::react::RuntimeScheduler>(runtimeExecutor);
+            }
+            return m_runtimeScheduler;
+          });
     }
   }
 

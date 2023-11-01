@@ -596,14 +596,8 @@ void ReactInstanceWin::Initialize() noexcept {
 
                 if (winrt::Microsoft::ReactNative::implementation::QuirkSettings::GetUseRuntimeScheduler(
                         winrt::Microsoft::ReactNative::ReactPropertyBag(reactContext->Properties()))) {
-                  std::shared_ptr<facebook::react::RuntimeScheduler> runtimeScheduler =
-                      std::make_shared<facebook::react::RuntimeScheduler>(
-                          instanceWrapper->GetInstance()->getRuntimeExecutor());
-
-                  facebook::react::RuntimeSchedulerBinding::createAndInstallIfNeeded(
-                      *jsiRuntimeHolder->getRuntime().get(), runtimeScheduler);
                   Microsoft::ReactNative::SchedulerSettings::SetRuntimeScheduler(
-                      ReactPropertyBag(reactContext->Properties()), runtimeScheduler);
+                      ReactPropertyBag(reactContext->Properties()), instanceWrapper->GetRuntimeScheduler());
                 }
               }
 
