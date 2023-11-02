@@ -18,8 +18,10 @@
 #include "OInstance.h"
 #include "Unicode.h"
 
+#if defined(USE_CHAKRA)
 #include "Chakra/ChakraHelpers.h"
 #include "Chakra/ChakraUtils.h"
+#endif // defined(USE_CHAKRA)
 #include "JSI/RuntimeHolder.h"
 
 #include <cxxreact/MessageQueueThread.h>
@@ -49,6 +51,9 @@
 #include <hermes/BytecodeVersion.h>
 #endif
 #include "HermesRuntimeHolder.h"
+#ifdef METARNW // META_RNW_HERMES: We instantiate the Hermes executor directly for FBSource
+#include <jsireact/HermesExecutorFactory.h>
+#endif
 
 #if defined(USE_V8)
 #include <JSI/V8RuntimeHolder.h>
@@ -56,8 +61,9 @@
 #endif
 #include <ReactCommon/CallInvoker.h>
 #include <ReactCommon/TurboModuleBinding.h>
-#include "BaseScriptStoreImpl.h"
+#if defined(USE_CHAKRA)
 #include "ChakraRuntimeHolder.h"
+#endif // defined(USE_CHAKRA)
 
 #include <tracing/tracing.h>
 namespace fs = std::filesystem;
@@ -307,19 +313,52 @@ InstanceImpl::InstanceImpl(
     } else {
       assert(m_devSettings->jsiEngineOverride != JSIEngineOverride::Default);
       switch (m_devSettings->jsiEngineOverride) {
-        case JSIEngineOverride::Hermes: {
-          std::shared_ptr<facebook::jsi::PreparedScriptStore> preparedScriptStore;
+        case JSIEngineOverride::Hermes:
+#ifdef METARNW // META_RNW_HERMES: We instantiate the Hermes executor directly for FBSource
+        {
+          std::weak_ptr<Instance> weakInstance = m_innerInstance;
+          jsef = std::make_shared<facebook::react::HermesExecutorFactory>(
+              [weakInstance,
+               installers = m_devSettings->runtimeInstallers,
+               turboModuleManagerDelegate = m_devSettings->turboModuleManagerDelegate,
+               callInvoker = m_innerInstance->getJSCallInvoker(),
+               reactContext = m_devSettings->reactContext,
+               turboModuleRegistry = m_turboModuleRegistry,
+               longLivedObjectCollection = m_longLivedObjectCollection](facebook::jsi::Runtime &runtime) {
+                if (auto instance = weakInstance.lock()) {
+                  for (auto &installer : installers) {
+                    installer(runtime, instance);
+                  }
+                }
 
-          wchar_t tempPath[MAX_PATH];
-          if (GetTempPathW(MAX_PATH, tempPath)) {
-            preparedScriptStore =
-                std::make_shared<facebook::react::BasePreparedScriptStoreImpl>(winrt::to_string(tempPath));
-          }
+                auto turboModuleManager = std::make_shared<TurboModuleManager>(turboModuleRegistry, callInvoker);
 
-          m_devSettings->jsiRuntimeHolder = std::make_shared<Microsoft::ReactNative::HermesRuntimeHolder>(
-              m_devSettings, m_jsThread, std::move(preparedScriptStore));
-          break;
+                // TODO: The binding here should also add the proxys that convert cxxmodules into turbomodules
+                auto binding = [turboModuleManager, turboModuleManagerDelegate, callInvoker, reactContext](
+                                   const std::string &name) -> std::shared_ptr<TurboModule> {
+                  if (turboModuleManagerDelegate) {
+                    if (auto turboModule = turboModuleManagerDelegate(name, callInvoker, reactContext)) {
+                      return turboModule;
+                    }
+                  }
+                  return turboModuleManager->getModule(name);
+                };
+
+                TurboModuleBinding::install(
+                    runtime, std::function(binding), TurboModuleBindingMode::HostObject, longLivedObjectCollection);
+
+                // init TurboModule
+                for (const auto &moduleName : turboModuleManager->getEagerInitModuleNames()) {
+                  turboModuleManager->getModule(moduleName);
+                }
+              },
+              JSIExecutor::defaultTimeoutInvoker,
+              m_devSettings->hermesRuntimeConfig);
         }
+#else
+          m_devSettings->jsiRuntimeHolder = std::make_shared<HermesRuntimeHolder>(m_devSettings, m_jsThread);
+#endif
+        break;
         case JSIEngineOverride::V8: {
 #if defined(USE_V8)
           std::shared_ptr<facebook::jsi::PreparedScriptStore> preparedScriptStore;
@@ -360,17 +399,25 @@ InstanceImpl::InstanceImpl(
         }
         case JSIEngineOverride::Chakra:
         default: // TODO: Add other engines once supported
+#if defined(USE_CHAKRA)
           m_devSettings->jsiRuntimeHolder =
               std::make_shared<Microsoft::JSI::ChakraRuntimeHolder>(m_devSettings, m_jsThread, nullptr, nullptr);
+#else
+          if (m_devSettings->errorCallback)
+            m_devSettings->errorCallback("ChakraCore is not available in this build");
+          assert(false);
+#endif
           break;
       }
-      jsef = std::make_shared<OJSIExecutorFactory>(
-          m_devSettings->jsiRuntimeHolder,
-          m_devSettings->loggingCallback,
-          m_turboModuleRegistry,
-          m_longLivedObjectCollection,
-          !m_devSettings->useFastRefresh,
-          m_innerInstance->getJSCallInvoker());
+      if (!jsef) {
+        jsef = std::make_shared<OJSIExecutorFactory>(
+            m_devSettings->jsiRuntimeHolder,
+            m_devSettings->loggingCallback,
+            m_turboModuleRegistry,
+            m_longLivedObjectCollection,
+            !m_devSettings->useFastRefresh,
+            m_innerInstance->getJSCallInvoker());
+      }
     }
   }
 
